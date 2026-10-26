@@ -39,6 +39,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 .menu-btn{display:flex !important}
 }
 @media (prefers-reduced-motion: reduce){.side,.scrim{transition:none !important}}
+.resizing .side,.resizing .scrim{transition:none !important}
 </style>
 </head>
 <body>
@@ -417,6 +418,17 @@ class Component extends DCLogic {
   }
 
   componentDidMount() {
+    // Crossing the mobile breakpoint: close the mobile menu and skip the slide animations.
+    try {
+      this.mq = window.matchMedia('(max-width: 830px)');
+      this.onBreakpoint = () => {
+        document.documentElement.classList.add('resizing');
+        this.setState({ narrowNav: false });
+        clearTimeout(this.resizeTimer);
+        this.resizeTimer = setTimeout(() => document.documentElement.classList.remove('resizing'), 350);
+      };
+      this.mq.addEventListener('change', this.onBreakpoint);
+    } catch (e) {}
     if (this.state.typing) {
       this.replyTimer = this.later(() => this.addReply('debounce', 'Done. The returned function now has a cancel() method that clears any pending call, so nothing fires after you cancel it.'), 1800);
     }
@@ -424,6 +436,7 @@ class Component extends DCLogic {
 
   componentWillUnmount() {
     this.timers.forEach((t) => clearTimeout(t));
+    if (this.mq) this.mq.removeEventListener('change', this.onBreakpoint);
   }
 
   componentDidUpdate() {
