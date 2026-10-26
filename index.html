@@ -26,7 +26,15 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 @keyframes rise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 .pop{animation:rise 0.16s ease-out}
 @media (prefers-reduced-motion: reduce){.dot,.pop{animation:none}}
-@media (max-width: 830px){.side{display:none !important}.side.open{display:flex !important;position:fixed;top:0;left:0;bottom:0;width:280px;z-index:40;box-shadow:8px 0 24px rgba(24,24,27,0.16)}.menu-btn{display:flex !important}}
+.scrim{display:none}
+@media (max-width: 830px){
+.side{display:flex !important;position:fixed;top:0;left:0;bottom:0;width:280px;z-index:40;transform:translateX(-100%);visibility:hidden;transition:transform 0.3s cubic-bezier(0.32,0.72,0,1),visibility 0.3s,box-shadow 0.3s}
+.side.open{transform:none;visibility:visible;box-shadow:8px 0 24px rgba(24,24,27,0.16)}
+.scrim{display:block;position:fixed;top:0;right:0;bottom:0;left:280px;z-index:39;border:0;padding:0;margin:0;background:rgba(24,24,27,0.25);cursor:default;opacity:0;pointer-events:none;transition:opacity 0.25s ease}
+.scrim.on{opacity:1;pointer-events:auto}
+.menu-btn{display:flex !important}
+}
+@media (prefers-reduced-motion: reduce){.side,.scrim{transition:none !important}}
 </style>
 </head>
 <body>
@@ -38,9 +46,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
   <template v-if="v.anyMenu">
     <button aria-label="Close menu" tabindex="-1" @click="v.closeMenus" style="position: absolute; inset: 0; z-index: 30; border: 0; padding: 0; margin: 0; background: transparent; cursor: default"></button>
   </template>
-  <template v-if="v.narrowNav">
-    <button aria-label="Close sidebar" tabindex="-1" @click="v.collapse" style="position: absolute; inset: 0; z-index: 39; border: 0; padding: 0; margin: 0; background: rgba(24,24,27,0.25); cursor: default"></button>
-  </template>
+  <button aria-label="Close sidebar" tabindex="-1" :class="v.narrowNav ? 'scrim on' : 'scrim'" @click="v.collapse"></button>
 
   <template v-if="v.showNav">
   <nav :class="v.navClass" aria-label="Conversations" style="flex: 0 0 280px; max-height: 100%; overflow-y: auto; box-sizing: border-box; background: #EFEFF1; border-right: 1px solid #E2E2E6; padding: 16px 12px 8px; display: flex; flex-direction: column; gap: 16px">
@@ -610,7 +616,7 @@ class Component extends DCLogic {
     ].map((c) => ({ ...c, pick: () => this.send(c.text) }));
 
     const canSend = !!s.draft.trim();
-    const showNav = !s.collapsed || s.narrowNav;
+    const showNav = !s.collapsed || s.narrowNav || this.isNarrow();
 
     return {
       accent,
