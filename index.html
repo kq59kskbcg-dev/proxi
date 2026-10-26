@@ -27,10 +27,14 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 .pop{animation:rise 0.16s ease-out}
 @media (prefers-reduced-motion: reduce){.dot,.pop{animation:none}}
 .scrim{display:none}
+@media (min-width: 831px){
+.side{transition:margin-left 0.3s cubic-bezier(0.32,0.72,0,1),visibility 0.3s}
+.side.collapsed{margin-left:-280px;visibility:hidden}
+}
 @media (max-width: 830px){
 .side{display:flex !important;position:fixed;top:0;left:0;bottom:0;width:280px;z-index:40;transform:translateX(-100%);visibility:hidden;transition:transform 0.3s cubic-bezier(0.32,0.72,0,1),visibility 0.3s,box-shadow 0.3s}
 .side.open{transform:none;visibility:visible;box-shadow:8px 0 24px rgba(24,24,27,0.16)}
-.scrim{display:block;position:fixed;top:0;right:0;bottom:0;left:280px;z-index:39;border:0;padding:0;margin:0;background:rgba(24,24,27,0.25);cursor:default;opacity:0;pointer-events:none;transition:opacity 0.25s ease}
+.scrim{display:block;position:fixed;inset:0;z-index:39;border:0;padding:0;margin:0;background:rgba(24,24,27,0.25);cursor:default;opacity:0;pointer-events:none;transition:opacity 0.25s ease}
 .scrim.on{opacity:1;pointer-events:auto}
 .menu-btn{display:flex !important}
 }
@@ -616,14 +620,14 @@ class Component extends DCLogic {
     ].map((c) => ({ ...c, pick: () => this.send(c.text) }));
 
     const canSend = !!s.draft.trim();
-    const showNav = !s.collapsed || s.narrowNav || this.isNarrow();
+    const showNav = true;
 
     return {
       accent,
       anyMenu: s.modelMenu || s.chatMenu,
       closeMenus: () => this.setState({ modelMenu: false, chatMenu: false }),
       showNav,
-      navClass: s.narrowNav ? 'side open' : 'side',
+      navClass: s.narrowNav ? 'side open' : (s.collapsed ? 'side collapsed' : 'side'),
       narrowNav: s.narrowNav,
       menuBtnDisplay: s.collapsed ? 'flex' : 'none',
       collapse: () => (this.isNarrow() ? this.setState({ narrowNav: false }) : this.setState({ collapsed: true })),
