@@ -149,11 +149,33 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 
     </div>
 
-    <div style="flex: none; margin: 0 12px; display: flex; align-items: center; gap: 10px; padding: 10px 10px 8px; border-top: 1px solid #E7E5EE">
-      <div :ref="v.userButtonRef" style="flex: none; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center"></div>
-      <div style="display: flex; flex-direction: column; flex: 1; min-width: 0">
-        <span style="font-size: 14px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{ v.userName }}</span>
-      </div>
+    <div style="flex: none; position: relative; margin: 0 12px; display: flex; align-items: center; gap: 4px; padding: 8px 0 8px; border-top: 1px solid #E7E5EE">
+      <button class="hov" aria-haspopup="menu" :aria-expanded="v.userMenuExpanded" @click="v.toggleUserMenu" style="flex: 1; min-width: 0; height: 48px; border: 0; background: transparent; border-radius: 10px; padding: 0 8px; display: flex; align-items: center; gap: 10px; color: #111111; cursor: pointer; text-align: left">
+        <template v-if="v.userImage">
+          <img :src="v.userImage" alt="" style="flex: none; width: 32px; height: 32px; border-radius: 50%; object-fit: cover">
+        </template>
+        <template v-if="!v.userImage">
+          <span aria-hidden="true" :style="`flex: none; width: 32px; height: 32px; border-radius: 50%; background: ${v.accent}; color: #FFFFFF; font-size: 14px; font-weight: 600; display: flex; align-items: center; justify-content: center`">{{ v.userInitial }}</span>
+        </template>
+        <span style="flex: 1; min-width: 0; font-size: 14px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{ v.userName }}</span>
+        <svg style="flex: none; color: #52525B" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 15l6-6 6 6"></path></svg>
+      </button>
+      <template v-if="v.userMenu">
+        <div class="pop" role="menu" style="position: absolute; bottom: 60px; left: 0; right: 0; z-index: 31; background: #FFFFFF; border: 1px solid #E7E5EE; border-radius: 12px; box-shadow: 0 8px 24px rgba(24,24,27,0.12); padding: 6px">
+          <button class="menu-item" role="menuitem" @click="v.menuPrivacy" style="width: 100%; height: 40px; border: 0; background: transparent; border-radius: 8px; display: flex; align-items: center; gap: 10px; padding: 0 10px; font-size: 14px; font-weight: 500; color: #111111; cursor: pointer">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>
+            Privacy
+          </button>
+          <button class="menu-item" role="menuitem" @click="v.menuSecurity" style="width: 100%; height: 40px; border: 0; background: transparent; border-radius: 8px; display: flex; align-items: center; gap: 10px; padding: 0 10px; font-size: 14px; font-weight: 500; color: #111111; cursor: pointer">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z"></path></svg>
+            Security
+          </button>
+          <button class="menu-item" role="menuitem" @click="v.logout" style="width: 100%; height: 40px; border: 0; background: transparent; border-radius: 8px; display: flex; align-items: center; gap: 10px; padding: 0 10px; font-size: 14px; font-weight: 500; color: #111111; cursor: pointer">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3"></path><path d="M10 17l-5-5 5-5"></path><path d="M5 12h11"></path></svg>
+            Logout
+          </button>
+        </div>
+      </template>
       <button class="hov" aria-label="Settings" @click="v.openSettings" style="width: 44px; height: 44px; border: 0; background: transparent; border-radius: 10px; color: #52525B; display: flex; align-items: center; justify-content: center; cursor: pointer">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"></path></svg>
       </button>
@@ -381,6 +403,7 @@ class Component extends DCLogic {
       model: 'Opus 5.5',
       modelMenu: false,
       chatMenu: false,
+      userMenu: false,
       searchOpen: false,
       query: '',
       collapsed: false,
@@ -642,7 +665,7 @@ class Component extends DCLogic {
   }
 
   go(patch) {
-    this.setState({ chatMenu: false, modelMenu: false, narrowNav: false, ...patch });
+    this.setState({ chatMenu: false, modelMenu: false, userMenu: false, narrowNav: false, ...patch });
   }
 
   renderVals() {
@@ -731,8 +754,8 @@ class Component extends DCLogic {
 
     return {
       accent,
-      anyMenu: s.modelMenu || s.chatMenu,
-      closeMenus: () => this.setState({ modelMenu: false, chatMenu: false }),
+      anyMenu: s.modelMenu || s.chatMenu || s.userMenu,
+      closeMenus: () => this.setState({ modelMenu: false, chatMenu: false, userMenu: false }),
       showNav,
       navClass: s.narrowNav ? 'side open' : (s.collapsed ? 'side collapsed' : 'side'),
       narrowNav: s.narrowNav,
@@ -769,7 +792,7 @@ class Component extends DCLogic {
       chatTitle: conv ? conv.title : '',
       chatMenu: s.chatMenu,
       chatMenuExpanded: s.chatMenu ? 'true' : 'false',
-      toggleChatMenu: () => this.setState({ chatMenu: !s.chatMenu, modelMenu: false }),
+      toggleChatMenu: () => this.setState({ chatMenu: !s.chatMenu, modelMenu: false, userMenu: false }),
       deleteChat: async () => {
         const id = s.activeId;
         this.stop();
@@ -804,7 +827,7 @@ class Component extends DCLogic {
       models,
       modelMenu: s.modelMenu,
       modelMenuExpanded: s.modelMenu ? 'true' : 'false',
-      toggleModelMenu: () => this.setState({ modelMenu: !s.modelMenu, chatMenu: false }),
+      toggleModelMenu: () => this.setState({ modelMenu: !s.modelMenu, chatMenu: false, userMenu: false }),
       typing: s.typing,
       notTyping: !s.typing,
       stop: () => this.stop(),
@@ -815,9 +838,15 @@ class Component extends DCLogic {
       chips,
 
       userName: this.props.userName,
-      userButtonRef: (el) => {
-        if (el && el !== this.userButtonEl) { this.userButtonEl = el; window.Clerk.mountUserButton(el); }
-      },
+      userImage: this.props.userImage,
+      userInitial: (this.props.userName || '?').trim().charAt(0).toUpperCase(),
+      userMenu: s.userMenu,
+      userMenuExpanded: s.userMenu ? 'true' : 'false',
+      toggleUserMenu: () => this.setState({ userMenu: !s.userMenu, chatMenu: false, modelMenu: false }),
+      menuPrivacy: () => { this.setState({ userMenu: false }); this.showToast('Privacy is not part of this prototype'); },
+      menuSecurity: () => { this.setState({ userMenu: false }); this.showToast('Security is not part of this prototype'); },
+      // Signing out triggers Clerk's listener, which reloads to the sign-in screen.
+      logout: () => { this.setState({ userMenu: false }); window.Clerk.signOut(); },
 
       hasToast: !!s.toast,
       toast: s.toast
@@ -844,6 +873,7 @@ async function start() {
     return;
   }
   props.userName = clerk.user.fullName || clerk.user.primaryEmailAddress?.emailAddress || 'Signed in';
+  props.userImage = clerk.user.hasImage ? clerk.user.imageUrl : '';
   createApp({
     template: '#tpl',
     setup() {
