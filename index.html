@@ -367,8 +367,9 @@ class Component extends DCLogic {
       activeId: start === 'chat' ? 'debounce' : null,
       view: start,
       draft: '',
-      typing: start === 'chat',
-      typingConv: start === 'chat' ? 'debounce' : null,
+      typing: false,
+      typingConv: null,
+      replyStarted: false,
       model: 'Opus 5.5',
       modelMenu: false,
       chatMenu: false,
@@ -390,7 +391,8 @@ class Component extends DCLogic {
       { id: 'debounce', title: 'Debounce helper in TypeScript', group: 'Today', messages: [
         u(1, 'Can you write a small debounce helper in TypeScript? It should keep the argument types of the wrapped function.'),
         { id: 2, role: 'assistant', rich: 'debounce' },
-        u(3, 'Yes, add a cancel method please.')
+        u(3, 'Yes, add a cancel method please.'),
+        a(16, 'Done. The returned function now has a cancel() method that clears any pending call, so nothing fires after you cancel it.')
       ] },
       { id: 'lisbon', title: 'Trip plan for Lisbon', group: 'Today', messages: [
         u(4, 'Plan a 3 day trip to Lisbon for someone who likes food and walking.'),
@@ -435,9 +437,6 @@ class Component extends DCLogic {
       };
       this.mq.addEventListener('change', this.onBreakpoint);
     } catch (e) {}
-    if (this.state.typing) {
-      this.replyTimer = this.later(() => this.addReply('debounce', 'Done. The returned function now has a cancel() method that clears any pending call, so nothing fires after you cancel it.'), 1800);
-    }
   }
 
   componentWillUnmount() {
@@ -451,6 +450,9 @@ class Component extends DCLogic {
     if (sig !== this.sig) {
       this.sig = sig;
       if (this.msgEl) this.msgEl.scrollTop = this.msgEl.scrollHeight;
+    } else if (this.state.replyStarted && this.msgEl) {
+      const el = this.msgEl;
+      if (el.scrollHeight - el.scrollTop - el.clientHeight < 120) el.scrollTop = el.scrollHeight;
     }
   }
 
@@ -477,19 +479,92 @@ class Component extends DCLogic {
     this.toastTimer = this.later(() => this.setState({ toast: '' }), 2200);
   }
 
-  addReply(convId, text) {
-    const id = this.nextId++;
-    this.replyTimer = null;
+  // Plain-text version of a message, as sent to the model.
+  plain(m) {
+    return m.rich ? 'Here is a typed version:\n\n```ts\n' + this.code() + '\n```' : m.text;
+  }
+
+  patchMessage(convId, msgId, fn) {
     this.setState((s) => ({
-      typing: false,
-      typingConv: null,
-      convs: s.convs.map((c) => c.id === convId ? { ...c, messages: [...c.messages, { id, role: 'assistant', text }] } : c)
+      convs: s.convs.map((c) => c.id !== convId ? c : { ...c, messages: c.messages.map((m) => m.id === msgId ? fn(m) : m) })
     }));
   }
 
-  startReply(convId, text) {
-    this.setState({ typing: true, typingConv: convId });
-    this.replyTimer = this.later(() => this.addReply(convId, text), 1400);
+  addAssistant(convId, text) {
+    const id = this.nextId++;
+    this.setState((s) => ({
+      convs: s.convs.map((c) => c.id === convId ? { ...c, messages: [...c.messages, { id, role: 'assistant', text }] } : c)
+    }));
+    return id;
+  }
+
+  // Streams a real reply from /api/chat into the conversation.
+  async ask(convId) {
+    const conv = this.state.convs.find((c) => c.id === convId);
+    if (!conv) return;
+    // Error notices are shown to the user but never sent back to the model.
+    const messages = conv.messages.filter((m) => !m.error).map((m) => ({ role: m.role, content: this.plain(m) })).filter((m) => m.content);
+    const controller = new AbortController();
+    this.abort = controller;
+    this.setState({ typing: true, typingConv: convId, replyStarted: false });
+    let msgId = null;
+    let traceId = null;
+    const finish = () => {
+      if (this.abort === controller) this.abort = null;
+      this.setState({ typing: false, typingConv: null, replyStarted: false });
+    };
+    const fail = (text) => {
+      if (msgId) this.patchMessage(convId, msgId, (m) => ({ ...m, text: m.text ? m.text + '\n\n' + text : text, error: true }));
+      else { const id = this.addAssistant(convId, text); this.patchMessage(convId, id, (m) => ({ ...m, error: true })); }
+    };
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model: this.state.model, messages, conversationId: convId }),
+        signal: controller.signal
+      });
+      if (!res.ok || !res.body) {
+        let error = res.status === 404 ? "Proxi's AI isn't connected on this site yet." : 'Something went wrong. Please try again.';
+        try { const data = await res.json(); if (data.error) error = data.error; } catch (e) {}
+        fail(error);
+        return finish();
+      }
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      for (;;) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop();
+        for (const line of lines) {
+          if (!line) continue;
+          const event = JSON.parse(line);
+          if (event.type === 'start') {
+            traceId = event.traceId;
+            const kinds = Object.keys(event.redactions || {});
+            if (kinds.length) {
+              const names = { CARD: 'card numbers', IBAN: 'IBANs', EMAIL: 'email addresses', PHONE: 'phone numbers' };
+              this.showToast('Removed ' + kinds.map((k) => names[k] || k).join(', ') + ' before sending');
+            }
+          } else if (event.type === 'text') {
+            if (!msgId) {
+              msgId = this.addAssistant(convId, '');
+              this.patchMessage(convId, msgId, (m) => ({ ...m, traceId }));
+              this.setState({ replyStarted: true });
+            }
+            this.patchMessage(convId, msgId, (m) => ({ ...m, text: m.text + event.text }));
+          } else if (event.type === 'error') {
+            fail(event.error);
+          }
+        }
+      }
+    } catch (e) {
+      if (!controller.signal.aborted) fail("Couldn't reach Proxi. Check your connection and try again.");
+    }
+    finish();
   }
 
   send(raw) {
@@ -512,13 +587,12 @@ class Component extends DCLogic {
         convs: base.map((c) => c.id === convId ? { ...c, messages: [...c.messages, { id, role: 'user', text }] } : c)
       };
     });
-    const short = text.length > 60 ? text.slice(0, 60).trim() + '...' : text;
-    this.startReply(convId, 'This is a prototype, so this reply is a placeholder. In the real app, Proxi would answer "' + short + '" here.');
+    this.ask(convId);
   }
 
   stop() {
-    if (this.replyTimer) { clearTimeout(this.replyTimer); this.timers = this.timers.filter((x) => x !== this.replyTimer); this.replyTimer = null; }
-    this.setState({ typing: false, typingConv: null });
+    if (this.abort) { this.abort.abort(); this.abort = null; }
+    this.setState({ typing: false, typingConv: null, replyStarted: false });
   }
 
   truncateAt(msgId) {
@@ -541,7 +615,7 @@ class Component extends DCLogic {
   regen(msg) {
     if (this.state.typing) return;
     this.truncateAt(msg.id);
-    this.startReply(this.state.activeId, 'Here is another take. In the real app, Proxi would write a fresh answer here.');
+    this.ask(this.state.activeId);
   }
 
   copy(key, text) {
@@ -550,8 +624,16 @@ class Component extends DCLogic {
     this.later(() => this.setState((s) => (s.copied === key ? { copied: null } : null)), 1500);
   }
 
-  vote(id, dir) {
-    this.setState((s) => ({ votes: { ...s.votes, [id]: s.votes[id] === dir ? null : dir } }));
+  vote(m, dir) {
+    const next = this.state.votes[m.id] === dir ? null : dir;
+    this.setState((s) => ({ votes: { ...s.votes, [m.id]: next } }));
+    if (m.traceId) {
+      fetch('/api/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ traceId: m.traceId, value: next === 'up' ? 1 : next === 'down' ? 0 : null })
+      }).catch(() => {});
+    }
   }
 
   go(patch) {
@@ -620,8 +702,8 @@ class Component extends DCLogic {
         downFill: v === 'down' ? 'currentColor' : 'none',
         onCopy: () => this.copy(key, m.rich ? this.code() : m.text),
         onEdit: () => this.edit(m),
-        onUp: () => this.vote(m.id, 'up'),
-        onDown: () => this.vote(m.id, 'down'),
+        onUp: () => this.vote(m, 'up'),
+        onDown: () => this.vote(m, 'down'),
         onRegen: () => this.regen(m)
       };
     }) : [];
@@ -691,7 +773,7 @@ class Component extends DCLogic {
 
       msgRef: (el) => { this.msgEl = el; },
       msgs,
-      showTyping: s.typing && s.typingConv === s.activeId && isChat,
+      showTyping: s.typing && !s.replyStarted && s.typingConv === s.activeId && isChat,
       wrapPressed: s.wrap ? 'true' : 'false',
       wrapBg: s.wrap ? '#E4E4E8' : 'transparent',
       toggleWrap: () => this.setState({ wrap: !s.wrap }),
