@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { redact } from '../lib/redact.js';
 import { rateLimit } from '../lib/ratelimit.js';
+import { requireUser } from '../lib/auth.js';
 import { getLangfuse, getSystemPrompt } from '../lib/langfuse.js';
 
 // Only these models can be requested from the browser.
@@ -19,7 +20,10 @@ const MAX_CHARS = 20000;
 let client;
 
 export async function POST(request) {
-  const limit = rateLimit(request);
+  const user = await requireUser(request);
+  if (!user.userId) return json({ error: user.error }, user.status);
+
+  const limit = rateLimit(user.userId);
   if (!limit.ok) {
     return json({ error: 'Too many messages. Please wait a few minutes.' }, 429, { 'Retry-After': String(limit.retryAfter) });
   }
@@ -45,6 +49,7 @@ export async function POST(request) {
   const langfuse = getLangfuse();
   const trace = langfuse?.trace({
     name: 'chat',
+    userId: user.userId,
     sessionId: typeof body.conversationId === 'string' ? body.conversationId.slice(0, 64) : undefined,
     input: messages,
     metadata: { redactions },

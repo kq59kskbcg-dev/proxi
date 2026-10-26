@@ -57,9 +57,16 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 .md table{border-collapse:collapse;display:block;overflow-x:auto}
 .md th,.md td{border:1px solid #E7E5EE;padding:6px 10px;text-align:left}
 .md hr{border:0;border-top:1px solid #E7E5EE;margin:16px 0}
+#auth{min-height:100vh;box-sizing:border-box;padding:48px 16px;display:flex;flex-direction:column;align-items:center;gap:28px;background:#FAFAFB;font-family:Inter,system-ui,sans-serif}
+#auth[hidden]{display:none}
+.auth-mark{font-family:Manrope,Inter,sans-serif;font-weight:800;font-size:40px;letter-spacing:-0.04em;line-height:1;color:#111111}
 </style>
 </head>
 <body>
+<div id="auth" hidden>
+  <span class="auth-mark">proxi</span>
+  <div id="sign-in"></div>
+</div>
 <div id="app"></div>
 
 <script type="text/x-template" id="tpl">
@@ -143,9 +150,9 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
     </div>
 
     <div style="flex: none; margin: 0 12px; display: flex; align-items: center; gap: 10px; padding: 10px 10px 8px; border-top: 1px solid #E7E5EE">
-      <div style="flex: none; width: 32px; height: 32px; border-radius: 50%; background: #D4D4DA; display: flex; align-items: center; justify-content: center; color: #3F3F46"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 21a8 8 0 0 1 16 0"></path></svg></div>
+      <div :ref="v.userButtonRef" style="flex: none; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center"></div>
       <div style="display: flex; flex-direction: column; flex: 1; min-width: 0">
-        <span style="font-size: 14px; font-weight: 500">Alex Morgan</span>
+        <span style="font-size: 14px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{ v.userName }}</span>
       </div>
       <button class="hov" aria-label="Settings" @click="v.openSettings" style="width: 44px; height: 44px; border: 0; background: transparent; border-radius: 10px; color: #52525B; display: flex; align-items: center; justify-content: center; cursor: pointer">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"></path></svg>
@@ -322,6 +329,8 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 <script src="https://cdn.jsdelivr.net/npm/vue@3.4.38/dist/vue.global.prod.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
+<script crossorigin="anonymous" src="https://fancy-kiwi-7594.clerk.accounts.dev/npm/@clerk/ui@1/dist/ui.browser.js"></script>
+<script crossorigin="anonymous" data-clerk-publishable-key="pk_test_ZmFuY3kta2l3aS03NTk0LmNsZXJrLmFjY291bnRzLmRldiQ" src="https://fancy-kiwi-7594.clerk.accounts.dev/npm/@clerk/clerk-js@6/dist/clerk.browser.js"></script>
 <script>
 // Minimal stand-in for the Design canvas runtime: a React-style class
 // component (state, setState, lifecycle) rendered through Vue.
@@ -338,6 +347,11 @@ function renderMarkdown(text) {
 const MODEL_NAMES = { 'claude-opus-5-5': 'Opus 5.5', 'claude-sonnet-5-5': 'Sonnet 5.5', 'claude-haiku-5-5': 'Haiku 5.5' };
 function modelName(id) {
   return id ? (MODEL_NAMES[id] || id) : '';
+}
+
+async function authHeaders() {
+  const token = await window.Clerk.session.getToken();
+  return { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token };
 }
 
 class DCLogic {
@@ -467,7 +481,7 @@ class Component extends DCLogic {
     try {
       const res = await fetch('/api/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: await authHeaders(),
         body: JSON.stringify({ model: this.state.model, messages, conversationId: convId }),
         signal: controller.signal
       });
@@ -577,11 +591,11 @@ class Component extends DCLogic {
     const next = this.state.votes[m.id] === dir ? null : dir;
     this.setState((s) => ({ votes: { ...s.votes, [m.id]: next } }));
     if (m.traceId) {
-      fetch('/api/feedback', {
+      authHeaders().then((headers) => fetch('/api/feedback', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({ traceId: m.traceId, value: next === 'up' ? 1 : next === 'down' ? 0 : null })
-      }).catch(() => {});
+      })).catch(() => {});
     }
   }
 
@@ -752,6 +766,11 @@ class Component extends DCLogic {
       sendCursor: canSend ? 'pointer' : 'default',
       chips,
 
+      userName: this.props.userName,
+      userButtonRef: (el) => {
+        if (el && el !== this.userButtonEl) { this.userButtonEl = el; window.Clerk.mountUserButton(el); }
+      },
+
       hasToast: !!s.toast,
       toast: s.toast
     };
@@ -762,19 +781,36 @@ const propDefs = {"accent":{"editor":"color","default":"#6D28FF","options":["#6D
 const props = {};
 for (const [k, d] of Object.entries(propDefs)) if (!k.startsWith('$')) props[k] = d.default;
 
-createApp({
-  template: '#tpl',
-  setup() {
-    const tick = ref(0);
-    const comp = new Component(props);
-    comp.tick = tick;
-    const v = computed(() => (tick.value, comp.renderVals()));
-    onMounted(() => comp.componentDidMount && comp.componentDidMount());
-    onUpdated(() => comp.componentDidUpdate && comp.componentDidUpdate());
-    onBeforeUnmount(() => comp.componentWillUnmount && comp.componentWillUnmount());
-    return { v };
+async function start() {
+  const clerk = window.Clerk;
+  await clerk.load({
+    ui: { ClerkUI: window.__internal_ClerkUICtor },
+    appearance: { variables: { colorPrimary: '#6D28FF', fontFamily: 'Inter, system-ui, sans-serif', borderRadius: '10px' } }
+  });
+  // Signing in or out swaps between the sign-in screen and the chat.
+  const signedIn = !!clerk.user;
+  clerk.addListener(({ user }) => { if (!!user !== signedIn) location.reload(); });
+  if (!signedIn) {
+    document.getElementById('auth').hidden = false;
+    clerk.mountSignIn(document.getElementById('sign-in'));
+    return;
   }
-}).mount('#app');
+  props.userName = clerk.user.fullName || clerk.user.primaryEmailAddress?.emailAddress || 'Signed in';
+  createApp({
+    template: '#tpl',
+    setup() {
+      const tick = ref(0);
+      const comp = new Component(props);
+      comp.tick = tick;
+      const v = computed(() => (tick.value, comp.renderVals()));
+      onMounted(() => comp.componentDidMount && comp.componentDidMount());
+      onUpdated(() => comp.componentDidUpdate && comp.componentDidUpdate());
+      onBeforeUnmount(() => comp.componentWillUnmount && comp.componentWillUnmount());
+      return { v };
+    }
+  }).mount('#app');
+}
+start();
 </script>
 </body>
 </html>

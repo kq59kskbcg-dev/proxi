@@ -1,9 +1,12 @@
 import { getLangfuse } from '../lib/langfuse.js';
 import { rateLimit } from '../lib/ratelimit.js';
+import { requireUser } from '../lib/auth.js';
 
 // Thumbs up / down from the chat, stored as a Langfuse score on the reply's trace.
 export async function POST(request) {
-  if (!rateLimit(request).ok) return new Response(null, { status: 429 });
+  const user = await requireUser(request);
+  if (!user.userId) return new Response(null, { status: user.status });
+  if (!rateLimit(user.userId).ok) return new Response(null, { status: 429 });
   let body;
   try { body = await request.json(); } catch { return new Response(null, { status: 400 }); }
   const { traceId, value } = body || {};
