@@ -25,8 +25,10 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 .dot:nth-child(2){animation-delay:0.15s}
 .dot:nth-child(3){animation-delay:0.3s}
 @keyframes rise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@keyframes toast-rise{from{opacity:0;transform:translate(-50%,6px)}to{opacity:1;transform:translate(-50%,0)}}
+.toast{animation:toast-rise 0.16s ease-out}
 .pop{animation:rise 0.16s ease-out}
-@media (prefers-reduced-motion: reduce){.dot,.pop{animation:none}}
+@media (prefers-reduced-motion: reduce){.dot,.pop,.toast{animation:none}}
 .scrim{display:none}
 @media (min-width: 831px){
 .side{transition:margin-left 0.3s cubic-bezier(0.32,0.72,0,1),visibility 0.3s}
@@ -41,6 +43,20 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 }
 @media (prefers-reduced-motion: reduce){.side,.scrim{transition:none !important}}
 .resizing .side,.resizing .scrim{transition:none !important}
+.md{overflow-wrap:anywhere}
+.md>:first-child{margin-top:0}.md>:last-child{margin-bottom:0}
+.md p,.md ul,.md ol,.md pre,.md blockquote,.md table{margin:0 0 14px}
+.md h1,.md h2,.md h3,.md h4{margin:20px 0 10px;font-size:16px;font-weight:600;line-height:1.4}
+.md h1{font-size:20px}.md h2{font-size:18px}
+.md ul,.md ol{padding-left:22px}.md li{margin:4px 0}
+.md a{color:#6D28FF;text-underline-offset:3px}
+.md code{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:13px;background:#F1F1F4;padding:2px 6px;border-radius:5px}
+.md pre{border:1px solid #E7E5EE;border-radius:12px;background:#FBFBFC;padding:16px;overflow-x:auto;line-height:1.7}
+.md pre code{background:none;padding:0;border-radius:0;color:#27272A}
+.md blockquote{border-left:3px solid #E7E5EE;padding-left:14px;color:#52525B}
+.md table{border-collapse:collapse;display:block;overflow-x:auto}
+.md th,.md td{border:1px solid #E7E5EE;padding:6px 10px;text-align:left}
+.md hr{border:0;border-top:1px solid #E7E5EE;margin:16px 0}
 </style>
 </head>
 <body>
@@ -127,7 +143,6 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
       <div style="flex: none; width: 32px; height: 32px; border-radius: 50%; background: #D4D4DA; display: flex; align-items: center; justify-content: center; color: #3F3F46"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 21a8 8 0 0 1 16 0"></path></svg></div>
       <div style="display: flex; flex-direction: column; flex: 1; min-width: 0">
         <span style="font-size: 14px; font-weight: 500">Alex Morgan</span>
-        <span style="font-size: 12px; color: #5C5C66">Pro plan</span>
       </div>
       <button class="hov" aria-label="Settings" @click="v.openSettings" style="width: 44px; height: 44px; border: 0; background: transparent; border-radius: 10px; color: #52525B; display: flex; align-items: center; justify-content: center; cursor: pointer">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"></path></svg>
@@ -187,47 +202,9 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
             </div>
           </template>
           <template v-if="m.isAssistant">
-            <article style="display: flex; gap: 14px">
-              <div :style="`flex: none; width: 30px; height: 30px; border-radius: 8px; background: ${v.accent}; display: flex; align-items: center; justify-content: center`">
-                <svg width="18" height="18" viewBox="0 0 64 64" aria-hidden="true"><path d="M20 56V24A13 13 0 1 1 30 36.65" fill="none" stroke="#FFFFFF" stroke-width="11" stroke-linecap="round"></path></svg>
-              </div>
+            <article style="display: flex">
               <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 14px; line-height: 1.65">
-                <template v-if="m.isPlain">
-                  <p style="margin: 0; white-space: pre-line">{{ m.text }}</p>
-                </template>
-                <template v-if="m.isRich">
-                  <p style="margin: 0">Here is a typed version. It uses generics so the returned function accepts exactly the same parameters as the original.</p>
-                  <div style="border: 1px solid #E7E5EE; border-radius: 12px; overflow: hidden">
-                    <div style="display: flex; align-items: center; justify-content: space-between; padding: 6px 8px 6px 14px; background: #FAFAFB; border-bottom: 1px solid #E7E5EE">
-                      <span style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: #52525B"><span style="font-family: 'JetBrains Mono', monospace; font-weight: 500; color: #27272A">debounce.ts</span><span>TypeScript</span></span>
-                      <span style="display: flex; gap: 2px">
-                        <button class="hov" aria-label="Wrap long lines" :aria-pressed="v.wrapPressed" @click="v.toggleWrap" :style="`width: 32px; height: 32px; border: 0; background: ${v.wrapBg}; border-radius: 8px; color: #52525B; display: flex; align-items: center; justify-content: center; cursor: pointer`">
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M3 12h15a3 3 0 0 1 0 6h-4"></path><path d="M16 16l-2 2 2 2"></path><path d="M3 18h7"></path></svg>
-                        </button>
-                        <button class="hov" @click="v.copyCode" style="height: 32px; border: 0; background: transparent; border-radius: 8px; padding: 0 10px; display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500; color: #52525B; cursor: pointer">
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"></rect><path d="M5 15V5a2 2 0 0 1 2-2h10"></path></svg>
-                          {{ v.codeCopyLabel }}
-                        </button>
-                      </span>
-                    </div>
-                    <pre :style="`margin: 0; padding: 16px; overflow-x: auto; white-space: ${v.preWS}; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 13px; line-height: 1.7; color: #27272A; background: #FBFBFC`"><span style="color: #8A3FC0">export function</span> <span style="color: #2F5BD3">debounce</span>&lt;T <span style="color: #8A3FC0">extends</span> (...args: <span style="color: #A0522D">any</span>[]) =&gt; <span style="color: #A0522D">void</span>&gt;(
-  fn: T,
-  wait = <span style="color: #B4540A">200</span>
-): (...args: Parameters&lt;T&gt;) =&gt; <span style="color: #A0522D">void</span> {
-  <span style="color: #8A3FC0">let</span> timer: ReturnType&lt;<span style="color: #8A3FC0">typeof</span> setTimeout&gt; | <span style="color: #A0522D">undefined</span>;
-  <span style="color: #8A3FC0">return</span> (...args) =&gt; {
-    clearTimeout(timer);
-    timer = setTimeout(() =&gt; fn(...args), wait);
-  };
-}</pre>
-                  </div>
-                  <p style="margin: 0">A few notes:</p>
-                  <ul style="margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 6px">
-                    <li><code style="font-family: 'JetBrains Mono', monospace; font-size: 13px; background: #F1F1F4; padding: 2px 6px; border-radius: 5px">Parameters&lt;T&gt;</code> carries the original argument types through.</li>
-                    <li>Each call resets the timer, so only the last call within <code style="font-family: 'JetBrains Mono', monospace; font-size: 13px; background: #F1F1F4; padding: 2px 6px; border-radius: 5px">wait</code> ms runs.</li>
-                    <li>Want a <strong>leading edge</strong> option or a <code style="font-family: 'JetBrains Mono', monospace; font-size: 13px; background: #F1F1F4; padding: 2px 6px; border-radius: 5px">cancel()</code> method? I can add either.</li>
-                  </ul>
-                </template>
+                <div class="md" v-html="m.html"></div>
                 <div style="display: flex; gap: 0; margin-left: -12px">
                   <button class="hov" :aria-label="m.copyLabel" @click="m.onCopy" style="width: 44px; height: 44px; border: 0; background: transparent; border-radius: 8px; color: #63636B; display: flex; align-items: center; justify-content: center; cursor: pointer">
                     <template v-if="m.copied"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"></path></svg></template>
@@ -236,6 +213,9 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
                   <button class="hov" aria-label="Good response" :aria-pressed="m.upPressed" @click="m.onUp" :style="`width: 44px; height: 44px; border: 0; background: transparent; border-radius: 8px; color: ${m.upColor}; display: flex; align-items: center; justify-content: center; cursor: pointer`"><svg width="16" height="16" viewBox="0 0 24 24" :fill="m.upFill" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 10v11H4V10z"></path><path d="M7 10l4-8a3 3 0 0 1 3 3v4h5.5a2 2 0 0 1 2 2.3l-1.4 8A2 2 0 0 1 18 21H7"></path></svg></button>
                   <button class="hov" aria-label="Bad response" :aria-pressed="m.downPressed" @click="m.onDown" :style="`width: 44px; height: 44px; border: 0; background: transparent; border-radius: 8px; color: ${m.downColor}; display: flex; align-items: center; justify-content: center; cursor: pointer`"><svg width="16" height="16" viewBox="0 0 24 24" :fill="m.downFill" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 14V3h3v11z"></path><path d="M17 14l-4 8a3 3 0 0 1-3-3v-4H4.5a2 2 0 0 1-2-2.3l1.4-8A2 2 0 0 1 6 3h11"></path></svg></button>
                   <button class="hov" aria-label="Regenerate" @click="m.onRegen" style="width: 44px; height: 44px; border: 0; background: transparent; border-radius: 8px; color: #63636B; display: flex; align-items: center; justify-content: center; cursor: pointer"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.6-6.4"></path><path d="M21 3v6h-6"></path></svg></button>
+                  <template v-if="m.modelLabel">
+                    <span :title="m.modelTitle" style="align-self: center; margin-left: 6px; font-size: 12px; font-weight: 500; color: #5C5C66">{{ m.modelLabel }}</span>
+                  </template>
                 </div>
               </div>
             </article>
@@ -243,10 +223,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
         </template>
 
         <template v-if="v.showTyping">
-          <article style="display: flex; gap: 14px; align-items: center">
-            <div :style="`flex: none; width: 30px; height: 30px; border-radius: 8px; background: ${v.accent}; display: flex; align-items: center; justify-content: center`">
-              <svg width="18" height="18" viewBox="0 0 64 64" aria-hidden="true"><path d="M20 56V24A13 13 0 1 1 30 36.65" fill="none" stroke="#FFFFFF" stroke-width="11" stroke-linecap="round"></path></svg>
-            </div>
+          <article style="display: flex; align-items: center">
             <div aria-label="Proxi is typing" role="status" style="display: flex; gap: 6px; padding: 10px 0">
               <span class="dot" style="width: 8px; height: 8px; border-radius: 50%; background: #71717A"></span>
               <span class="dot" style="width: 8px; height: 8px; border-radius: 50%; background: #71717A"></span>
@@ -334,16 +311,31 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
   </main>
 
   <template v-if="v.hasToast">
-    <div class="pop" role="status" style="position: absolute; left: 50%; bottom: 28px; transform: translateX(-50%); z-index: 50; background: #111111; color: #FFFFFF; font-size: 14px; font-weight: 500; padding: 10px 16px; border-radius: 10px; box-shadow: 0 8px 24px rgba(24,24,27,0.2); white-space: nowrap">{{ v.toast }}</div>
+    <div class="toast" role="status" style="position: absolute; left: 50%; bottom: 28px; transform: translateX(-50%); z-index: 50; background: #111111; color: #FFFFFF; font-size: 14px; font-weight: 500; padding: 10px 16px; border-radius: 10px; box-shadow: 0 8px 24px rgba(24,24,27,0.2); white-space: nowrap">{{ v.toast }}</div>
   </template>
 </div>
 </script>
 
 <script src="https://cdn.jsdelivr.net/npm/vue@3.4.38/dist/vue.global.prod.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
 <script>
 // Minimal stand-in for the Design canvas runtime: a React-style class
 // component (state, setState, lifecycle) rendered through Vue.
 const { createApp, ref, computed, onMounted, onUpdated, onBeforeUnmount } = Vue;
+
+// Replies are Markdown; sanitize the HTML so a reply can never inject scripts.
+DOMPurify.addHook('afterSanitizeAttributes', (node) => {
+  if (node.tagName === 'A') { node.setAttribute('target', '_blank'); node.setAttribute('rel', 'noopener noreferrer'); }
+});
+function renderMarkdown(text) {
+  return DOMPurify.sanitize(marked.parse(text, { gfm: true, breaks: true }), { FORBID_TAGS: ['img', 'style'], FORBID_ATTR: ['style'] });
+}
+
+const MODEL_NAMES = { 'claude-opus-5-5': 'Opus 5.5', 'claude-sonnet-5-5': 'Sonnet 5.5', 'claude-haiku-5-5': 'Haiku 5.5' };
+function modelName(id) {
+  return id ? (MODEL_NAMES[id] || id) : '';
+}
 
 class DCLogic {
   constructor(props) { this.props = props; }
@@ -358,14 +350,13 @@ class DCLogic {
 class Component extends DCLogic {
   constructor(props) {
     super(props);
-    const start = props.startView === 'new' ? 'new' : 'chat';
     this.nextId = 100;
     this.timers = [];
     this.sig = '';
     this.state = {
-      convs: this.seed(),
-      activeId: start === 'chat' ? 'debounce' : null,
-      view: start,
+      convs: [],
+      activeId: null,
+      view: 'new',
       draft: '',
       typing: false,
       typingConv: null,
@@ -377,52 +368,10 @@ class Component extends DCLogic {
       query: '',
       collapsed: false,
       narrowNav: false,
-      wrap: false,
       copied: null,
       toast: '',
       votes: {}
     };
-  }
-
-  seed() {
-    const u = (id, text) => ({ id, role: 'user', text });
-    const a = (id, text) => ({ id, role: 'assistant', text });
-    return [
-      { id: 'debounce', title: 'Debounce helper in TypeScript', group: 'Today', messages: [
-        u(1, 'Can you write a small debounce helper in TypeScript? It should keep the argument types of the wrapped function.'),
-        { id: 2, role: 'assistant', rich: 'debounce' },
-        u(3, 'Yes, add a cancel method please.'),
-        a(16, 'Done. The returned function now has a cancel() method that clears any pending call, so nothing fires after you cancel it.')
-      ] },
-      { id: 'lisbon', title: 'Trip plan for Lisbon', group: 'Today', messages: [
-        u(4, 'Plan a 3 day trip to Lisbon for someone who likes food and walking.'),
-        a(5, 'Here is a relaxed plan built around neighborhoods, so most days stay walkable.\n\nDay 1: Alfama and Baixa. Castle views, then grilled sardines for lunch.\nDay 2: Belém. Riverside walk and the famous custard tarts.\nDay 3: Príncipe Real. Markets, gardens and a long dinner.')
-      ] },
-      { id: 'email', title: 'Rewrite onboarding email', group: 'Today', messages: [
-        u(6, 'Can you make our onboarding email shorter and warmer?'),
-        a(7, 'Here is a tighter version:\n\nSubject: Welcome aboard\n\nHi [Name], we are glad you are here. Your account is ready, and the quick-start guide will have you set up in about five minutes. Reply to this email if anything gets in the way.')
-      ] },
-      { id: 'sql', title: 'SQL window functions', group: 'Previous 7 days', messages: [
-        u(8, 'When should I use a window function instead of GROUP BY?'),
-        a(9, 'Use GROUP BY when you want one row per group. Use a window function when you want to keep every row and add a value computed across related rows, such as a running total or a rank within each group.')
-      ] },
-      { id: 'review', title: 'Quarterly review outline', group: 'Previous 7 days', messages: [
-        u(10, 'Give me an outline for a quarterly review.'),
-        a(11, '1. Goals and results\n2. What went well\n3. What did not, and why\n4. Priorities for next quarter\n5. Risks and asks')
-      ] },
-      { id: 'embed', title: 'Explain vector embeddings', group: 'Previous 7 days', messages: [
-        u(12, 'Explain vector embeddings simply.'),
-        a(13, 'An embedding turns text into a list of numbers so that similar meanings end up close together. That lets software find related content by measuring distance instead of matching exact words.')
-      ] },
-      { id: 'bread', title: 'Sourdough schedule', group: 'Previous 7 days', messages: [
-        u(14, 'Plan a sourdough schedule around a 9 to 5 job.'),
-        a(15, 'Feed the starter before work, mix the dough at 6 pm, stretch and fold through the evening, then shape and refrigerate overnight. Bake the next morning or after work.')
-      ] }
-    ];
-  }
-
-  code() {
-    return 'export function debounce<T extends (...args: any[]) => void>(\n  fn: T,\n  wait = 200\n): (...args: Parameters<T>) => void {\n  let timer: ReturnType<typeof setTimeout> | undefined;\n  return (...args) => {\n    clearTimeout(timer);\n    timer = setTimeout(() => fn(...args), wait);\n  };\n}';
   }
 
   componentDidMount() {
@@ -479,11 +428,6 @@ class Component extends DCLogic {
     this.toastTimer = this.later(() => this.setState({ toast: '' }), 2200);
   }
 
-  // Plain-text version of a message, as sent to the model.
-  plain(m) {
-    return m.rich ? 'Here is a typed version:\n\n```ts\n' + this.code() + '\n```' : m.text;
-  }
-
   patchMessage(convId, msgId, fn) {
     this.setState((s) => ({
       convs: s.convs.map((c) => c.id !== convId ? c : { ...c, messages: c.messages.map((m) => m.id === msgId ? fn(m) : m) })
@@ -503,7 +447,7 @@ class Component extends DCLogic {
     const conv = this.state.convs.find((c) => c.id === convId);
     if (!conv) return;
     // Error notices are shown to the user but never sent back to the model.
-    const messages = conv.messages.filter((m) => !m.error).map((m) => ({ role: m.role, content: this.plain(m) })).filter((m) => m.content);
+    const messages = conv.messages.filter((m) => !m.error).map((m) => ({ role: m.role, content: m.text })).filter((m) => m.content);
     const controller = new AbortController();
     this.abort = controller;
     this.setState({ typing: true, typingConv: convId, replyStarted: false });
@@ -556,6 +500,8 @@ class Component extends DCLogic {
               this.setState({ replyStarted: true });
             }
             this.patchMessage(convId, msgId, (m) => ({ ...m, text: m.text + event.text }));
+          } else if (event.type === 'done') {
+            if (msgId) this.patchMessage(convId, msgId, (m) => ({ ...m, model: event.model }));
           } else if (event.type === 'error') {
             fail(event.error);
           }
@@ -689,8 +635,9 @@ class Component extends DCLogic {
         text: m.text || '',
         isUser: m.role === 'user',
         isAssistant: m.role === 'assistant',
-        isRich: m.rich === 'debounce',
-        isPlain: m.role === 'assistant' && !m.rich,
+        html: m.role === 'assistant' ? renderMarkdown(m.text || '') : '',
+        modelLabel: modelName(m.model),
+        modelTitle: m.model ? 'Answered by ' + m.model : '',
         copied,
         notCopied: !copied,
         copyLabel: copied ? 'Copied' : (m.role === 'user' ? 'Copy message' : 'Copy response'),
@@ -700,7 +647,7 @@ class Component extends DCLogic {
         downColor: v === 'down' ? accent : '#63636B',
         upFill: v === 'up' ? 'currentColor' : 'none',
         downFill: v === 'down' ? 'currentColor' : 'none',
-        onCopy: () => this.copy(key, m.rich ? this.code() : m.text),
+        onCopy: () => this.copy(key, m.text),
         onEdit: () => this.edit(m),
         onUp: () => this.vote(m, 'up'),
         onDown: () => this.vote(m, 'down'),
@@ -774,12 +721,6 @@ class Component extends DCLogic {
       msgRef: (el) => { this.msgEl = el; },
       msgs,
       showTyping: s.typing && !s.replyStarted && s.typingConv === s.activeId && isChat,
-      wrapPressed: s.wrap ? 'true' : 'false',
-      wrapBg: s.wrap ? '#E4E4E8' : 'transparent',
-      toggleWrap: () => this.setState({ wrap: !s.wrap }),
-      preWS: s.wrap ? 'pre-wrap' : 'pre',
-      copyCode: () => this.copy('code', this.code()),
-      codeCopyLabel: s.copied === 'code' ? 'Copied' : 'Copy',
 
       showComposer: isChat || isNew,
       composerPad: isNew ? '0 24px' : '8px 24px 20px',
@@ -817,8 +758,6 @@ class Component extends DCLogic {
 const propDefs = {"accent":{"editor":"color","default":"#6D28FF","options":["#6D28FF","#0F7B5F","#F4511E","#111111"]},"startView":{"editor":"enum","options":["chat","new"],"default":"chat"},"$preview":{"width":1440,"height":900}};
 const props = {};
 for (const [k, d] of Object.entries(propDefs)) if (!k.startsWith('$')) props[k] = d.default;
-const view = new URLSearchParams(location.search).get('view');
-if (view) props.startView = view;
 
 createApp({
   template: '#tpl',

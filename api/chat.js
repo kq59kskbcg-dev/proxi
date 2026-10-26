@@ -88,7 +88,7 @@ export async function POST(request) {
           metadata: { stopReason: final.stop_reason, servedBy: final.model },
         });
         trace?.update({ output: text });
-        send({ type: 'done', stopReason: final.stop_reason });
+        send({ type: 'done', stopReason: final.stop_reason, model: final.model });
       } catch (error) {
         if (request.signal.aborted) {
           generation?.end({ output: text, level: 'WARNING', statusMessage: 'Stopped by user' });

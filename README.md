@@ -2,7 +2,7 @@
 
 AI chat assistant built on Claude, deployed on Vercel.
 
-- `index.html`: the app (Vue 3 from a CDN, no build step). Add `?view=new` to open on the new chat screen.
+- `index.html`: the app (Vue 3 from a CDN, no build step).
 - `api/chat.js`: streams replies from Claude. Card numbers, IBANs, emails and phone numbers are masked before anything reaches the model or the logs.
 - `api/feedback.js`: thumbs up / down, stored as Langfuse scores.
 - `lib/`: redaction, rate limiting and Langfuse setup.
