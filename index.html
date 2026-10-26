@@ -137,7 +137,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
         </template>
       </template>
       <template v-if="v.hasOlder">
-        <div style="font-size: 12px; font-weight: 600; color: #5C5C66; padding: 16px 10px 6px; letter-spacing: 0.02em">Previous 7 days</div>
+        <div style="font-size: 12px; font-weight: 600; color: #5C5C66; padding: 16px 10px 6px; letter-spacing: 0.02em">Earlier</div>
         <template v-for="(c, i_c) in v.older" :key="i_c">
           <button :class="c.cls" :aria-current="c.current" @click="c.open" :style="`border: 0; text-align: left; cursor: pointer; color: ${c.color}; background: ${c.bg}; box-shadow: ${c.shadow}; border-radius: 8px; padding: 10px 10px; font-size: 14px; font-weight: ${c.weight}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis`">{{ c.title }}</button>
         </template>
@@ -392,6 +392,7 @@ class Component extends DCLogic {
   }
 
   componentDidMount() {
+    this.loadConversations();
     // Crossing the mobile breakpoint: close the mobile menu and skip the slide animations.
     try {
       this.mq = window.matchMedia('(max-width: 830px)');
@@ -464,7 +465,7 @@ class Component extends DCLogic {
     const conv = this.state.convs.find((c) => c.id === convId);
     if (!conv) return;
     // Error notices are shown to the user but never sent back to the model.
-    const messages = conv.messages.filter((m) => !m.error).map((m) => ({ role: m.role, content: m.text })).filter((m) => m.content);
+    const messages = conv.messages.filter((m) => !m.error).map((m) => ({ role: m.role, content: m.text, model: m.model, traceId: m.traceId })).filter((m) => m.content);
     const controller = new AbortController();
     this.abort = controller;
     this.setState({ typing: true, typingConv: convId, replyStarted: false });
@@ -530,18 +531,59 @@ class Component extends DCLogic {
     finish();
   }
 
+  // The signed-in user's saved chats, newest first. Messages load when a chat is opened.
+  async loadConversations() {
+    try {
+      const res = await fetch('/api/conversations', { headers: await authHeaders() });
+      if (res.status === 503) return this.showToast('Chat history is not set up yet');
+      if (!res.ok) throw new Error(res.status);
+      const { conversations } = await res.json();
+      const today = new Date().toDateString();
+      this.setState((s) => {
+        const known = new Set(s.convs.map((c) => c.id));
+        const saved = conversations.filter((c) => !known.has(c.id)).map((c) => ({
+          id: c.id, title: c.title, group: new Date(c.updatedAt).toDateString() === today ? 'Today' : 'Earlier', messages: [], loaded: false
+        }));
+        return { convs: [...s.convs, ...saved] };
+      });
+    } catch (e) {
+      this.showToast("Couldn't load your previous chats");
+    }
+  }
+
+  async openConversation(id) {
+    this.go({ view: 'chat', activeId: id });
+    const conv = this.state.convs.find((c) => c.id === id);
+    if (!conv || conv.loaded || conv.loading) return;
+    const patch = (fields) => this.setState((s) => ({ convs: s.convs.map((c) => c.id === id ? { ...c, ...fields } : c) }));
+    patch({ loading: true });
+    try {
+      const res = await fetch('/api/conversations?id=' + encodeURIComponent(id), { headers: await authHeaders() });
+      if (!res.ok) throw new Error(res.status);
+      const { messages } = await res.json();
+      patch({ loading: false, loaded: true, messages: messages.map((m) => ({ id: this.nextId++, role: m.role, text: m.content, model: m.model, traceId: m.traceId })) });
+    } catch (e) {
+      patch({ loading: false });
+      this.showToast("Couldn't open this chat. Try again.");
+    }
+  }
+
   send(raw) {
     const text = (raw != null ? raw : this.state.draft).trim();
     if (!text || this.state.typing) return;
     const id = this.nextId++;
     let convId = this.state.view === 'chat' ? this.state.activeId : null;
+    const current = this.state.convs.find((c) => c.id === convId);
+    // Never send from a half-loaded chat: saving it would drop its earlier messages.
+    if (current && !current.loaded) return;
     let fresh = null;
     if (!convId) {
-      convId = 'c' + id;
-      fresh = { id: convId, title: text.length > 40 ? text.slice(0, 40).trim() + '...' : text, group: 'Today', messages: [] };
+      convId = crypto.randomUUID();
+      fresh = { id: convId, title: text.length > 40 ? text.slice(0, 40).trim() + '...' : text, group: 'Today', messages: [], loaded: true };
     }
     this.setState((s) => {
-      const base = fresh ? [fresh, ...s.convs] : s.convs;
+      // The active chat moves to the top of Today.
+      const base = fresh ? [fresh, ...s.convs] : [{ ...current, group: 'Today' }, ...s.convs.filter((c) => c.id !== convId)];
       return {
         draft: '',
         view: 'chat',
@@ -628,7 +670,7 @@ class Component extends DCLogic {
         shadow: 'none',
         color: on ? '#111111' : '#3F3F46',
         weight: on ? '500' : '400',
-        open: () => this.go({ view: 'chat', activeId: c.id })
+        open: () => this.openConversation(c.id)
       };
     };
     const list = s.convs.filter((c) => !q || c.title.toLowerCase().includes(q));
@@ -728,16 +770,22 @@ class Component extends DCLogic {
       chatMenu: s.chatMenu,
       chatMenuExpanded: s.chatMenu ? 'true' : 'false',
       toggleChatMenu: () => this.setState({ chatMenu: !s.chatMenu, modelMenu: false }),
-      deleteChat: () => {
+      deleteChat: async () => {
+        const id = s.activeId;
         this.stop();
-        this.setState((st) => ({ convs: st.convs.filter((c) => c.id !== st.activeId), activeId: null, view: 'new', chatMenu: false }));
-        this.showToast('Chat deleted');
+        this.setState((st) => ({ convs: st.convs.filter((c) => c.id !== id), activeId: null, view: 'new', chatMenu: false }));
+        try {
+          const res = await fetch('/api/conversations?id=' + encodeURIComponent(id), { method: 'DELETE', headers: await authHeaders() });
+          this.showToast(res.ok || res.status === 503 ? 'Chat deleted' : "Couldn't delete the chat");
+        } catch (e) {
+          this.showToast("Couldn't delete the chat");
+        }
       },
       share: () => this.showToast('Link copied to clipboard'),
 
       msgRef: (el) => { this.msgEl = el; },
       msgs,
-      showTyping: s.typing && !s.replyStarted && s.typingConv === s.activeId && isChat,
+      showTyping: isChat && ((s.typing && !s.replyStarted && s.typingConv === s.activeId) || !!conv.loading),
 
       showComposer: isChat || isNew,
       composerPad: isNew ? '0 24px' : '8px 24px 20px',

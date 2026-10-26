@@ -3,6 +3,7 @@ import { redact } from '../lib/redact.js';
 import { rateLimit } from '../lib/ratelimit.js';
 import { requireUser } from '../lib/auth.js';
 import { getLangfuse, getSystemPrompt } from '../lib/langfuse.js';
+import { CONVERSATION_ID, hasDatabase, saveConversation } from '../lib/db.js';
 
 // Only these models can be requested from the browser.
 const MODELS = {
@@ -14,7 +15,8 @@ const MODELS = {
 const FALLBACK_MODELS = new Set(['claude-opus-5-5', 'claude-sonnet-5-5']);
 
 const MAX_TOKENS = 8000; // cost cap per reply
-const MAX_MESSAGES = 40;
+const MAX_MESSAGES = 40; // most recent messages sent to the model
+const MAX_HISTORY = 200; // messages kept in a saved chat
 const MAX_CHARS = 20000;
 
 let client;
@@ -32,25 +34,31 @@ export async function POST(request) {
   try { body = await request.json(); } catch { return json({ error: 'Invalid request.' }, 400); }
 
   const model = MODELS[body?.model];
-  const raw = Array.isArray(body?.messages) ? body.messages.slice(-MAX_MESSAGES) : [];
+  const raw = Array.isArray(body?.messages) ? body.messages : [];
   const valid = raw.length > 0 && raw[0].role === 'user' && raw.every((m) =>
     (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string' && m.content.length > 0 && m.content.length <= MAX_CHARS);
   if (!model || !valid) return json({ error: 'Invalid request.' }, 400);
+  if (raw.length > MAX_HISTORY) return json({ error: 'This chat is too long. Please start a new one.' }, 400);
+  const conversationId = typeof body.conversationId === 'string' && CONVERSATION_ID.test(body.conversationId) ? body.conversationId : null;
 
   // Redact every message, including earlier ones, before the model or logs see them.
   const redactions = {};
-  const messages = raw.map((m) => {
+  const history = raw.map((m) => {
     const { text, counts } = redact(m.content);
     for (const [k, v] of Object.entries(counts)) redactions[k] = (redactions[k] || 0) + v;
-    return { role: m.role, content: text };
+    return { role: m.role, content: text, model: label(m.model), traceId: label(m.traceId) };
   });
+  // The model sees the most recent messages, starting from a user message.
+  let recent = history.slice(-MAX_MESSAGES);
+  while (recent.length && recent[0].role !== 'user') recent = recent.slice(1);
+  const messages = recent.map((m) => ({ role: m.role, content: m.content }));
 
   const system = await getSystemPrompt();
   const langfuse = getLangfuse();
   const trace = langfuse?.trace({
     name: 'chat',
     userId: user.userId,
-    sessionId: typeof body.conversationId === 'string' ? body.conversationId.slice(0, 64) : undefined,
+    sessionId: conversationId ?? undefined,
     input: messages,
     metadata: { redactions },
   });
@@ -76,6 +84,7 @@ export async function POST(request) {
       const send = (event) => controller.enqueue(encoder.encode(JSON.stringify(event) + '\n'));
       send({ type: 'start', traceId: trace?.id ?? null, redactions });
       let text = '';
+      let servedBy = model;
       try {
         for await (const event of stream) {
           if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
@@ -84,6 +93,7 @@ export async function POST(request) {
           }
         }
         const final = await stream.finalMessage();
+        servedBy = final.model;
         if (final.stop_reason === 'refusal') {
           send({ type: 'error', error: "Proxi can't help with that request." });
         }
@@ -102,6 +112,12 @@ export async function POST(request) {
           send({ type: 'error', error: userMessage(error) });
         }
       } finally {
+        // Save the chat (already redacted), including a partial reply if it was stopped.
+        if (conversationId && hasDatabase()) {
+          const reply = text ? [{ role: 'assistant', content: text, model: servedBy, traceId: trace?.id ?? null }] : [];
+          await saveConversation(user.userId, conversationId, titleFrom(history), [...history, ...reply])
+            .catch((e) => console.error('saving chat failed', e));
+        }
         await langfuse?.flushAsync().catch(() => {});
         try { controller.close(); } catch {}
       }
@@ -112,6 +128,16 @@ export async function POST(request) {
   return new Response(body$, {
     headers: { 'Content-Type': 'application/x-ndjson; charset=utf-8', 'Cache-Control': 'no-store' },
   });
+}
+
+function titleFrom(history) {
+  const first = history.find((m) => m.role === 'user')?.content.trim().replace(/\s+/g, ' ') || 'New chat';
+  return first.length > 60 ? first.slice(0, 60).trim() + '...' : first;
+}
+
+// Optional per-message labels sent back by the page (which model answered, trace ID).
+function label(value) {
+  return typeof value === 'string' && value.length <= 80 ? value : null;
 }
 
 function userMessage(error) {
