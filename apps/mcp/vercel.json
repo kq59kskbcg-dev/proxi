@@ -1,4 +1,5 @@
 {
+  "ignoreCommand": "git diff HEAD^ HEAD --quiet -- .",
   "regions": ["fra1"],
   "rewrites": [{ "source": "/mcp", "destination": "/api/mcp" }]
 }
