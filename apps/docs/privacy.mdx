@@ -8,26 +8,26 @@ description: "How Proxi handles your data. Greyed out items are planned."
 </Card>
 
 <Card title="Attachments are never stored" icon="paperclip">
-  Files are used for one request only. Text PDFs containing card numbers or IBANs are refused. Emails and phone numbers inside PDFs are not redacted.
+  Files are used for one request only and never saved. PDFs with card numbers or IBANs are refused.
 </Card>
 
 <div style={{opacity: 0.5}}>
   <Card title="Attachment scanning" icon="file-magnifying-glass">
     <Badge color="gray" shape="pill">Planned</Badge>
     <br />
-    Images and scanned documents are read with OCR and checked like text. Files containing card numbers, IBANs, emails or phone numbers are rejected before they leave Proxi, because files can't be reliably redacted. Admins can also block images entirely.
+    Images and scanned documents are checked with OCR. Files with card numbers, IBANs, emails or phone numbers are rejected.
   </Card>
 
   <Card title="Retention policy" icon="clock">
     <Badge color="gray" shape="pill">Planned</Badge>
     <br />
-    Chats are deleted automatically 90 days after their last activity, and monitoring traces after 30 days. Users can delete a chat at any time. Audit logs, which hold no message content, are kept for 12 months. Legal holds pause deletion, and admins can shorten these periods but not extend them.
+    Chats are deleted after 90 days without activity and monitoring traces after 30 days. Audit logs are kept for 12 months.
   </Card>
 
   <Card title="Data residency" icon="earth-europe">
     <Badge color="gray" shape="pill">Planned</Badge>
     <br />
-    All customer data stored and processed in the EU. Today the app and tracing run in the EU, but the database and model processing regions are not yet guaranteed.
+    All customer data is stored and processed in the EU.
   </Card>
 
 </div>
