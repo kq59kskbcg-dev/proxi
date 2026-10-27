@@ -122,16 +122,28 @@ export async function POST(request) {
       try {
         const turns = [...messages];
         const usage = { input: 0, output: 0 };
+        const sources = [];
+        let gap = false;
+        const emit = (piece) => {
+          const chunk = (gap ? '\n\n' : '') + piece;
+          gap = false;
+          text += chunk;
+          send({ type: 'text', text: chunk });
+        };
         let final;
         for (let round = 0; ; round++) {
           stream = open(turns);
-          let gap = text.length > 0;
+          gap = text.length > 0;
+          let cited = new Set();
           for await (const event of stream) {
             if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
-              const chunk = (gap ? '\n\n' : '') + event.delta.text;
-              gap = false;
-              text += chunk;
-              send({ type: 'text', text: chunk });
+              emit(event.delta.text);
+            } else if (event.type === 'content_block_delta' && event.delta.type === 'citations_delta') {
+              const n = sourceNumber(sources, event.delta.citation);
+              if (n) cited.add(n);
+            } else if (event.type === 'content_block_stop' && cited.size) {
+              emit(' ' + [...cited].map((n) => `[[${n}]](${sources[n - 1].url})`).join(''));
+              cited = new Set();
             }
           }
           final = await stream.finalMessage();
@@ -146,6 +158,9 @@ export async function POST(request) {
             return result;
           }));
           turns.push({ role: 'assistant', content: final.content }, { role: 'user', content: results });
+        }
+        if (sources.length) {
+          emit('\n\n**Sources**\n' + sources.map((s, i) => `${i + 1}. [${escapeLinkText(s.title)}](${s.url})`).join('\n'));
         }
         servedBy = final.model;
         if (final.stop_reason === 'refusal') {
@@ -198,6 +213,19 @@ function toContent(message, blocks) {
   const text = [message.content, note].filter(Boolean).join('\n\n');
   if (!blocks.length) return text;
   return text ? [...blocks, { type: 'text', text }] : blocks;
+}
+
+function sourceNumber(sources, citation) {
+  const url = typeof citation?.source === 'string' ? citation.source : '';
+  if (!/^https?:\/\//i.test(url)) return 0;
+  const safe = url.replace(/[()\s]/g, encodeURIComponent);
+  let index = sources.findIndex((s) => s.url === safe);
+  if (index === -1) index = sources.push({ url: safe, title: citation.title || url }) - 1;
+  return index + 1;
+}
+
+function escapeLinkText(text) {
+  return String(text).replace(/[[\]\\]/g, '\\$&');
 }
 
 function describe(message) {

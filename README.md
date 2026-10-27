@@ -53,6 +53,16 @@ The web tests include an end-to-end check: the chat endpoint discovers `get_stat
 `apps/mcp` uses the official MCP TypeScript SDK and serves Streamable HTTP at `/mcp`. It has one tool so far:
 
 - `get_status`: returns `{ "status": "ok", "service", "version", "uptimeSeconds", "time" }`
+- `search_docs`: searches the Mintlify docs through Mintlify's search API and returns matching passages with their title and link. The chat turns them into citations: numbered links in the reply and a **Sources** list.
+
+MCP server environment variables (set in the `proxi-mcp` Vercel project):
+
+| Name | Purpose |
+|---|---|
+| `MINTLIFY_API_KEY` | Mintlify assistant API key (`mint_dsc_...`), used by `search_docs` |
+| `MINTLIFY_DOMAIN` | Optional: the docs domain Mintlify's API expects. Defaults to `proxi.mintlify.site` |
+| `MINTLIFY_DOCS_URL` | Optional: base URL for citation links. Defaults to `https://proxi.mintlify.site` |
+| `MINTLIFY_SCORE_THRESHOLD` | Optional: drop results below this relevance score (0 to 1) |
 
 Run it locally:
 
