@@ -50,7 +50,10 @@ async function call(key, endpoint, body) {
     body: JSON.stringify(body),
     signal: AbortSignal.timeout(TIMEOUT_MS),
   });
-  if (!response.ok) throw new DocsSearchError(`Docs search failed (HTTP ${response.status}).`);
+  if (!response.ok) {
+    console.warn(`Mintlify ${endpoint} failed: HTTP ${response.status} for domain "${domain}"`, (await response.text().catch(() => '')).slice(0, 300));
+    throw new DocsSearchError(`Docs search failed (HTTP ${response.status}).`);
+  }
   return response.json();
 }
 
