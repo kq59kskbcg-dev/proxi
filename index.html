@@ -1082,8 +1082,20 @@ const propDefs = {"accent":{"editor":"color","default":"#6D28FF","options":["#6D
 const props = {};
 for (const [k, d] of Object.entries(propDefs)) if (!k.startsWith('$')) props[k] = d.default;
 
+// Clerk's test mode keeps its browser token in two cookies: one per Clerk app and a
+// shared copy, and falls back to the shared copy when the app's own is missing. After
+// switching Clerk apps, that shared copy belongs to the old app and every sign-in fails
+// with "authorization_invalid". Dropping it leaves the per-app cookie in charge; if that
+// is missing too, Clerk creates a fresh token.
+function clearSharedClerkToken() {
+  for (const extra of ['', '; Secure; SameSite=None', '; Secure; SameSite=None; Partitioned']) {
+    document.cookie = '__clerk_db_jwt=; Max-Age=0; Path=/' + extra;
+  }
+}
+
 async function start() {
   const clerk = window.Clerk;
+  clearSharedClerkToken();
   await clerk.load({
     ui: { ClerkUI: window.__internal_ClerkUICtor },
     appearance: { variables: { colorPrimary: '#6D28FF', fontFamily: 'Inter, system-ui, sans-serif', borderRadius: '10px' } }
