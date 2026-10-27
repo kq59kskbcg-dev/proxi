@@ -1,0 +1,47 @@
+---
+title: "Privacy and security"
+description: "What Proxi stores, how sensitive data is handled, and how access is protected."
+---
+
+## What data we handle
+
+| Data | Where | Notes |
+|---|---|---|
+| Your account (sign-in) | Clerk | Handles sign-in and sessions. |
+| Your chats | Postgres database (Neon) | Stored **after masking**, and tied to your account ID. Only you can list, open or delete your chats. |
+| Message traces | Langfuse (EU) | Masked message text, the model used, token counts and your account ID, used to monitor quality and errors. |
+| Feedback | Langfuse | Your thumbs up or down on a reply. |
+
+Your masked messages are sent to Anthropic's Claude API to produce replies.
+
+To delete a chat, open it in the sidebar and choose **Delete chat**. Chats are otherwise kept until you delete them. Traces and feedback in Langfuse are kept separately, so deleting a chat does not remove them.
+
+## Sensitive data masking
+
+Before your message goes anywhere else, Proxi replaces these with a placeholder: payment card numbers (`[CARD]`), IBANs (`[IBAN]`), email addresses (`[EMAIL]`) and phone numbers (`[PHONE]`).
+
+Masking runs on every message in the conversation, before the text reaches the model, the logs or the database. Card numbers and IBANs are only masked if they pass a checksum test, so order numbers and timestamps are left alone.
+
+<Warning>
+Masking looks for patterns. It does not recognise names, addresses, account numbers in other formats, or personal details in free text. Avoid typing information you would not want processed by an AI service.
+</Warning>
+
+## Attachments
+
+You can attach images, PDFs and plain text files, up to 3 files and 3 MB per message.
+
+- Files are checked by what they contain, not just their name.
+- A file is used for one request and never stored. Saved chats only remember that a file was attached, so Claude cannot see it again when you reopen the chat.
+- Text files are masked like typed messages.
+- PDFs are scanned and refused if they contain a card number or IBAN.
+- Images cannot be scanned. Proxi warns you before you attach one, so check it before sending.
+
+## Security
+
+- **Sign-in is required.** The chat only appears to signed-in users, and the server rejects every request without a valid session token.
+- **Chats are private to you.** They are keyed to your account ID.
+- **Abuse limits.** Each user can send 20 messages per 10 minutes. Message length, file size and reply length are capped, and only a fixed list of models can be requested.
+- **Browser protections.** HTTPS only, a strict Content Security Policy, no embedding in other sites, no camera, microphone or location access, and no referrer sent to other sites.
+- **Hosting.** The app runs on Vercel, with its functions in the Frankfurt (EU) region.
+
+If you find a security issue, please contact the Proxi team directly instead of posting it publicly.
