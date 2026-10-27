@@ -12,10 +12,10 @@ description: "How Proxi handles your data. Greyed out items are planned."
 </Card>
 
 <div style={{opacity: 0.5}}>
-  <Card title="Image scanning" icon="image">
+  <Card title="Attachment scanning" icon="file-magnifying-glass">
     <Badge color="gray" shape="pill">Planned</Badge>
     <br />
-    Images can't be scanned for sensitive data yet, so Proxi warns you before you attach one.
+    Images and scanned documents are read with OCR and checked like text. Files containing card numbers, IBANs, emails or phone numbers are rejected before they leave Proxi, because files can't be reliably redacted. Admins can also block images entirely.
   </Card>
 
   <Card title="Retention policy" icon="clock">
