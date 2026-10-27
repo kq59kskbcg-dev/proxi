@@ -15,23 +15,23 @@ description: "How Proxi protects access to your chats. Greyed out items are plan
   All traffic uses HTTPS.
 </Card>
 
+<Card title="Encryption at rest" icon="database">
+  Stored data is encrypted by our providers, with AES-256 for chats and traces.
+</Card>
+
+<Card title="Multi-factor authentication" icon="key">
+  Every account must set up a second sign-in step.
+</Card>
+
+<Card title="Vulnerability disclosure" icon="bug">
+  Report security issues privately through [GitHub](https://github.com/kq59kskbcg-dev/proxi/security/advisories/new).
+</Card>
+
 <div style={{opacity: 0.5}}>
   <Card title="Database access controls" icon="user-lock">
     <Badge color="gray" shape="pill">Planned</Badge>
     <br />
     The database ensures users can only read their own chats.
-  </Card>
-
-  <Card title="Encryption at rest" icon="database">
-    <Badge color="gray" shape="pill">Planned</Badge>
-    <br />
-    Customer data is encrypted in storage.
-  </Card>
-
-  <Card title="Multi-factor authentication" icon="key">
-    <Badge color="gray" shape="pill">Planned</Badge>
-    <br />
-    A second step at sign-in to protect every account.
   </Card>
 
   <Card title="Audit logging" icon="list-check">
@@ -40,17 +40,9 @@ description: "How Proxi protects access to your chats. Greyed out items are plan
     A log of who accessed, exported or deleted data, and when.
   </Card>
 
-  <Card title="Vulnerability disclosure" icon="bug">
-    <Badge color="gray" shape="pill">Planned</Badge>
-    <br />
-    A security contact and policy for reporting issues.
-  </Card>
-
   <Card title="Incident response" icon="siren-on">
     <Badge color="gray" shape="pill">Planned</Badge>
     <br />
     A documented process for handling security incidents.
   </Card>
-
-
 </div>
