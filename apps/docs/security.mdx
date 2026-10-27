@@ -11,10 +11,62 @@ description: "How Proxi protects access to your chats. Greyed out items are plan
   The browser only loads scripts, styles and data from approved sources, and only connects to Proxi and its sign-in provider.
 </Card>
 
+<Card title="Encryption in transit" icon="lock">
+  All traffic uses HTTPS, and browsers are told to only connect over HTTPS (HSTS).
+</Card>
+
 <div style={{opacity: 0.5}}>
   <Card title="Database access controls" icon="user-lock">
     <Badge color="gray" shape="pill">Planned</Badge>
     <br />
     Row-level security so the database itself enforces that each user can only read their own chats, not just the app.
+  </Card>
+
+  <Card title="Encryption at rest" icon="database">
+    <Badge color="gray" shape="pill">Planned</Badge>
+    <br />
+    Customer data encrypted in storage, with encryption settings verified and documented.
+  </Card>
+
+  <Card title="SSO and MFA" icon="key">
+    <Badge color="gray" shape="pill">Planned</Badge>
+    <br />
+    Single sign-on with your identity provider, and multi-factor authentication for every account.
+  </Card>
+
+  <Card title="Role-based access" icon="users">
+    <Badge color="gray" shape="pill">Planned</Badge>
+    <br />
+    Roles and permissions for admins and members, following least privilege.
+  </Card>
+
+  <Card title="Audit logging" icon="list-check">
+    <Badge color="gray" shape="pill">Planned</Badge>
+    <br />
+    A tamper-resistant log of who accessed, exported or deleted data, and when.
+  </Card>
+
+  <Card title="Vulnerability disclosure" icon="bug">
+    <Badge color="gray" shape="pill">Planned</Badge>
+    <br />
+    A security contact and policy for reporting issues, with response targets.
+  </Card>
+
+  <Card title="Incident response" icon="siren-on">
+    <Badge color="gray" shape="pill">Planned</Badge>
+    <br />
+    A documented process for detecting, handling and reporting security incidents.
+  </Card>
+
+  <Card title="Compliance certifications" icon="award">
+    <Badge color="gray" shape="pill">Planned</Badge>
+    <br />
+    SOC 2 and ISO 27001 audits.
+  </Card>
+
+  <Card title="Backups and recovery" icon="rotate">
+    <Badge color="gray" shape="pill">Planned</Badge>
+    <br />
+    Regular backups with tested restores and defined recovery targets.
   </Card>
 </div>
