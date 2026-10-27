@@ -3,20 +3,12 @@ title: "Security"
 description: "How Proxi protects access to your chats. Greyed out items are planned."
 ---
 
-<Card title="Sign-in required" icon="lock">
-  Only signed-in users can chat. The server rejects every request without a valid session.
-</Card>
-
 <Card title="Rate limiting" icon="gauge">
   Each user is limited in how many messages they can send in a short time, with caps on message, file and reply size.
 </Card>
 
 <Card title="Content Security Policy" icon="shield-check">
   The browser only loads scripts, styles and data from approved sources, and only connects to Proxi and its sign-in provider.
-</Card>
-
-<Card title="Browser protections" icon="shield">
-  HTTPS only, no embedding in other sites, and no camera or location access.
 </Card>
 
 <div style={{opacity: 0.5}}>
