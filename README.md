@@ -2,6 +2,17 @@
 
 AI chat assistant built on Claude, deployed on Vercel.
 
+## Layout
+
+| Folder | What | Hosted on |
+|---|---|---|
+| `apps/web` | Chat app and API | Vercel (Root Directory: `apps/web`) |
+| `apps/docs` | Documentation site | Mintlify (docs path: `apps/docs`) |
+
+## Web app
+
+Paths below are relative to `apps/web`.
+
 - `index.html`: the app (Vue 3 from a CDN, no build step).
 - Sign-in uses Clerk. The page only shows the chat to signed-in users, and both API endpoints reject requests without a valid Clerk session token.
 - `api/chat.js`: streams replies from Claude. Card numbers, IBANs, emails and phone numbers are masked before anything reaches the model or the logs.
@@ -26,6 +37,7 @@ The system prompt can be edited in Langfuse as a text prompt named `proxi-system
 ## Tests
 
 ```
+cd apps/web
 npm install
 npm test
 ```
