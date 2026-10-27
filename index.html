@@ -1106,7 +1106,9 @@ async function start() {
   clerk.addListener(({ user }) => { if (user && !signedIn) location.reload(); });
   if (!signedIn) {
     document.getElementById('auth').hidden = false;
-    clerk.mountSignIn(document.getElementById('sign-in'));
+    // withSignUp: one box for both, so a first Google or GitHub sign-in creates the account
+    // instead of failing with "External Account was not found".
+    clerk.mountSignIn(document.getElementById('sign-in'), { withSignUp: true });
     return;
   }
   document.documentElement.classList.add('app-mode');
