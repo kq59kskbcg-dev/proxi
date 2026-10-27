@@ -14,7 +14,7 @@ button{font-family:inherit}
 textarea,input{font-family:inherit}
 input::placeholder,textarea::placeholder{color:#6B6B74}
 button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-.composer:focus-within{border-color:var(--accent) !important;box-shadow:0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent) !important}
+.composer:focus-within,.composer.drop{border-color:var(--accent) !important;box-shadow:0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent) !important}
 .hov:hover{background:rgba(24,24,27,0.06) !important}
 .chip:hover{background:#FAFAFB !important;border-color:#C4C4CC !important}
 .menu-item:hover{background:#F1F1F4 !important}
@@ -70,7 +70,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 <div id="app"></div>
 
 <script type="text/x-template" id="tpl">
-<div :style="`--accent: ${v.accent}; position: relative; height: 100vh; min-height: 560px; overflow: hidden; display: flex; background: #FAFAFB; font-family: Inter, system-ui, sans-serif; color: #111111; font-size: 15px`">
+<div @dragover="v.onDragOver" @dragleave="v.onDragLeave" @drop="v.onDrop" :style="`--accent: ${v.accent}; position: relative; height: 100vh; min-height: 560px; overflow: hidden; display: flex; background: #FAFAFB; font-family: Inter, system-ui, sans-serif; color: #111111; font-size: 15px`">
 
   <template v-if="v.anyMenu">
     <button aria-label="Close menu" tabindex="-1" @click="v.closeMenus" style="position: absolute; inset: 0; z-index: 30; border: 0; padding: 0; margin: 0; background: transparent; cursor: default"></button>
@@ -215,7 +215,18 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
         <template v-for="(m, i_m) in v.msgs" :key="i_m">
           <template v-if="m.isUser">
             <div class="umsg" style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px">
-              <div style="max-width: 80%; background: #F1F1F4; border-radius: 18px 18px 6px 18px; padding: 12px 16px; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere">{{ m.text }}</div>
+              <template v-if="m.attachments.length">
+                <div style="max-width: 80%; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px">
+                  <template v-for="a in m.attachments" :key="a.key">
+                    <div :style="`display: flex; align-items: center; gap: 8px; max-width: 100%; height: 40px; padding: 0 12px 0 6px; border: 1px solid #E7E5EE; border-radius: 12px; background: #FFFFFF; font-size: 13px; color: ${a.muted ? '#5C5C66' : '#111111'}`">
+                      <img v-if="a.thumb" :src="a.thumb" alt="" style="flex: none; width: 28px; height: 28px; border-radius: 7px; object-fit: cover">
+                      <span v-else aria-hidden="true" style="flex: none; width: 28px; height: 28px; border-radius: 7px; background: #F1F1F4; color: #52525B; display: flex; align-items: center; justify-content: center"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"></path><path d="M14 3v5h5"></path></svg></span>
+                      <span style="min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{ a.label }}</span>
+                    </div>
+                  </template>
+                </div>
+              </template>
+              <div v-if="m.text" style="max-width: 80%; background: #F1F1F4; border-radius: 18px 18px 6px 18px; padding: 12px 16px; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere">{{ m.text }}</div>
               <div class="uact" style="display: flex; gap: 2px">
                 <button class="hov" aria-label="Edit message" @click="m.onEdit" style="width: 32px; height: 32px; border: 0; background: transparent; border-radius: 8px; color: #63636B; display: flex; align-items: center; justify-content: center; cursor: pointer"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"></path></svg></button>
                 <button class="hov" :aria-label="m.copyLabel" @click="m.onCopy" style="width: 32px; height: 32px; border: 0; background: transparent; border-radius: 8px; color: #63636B; display: flex; align-items: center; justify-content: center; cursor: pointer">
@@ -287,9 +298,28 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
         <div aria-hidden="true" style="position: absolute; left: 0; right: 0; top: -40px; height: 40px; background: linear-gradient(to bottom, rgba(255,255,255,0), #FFFFFF); pointer-events: none"></div>
       </template>
       <form @submit="v.onSubmit" :style="`max-width: ${v.composerMax}; margin: 0 auto; display: flex; flex-direction: column; gap: 10px`">
-        <div class="composer" style="border: 1px solid #D4D4DA; border-radius: 20px; background: #FFFFFF; box-shadow: 0 4px 18px rgba(24,24,27,0.06); padding: 14px 14px 10px 18px; display: flex; flex-direction: column; gap: 8px">
+        <div class="composer" :class="{ drop: v.dragging }" style="border: 1px solid #D4D4DA; border-radius: 20px; background: #FFFFFF; box-shadow: 0 4px 18px rgba(24,24,27,0.06); padding: 14px 14px 10px 18px; display: flex; flex-direction: column; gap: 8px">
+          <input type="file" multiple hidden tabindex="-1" aria-hidden="true" :accept="v.accept" :ref="v.fileRef" @change="v.onFiles">
+          <template v-if="v.pending.length">
+            <div style="display: flex; flex-wrap: wrap; gap: 8px">
+              <template v-for="a in v.pending" :key="a.id">
+                <div style="display: flex; align-items: center; gap: 10px; min-width: 0; max-width: 100%; height: 52px; padding: 0 4px 0 8px; border: 1px solid #E7E5EE; border-radius: 12px; background: #FAFAFB">
+                  <img v-if="a.thumb" :src="a.thumb" alt="" style="flex: none; width: 36px; height: 36px; border-radius: 8px; object-fit: cover">
+                  <span v-else aria-hidden="true" style="flex: none; width: 36px; height: 36px; border-radius: 8px; background: #F1F1F4; color: #52525B; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"></path><path d="M14 3v5h5"></path></svg></span>
+                  <span style="min-width: 0; display: flex; flex-direction: column; font-size: 13px; line-height: 1.3">
+                    <span style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500">{{ a.name }}</span>
+                    <span style="color: #5C5C66">{{ a.size }}</span>
+                  </span>
+                  <button class="hov" type="button" :aria-label="`Remove ${a.name}`" @click="a.remove" style="flex: none; width: 44px; height: 44px; border: 0; background: transparent; border-radius: 10px; color: #52525B; display: flex; align-items: center; justify-content: center; cursor: pointer"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+                </div>
+              </template>
+            </div>
+            <template v-if="v.imageHint">
+              <p style="margin: 0; font-size: 12px; color: #5C5C66">Images aren't checked for card numbers or IDs. Only attach what you're comfortable sharing.</p>
+            </template>
+          </template>
           <label for="composer" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Message Proxi</label>
-          <textarea id="composer" :ref="v.taRef" :rows="v.rows" placeholder="Message Proxi" :value="v.draft" @input="v.onDraft" @keydown="v.onKey" style="border: 0; resize: none; outline: none; font-size: 16px; line-height: 1.5; color: #111111; background: transparent"></textarea>
+          <textarea id="composer" :ref="v.taRef" :rows="v.rows" placeholder="Message Proxi" :value="v.draft" @input="v.onDraft" @keydown="v.onKey" @paste="v.onPaste" style="border: 0; resize: none; outline: none; font-size: 16px; line-height: 1.5; color: #111111; background: transparent"></textarea>
           <div style="position: relative; display: flex; align-items: center; gap: 4px">
             <button class="hov" type="button" aria-label="Attach file" @click="v.attach" style="flex: none; width: 44px; height: 44px; border: 0; background: transparent; border-radius: 50%; color: #3F3F46; display: flex; align-items: center; justify-content: center; cursor: pointer"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5l-8.6 8.6a5 5 0 0 1-7-7l8.6-8.6a3.3 3.3 0 0 1 4.7 4.7l-8.6 8.6a1.7 1.7 0 0 1-2.4-2.4l8-8"></path></svg></button>
             <button class="hov" type="button" :aria-label="`Model: ${v.model}, change model`" :aria-expanded="v.modelMenuExpanded" @click="v.toggleModelMenu" style="margin-left: auto; height: 44px; border: 0; background: transparent; border-radius: 22px; padding: 0 4px; display: flex; align-items: center; cursor: pointer"><span style="height: 34px; padding: 0 10px 0 12px; border-radius: 17px; background: #EFE8FF; display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: #111111"><span :style="`width: 8px; height: 8px; border-radius: 50%; background: ${v.accent}`"></span>{{ v.model }}<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg></span></button>
@@ -335,7 +365,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
   </main>
 
   <template v-if="v.hasToast">
-    <div class="toast" role="status" style="position: absolute; left: 50%; bottom: 28px; transform: translateX(-50%); z-index: 50; background: #111111; color: #FFFFFF; font-size: 14px; font-weight: 500; padding: 10px 16px; border-radius: 10px; box-shadow: 0 8px 24px rgba(24,24,27,0.2); white-space: nowrap">{{ v.toast }}</div>
+    <div class="toast" role="status" style="position: absolute; left: 50%; bottom: 28px; transform: translateX(-50%); z-index: 50; background: #111111; color: #FFFFFF; font-size: 14px; font-weight: 500; padding: 10px 16px; border-radius: 10px; box-shadow: 0 8px 24px rgba(24,24,27,0.2); width: max-content; max-width: min(92vw, 460px); text-align: center; line-height: 1.4">{{ v.toast }}</div>
   </template>
 </div>
 </script>
@@ -368,6 +398,51 @@ async function authHeaders() {
   return { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token };
 }
 
+// ---- Attachments: images, PDFs and plain text, checked here and again on the server ----
+const MAX_FILES = 3;
+const MAX_TOTAL = 3000000;
+const MAX_TEXT = 200000;
+const IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
+const TEXT_EXT = /\.(txt|md|markdown|csv|tsv|json|xml|html|css|js|mjs|ts|tsx|jsx|py|rb|go|rs|java|kt|swift|c|h|cpp|cs|php|sh|sql|ya?ml|toml|ini|log)$/i;
+const ACCEPT = IMAGE_TYPES.join(',') + ',application/pdf,text/*,' + TEXT_EXT.source.match(/\(([^)]*)\)/)[1].split('|').map((e) => '.' + e.replace('ya?ml', 'yaml')).join(',') + ',.yml';
+const KIND_LABELS = { image: 'Image', pdf: 'PDF', text: 'File' };
+
+function classify(file) {
+  if (IMAGE_TYPES.includes(file.type)) return 'image';
+  if (file.type === 'application/pdf' || /\.pdf$/i.test(file.name)) return 'pdf';
+  if (file.type.startsWith('text/') || file.type === 'application/json' || TEXT_EXT.test(file.name)) return 'text';
+  return null;
+}
+
+function formatSize(bytes) {
+  return bytes < 1024 ? bytes + ' B' : bytes < 1048576 ? Math.round(bytes / 1024) + ' KB' : (bytes / 1048576).toFixed(1) + ' MB';
+}
+
+function readBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result).split(',')[1] || '');
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
+}
+
+// A small preview, so chats never hold a full-size image data URL in the page.
+async function makeThumb(file) {
+  try {
+    const bitmap = await createImageBitmap(file);
+    const size = 64;
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = size;
+    const scale = Math.max(size / bitmap.width, size / bitmap.height);
+    canvas.getContext('2d').drawImage(bitmap, (size - bitmap.width * scale) / 2, (size - bitmap.height * scale) / 2, bitmap.width * scale, bitmap.height * scale);
+    if (bitmap.close) bitmap.close();
+    return canvas.toDataURL('image/jpeg', 0.7);
+  } catch (e) {
+    return '';
+  }
+}
+
 class DCLogic {
   constructor(props) { this.props = props; }
   setState(update) {
@@ -392,6 +467,9 @@ class Component extends DCLogic {
       typing: false,
       typingConv: null,
       replyStarted: false,
+      pending: [],
+      reading: false,
+      dragging: false,
       model: 'Haiku 5.5',
       modelMenu: false,
       chatMenu: false,
@@ -458,7 +536,7 @@ class Component extends DCLogic {
   showToast(text) {
     clearTimeout(this.toastTimer);
     this.setState({ toast: text });
-    this.toastTimer = this.later(() => this.setState({ toast: '' }), 2200);
+    this.toastTimer = this.later(() => this.setState({ toast: '' }), Math.min(8000, Math.max(2200, text.length * 55)));
   }
 
   patchMessage(convId, msgId, fn) {
@@ -475,12 +553,51 @@ class Component extends DCLogic {
     return id;
   }
 
+  // Why a file can't be added, or '' if it can.
+  fileProblem(file, pending) {
+    if (/\.(docx?|xlsx?|pptx?)$/i.test(file.name)) return "Word, Excel and PowerPoint files aren't supported yet. Try a PDF or plain text.";
+    const kind = classify(file);
+    if (!kind) return file.name + " isn't supported. Attach images, PDFs or plain text files.";
+    if (file.size === 0) return file.name + ' is empty.';
+    if (pending.length >= MAX_FILES) return 'You can attach up to ' + MAX_FILES + ' files per message.';
+    if (kind === 'text' && file.size > MAX_TEXT) return file.name + ' is too large. Text files can be up to 200 KB.';
+    if (pending.reduce((sum, a) => sum + a.bytes, 0) + file.size > MAX_TOTAL) return 'Attachments can be up to 3 MB in total.';
+    return '';
+  }
+
+  async addFiles(fileList) {
+    const files = Array.from(fileList || []);
+    if (!files.length) return;
+    this.setState({ reading: true });
+    const pending = this.state.pending.slice();
+    try {
+      for (const file of files) {
+        const problem = this.fileProblem(file, pending);
+        if (problem) { this.showToast(problem); continue; }
+        const kind = classify(file);
+        pending.push({
+          id: this.nextId++, name: file.name || 'file', kind, bytes: file.size,
+          mediaType: kind === 'image' ? file.type : kind === 'pdf' ? 'application/pdf' : 'text/plain',
+          data: await readBase64(file), thumb: kind === 'image' ? await makeThumb(file) : ''
+        });
+      }
+    } catch (e) {
+      this.showToast("Couldn't read that file. Please try again.");
+    }
+    this.setState({ pending, reading: false });
+    this.focusComposer();
+  }
+
   // Streams a real reply from /api/chat into the conversation.
   async ask(convId) {
     const conv = this.state.convs.find((c) => c.id === convId);
     if (!conv) return;
     // Error notices are shown to the user but never sent back to the model.
-    const messages = conv.messages.filter((m) => !m.error).map((m) => ({ role: m.role, content: m.text, model: m.model, traceId: m.traceId })).filter((m) => m.content);
+    const live = conv.messages.filter((m) => !m.error && (m.text || (m.attachments || []).length));
+    const messages = live.map((m, i) => ({
+      role: m.role, content: m.text || '', model: m.model, traceId: m.traceId,
+      attachments: (m.attachments || []).map((a) => (i === live.length - 1 && a.data ? { name: a.name, type: a.mediaType, data: a.data } : { kind: a.kind }))
+    }));
     const controller = new AbortController();
     this.abort = controller;
     this.setState({ typing: true, typingConv: convId, replyStarted: false });
@@ -495,14 +612,22 @@ class Component extends DCLogic {
       else { const id = this.addAssistant(convId, text); this.patchMessage(convId, id, (m) => ({ ...m, error: true })); }
     };
     try {
+      const payload = JSON.stringify({ model: this.state.model, messages, conversationId: convId });
+      // The host rejects request bodies over 4.5 MB, so say so before sending.
+      if (payload.length > 4400000) {
+        fail('That message is too large to send. Try fewer or smaller attachments.');
+        return finish();
+      }
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: await authHeaders(),
-        body: JSON.stringify({ model: this.state.model, messages, conversationId: convId }),
+        body: payload,
         signal: controller.signal
       });
       if (!res.ok || !res.body) {
-        let error = res.status === 404 ? "Proxi's AI isn't connected on this site yet." : 'Something went wrong. Please try again.';
+        let error = res.status === 404 ? "Proxi's AI isn't connected on this site yet."
+          : res.status === 413 ? 'That message is too large to send. Try fewer or smaller attachments.'
+          : 'Something went wrong. Please try again.';
         try { const data = await res.json(); if (data.error) error = data.error; } catch (e) {}
         fail(error);
         return finish();
@@ -522,10 +647,13 @@ class Component extends DCLogic {
           if (event.type === 'start') {
             traceId = event.traceId;
             const kinds = Object.keys(event.redactions || {});
+            const notes = [];
             if (kinds.length) {
               const names = { CARD: 'card numbers', IBAN: 'IBANs', EMAIL: 'email addresses', PHONE: 'phone numbers' };
-              this.showToast('Removed ' + kinds.map((k) => names[k] || k).join(', ') + ' before sending');
+              notes.push('Removed ' + kinds.map((k) => names[k] || k).join(', ') + ' before sending.');
             }
+            notes.push(...(event.notices || []));
+            if (notes.length) this.showToast(notes.join(' '));
           } else if (event.type === 'text') {
             if (!msgId) {
               msgId = this.addAssistant(convId, '');
@@ -576,7 +704,7 @@ class Component extends DCLogic {
       const res = await fetch('/api/conversations?id=' + encodeURIComponent(id), { headers: await authHeaders() });
       if (!res.ok) throw new Error(res.status);
       const { messages } = await res.json();
-      patch({ loading: false, loaded: true, messages: messages.map((m) => ({ id: this.nextId++, role: m.role, text: m.content, model: m.model, traceId: m.traceId })) });
+      patch({ loading: false, loaded: true, messages: messages.map((m) => ({ id: this.nextId++, role: m.role, text: m.content, model: m.model, traceId: m.traceId, attachments: (m.attachments || []).map((a) => ({ kind: a.kind })) })) });
     } catch (e) {
       patch({ loading: false });
       this.showToast("Couldn't open this chat. Try again.");
@@ -585,7 +713,8 @@ class Component extends DCLogic {
 
   send(raw) {
     const text = (raw != null ? raw : this.state.draft).trim();
-    if (!text || this.state.typing) return;
+    const files = this.state.pending;
+    if ((!text && !files.length) || this.state.typing || this.state.reading) return;
     const id = this.nextId++;
     let convId = this.state.view === 'chat' ? this.state.activeId : null;
     const current = this.state.convs.find((c) => c.id === convId);
@@ -594,17 +723,18 @@ class Component extends DCLogic {
     let fresh = null;
     if (!convId) {
       convId = crypto.randomUUID();
-      fresh = { id: convId, title: text.length > 40 ? text.slice(0, 40).trim() + '...' : text, group: 'Today', messages: [], loaded: true };
+      fresh = { id: convId, title: text ? (text.length > 40 ? text.slice(0, 40).trim() + '...' : text) : 'Attachment', group: 'Today', messages: [], loaded: true };
     }
     this.setState((s) => {
       // The active chat moves to the top of Today.
       const base = fresh ? [fresh, ...s.convs] : [{ ...current, group: 'Today' }, ...s.convs.filter((c) => c.id !== convId)];
       return {
         draft: '',
+        pending: [],
         view: 'chat',
         activeId: convId,
         modelMenu: false,
-        convs: base.map((c) => c.id === convId ? { ...c, messages: [...c.messages, { id, role: 'user', text }] } : c)
+        convs: base.map((c) => c.id === convId ? { ...c, messages: [...c.messages, { id, role: 'user', text, attachments: files }] } : c)
       };
     });
     this.ask(convId);
@@ -628,7 +758,7 @@ class Component extends DCLogic {
   edit(msg) {
     this.stop();
     this.truncateAt(msg.id);
-    this.setState({ draft: msg.text });
+    this.setState({ draft: msg.text, pending: (msg.attachments || []).filter((a) => a.data) });
     this.focusComposer();
   }
 
@@ -707,6 +837,10 @@ class Component extends DCLogic {
       const copied = s.copied === key;
       return {
         text: m.text || '',
+        attachments: (m.attachments || []).map((a, i) => ({
+          key: i, thumb: a.data ? a.thumb : '', muted: !a.data,
+          label: a.data ? a.name : KIND_LABELS[a.kind] + ' removed'
+        })),
         isUser: m.role === 'user',
         isAssistant: m.role === 'assistant',
         html: m.role === 'assistant' ? renderMarkdown(m.text || '') : '',
@@ -741,7 +875,7 @@ class Component extends DCLogic {
       { label: 'Learn', text: 'How do index funds work, in plain terms?' }
     ].map((c) => ({ ...c, pick: () => this.send(c.text) }));
 
-    const canSend = !!s.draft.trim();
+    const canSend = (!!s.draft.trim() || s.pending.length > 0) && !s.reading;
     const showNav = true;
 
     return {
@@ -811,7 +945,31 @@ class Component extends DCLogic {
         if (e.key === 'Enter' && !e.shiftKey && !(e.nativeEvent && e.nativeEvent.isComposing)) { e.preventDefault(); this.send(); }
       },
       onSubmit: (e) => { e.preventDefault(); this.send(); },
-      attach: () => this.showToast('File upload is not part of this prototype'),
+      accept: ACCEPT,
+      fileRef: (el) => { this.fileEl = el; },
+      attach: () => { if (this.fileEl) this.fileEl.click(); },
+      onFiles: (e) => { const files = Array.from(e.target.files); e.target.value = ''; this.addFiles(files); },
+      pending: s.pending.map((a) => ({ id: a.id, name: a.name, thumb: a.thumb, size: formatSize(a.bytes), remove: () => this.setState((st) => ({ pending: st.pending.filter((x) => x.id !== a.id) })) })),
+      imageHint: s.pending.some((a) => a.kind === 'image'),
+      dragging: s.dragging,
+      onPaste: (e) => {
+        const files = e.clipboardData && e.clipboardData.files;
+        if (files && files.length) { e.preventDefault(); this.addFiles(files); }
+      },
+      onDragOver: (e) => {
+        if (!e.dataTransfer || !Array.from(e.dataTransfer.types || []).includes('Files')) return;
+        e.preventDefault();
+        if (!s.dragging && (isChat || isNew)) this.setState({ dragging: true });
+      },
+      onDragLeave: (e) => {
+        if (s.dragging && !e.currentTarget.contains(e.relatedTarget)) this.setState({ dragging: false });
+      },
+      onDrop: (e) => {
+        if (!e.dataTransfer || !Array.from(e.dataTransfer.types || []).includes('Files')) return;
+        e.preventDefault();
+        this.setState({ dragging: false });
+        if (isChat || isNew) this.addFiles(e.dataTransfer.files);
+      },
       voice: () => this.showToast('Voice input is not part of this prototype'),
       model: s.model,
       models,

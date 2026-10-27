@@ -21,8 +21,8 @@ const chat = [
 test('saves a chat and reads it back in order', async () => {
   await saveConversation('user_a', 'c1', 'Plan a trip to Lisbon', chat);
   assert.deepEqual(await getMessages('user_a', 'c1'), [
-    { role: 'user', content: 'Plan a trip to Lisbon', model: null, traceId: null },
-    { role: 'assistant', content: 'Day 1: Alfama.', model: 'claude-sonnet-5-5', traceId: 'trace-1' },
+    { role: 'user', content: 'Plan a trip to Lisbon', model: null, traceId: null, attachments: null },
+    { role: 'assistant', content: 'Day 1: Alfama.', model: 'claude-sonnet-5-5', traceId: 'trace-1', attachments: null },
   ]);
   const list = await listConversations('user_a');
   assert.equal(list.length, 1);
@@ -56,4 +56,14 @@ test('deleting removes the chat and its messages, only for that user', async () 
   assert.deepEqual(await getMessages('user_a', 'c1'), []);
   assert.deepEqual((await listConversations('user_a')).map((c) => c.id), ['c2']);
   assert.equal((await getMessages('user_b', 'c1')).length, 1);
+});
+
+test('remembers which kinds of files were attached, but nothing else about them', async () => {
+  await saveConversation('user_a', 'c3', 'With files', [
+    { role: 'user', content: '', attachments: [{ kind: 'image' }, { kind: 'pdf' }] },
+    { role: 'assistant', content: 'I see a chart.' },
+  ]);
+  const [first, second] = await getMessages('user_a', 'c3');
+  assert.deepEqual(first.attachments, [{ kind: 'image' }, { kind: 'pdf' }]);
+  assert.equal(second.attachments, null);
 });

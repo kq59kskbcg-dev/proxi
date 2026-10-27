@@ -5,9 +5,10 @@ AI chat assistant built on Claude, deployed on Vercel.
 - `index.html`: the app (Vue 3 from a CDN, no build step).
 - Sign-in uses Clerk. The page only shows the chat to signed-in users, and both API endpoints reject requests without a valid Clerk session token.
 - `api/chat.js`: streams replies from Claude. Card numbers, IBANs, emails and phone numbers are masked before anything reaches the model or the logs.
+- Attachments: images, PDFs and plain text, up to 3 files and 3 MB per message. Files are checked by their real contents and used for one request only; they are never stored (saved chats only remember that an image, PDF or file was attached). Text files are redacted like typed messages. PDFs are scanned and refused if they contain a card number or IBAN. Images can't be scanned, so the page warns about that.
 - `api/feedback.js`: thumbs up / down, stored as Langfuse scores.
 - `api/conversations.js`: each user's saved chats (list, open, delete). Chats are stored redacted in Postgres (Neon), keyed by the user's Clerk ID.
-- `lib/`: sign-in checks, redaction, rate limiting, chat storage and Langfuse setup.
+- `lib/`: sign-in checks, redaction, attachment checks, rate limiting, chat storage and Langfuse setup.
 
 ## Environment variables (set in Vercel)
 
