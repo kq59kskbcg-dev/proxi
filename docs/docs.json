@@ -10,7 +10,7 @@
   "favicon": "/favicon.svg",
   "navigation": {
     "groups": [
-      { "group": "Get started", "pages": ["index", "features", "privacy-and-security"] }
+      { "group": "Get started", "pages": ["index", "features", "privacy", "security"] }
     ]
   }
 }
