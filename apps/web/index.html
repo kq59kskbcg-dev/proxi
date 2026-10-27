@@ -1110,15 +1110,19 @@ async function start() {
   const signedIn = !!clerk.user;
   clerk.addListener(({ user }) => { if (user && !signedIn) location.reload(); });
   if (!signedIn) {
-    document.getElementById('auth').hidden = false;
     // Sign-in happens on Clerk's hosted page (it handles sign-up, Google and GitHub, and
     // Clerk's fraud checks under its own security policy), then returns here signed in.
-    document.getElementById('sign-in').addEventListener('click', () => {
-      const back = location.origin + '/';
-      clerk.redirectToSignIn({ signInForceRedirectUrl: back, signUpForceRedirectUrl: back });
-    });
+    const back = location.origin + '/';
+    const goToSignIn = () => clerk.redirectToSignIn({ signInForceRedirectUrl: back, signUpForceRedirectUrl: back });
+    let redirected = true;
+    try { redirected = sessionStorage.getItem('proxi-sign-in') === '1'; sessionStorage.setItem('proxi-sign-in', '1'); } catch {}
+    if (!redirected) return goToSignIn();
+    // Already sent there once in this tab and still signed out: show the button instead of looping.
+    document.getElementById('auth').hidden = false;
+    document.getElementById('sign-in').addEventListener('click', goToSignIn);
     return;
   }
+  try { sessionStorage.removeItem('proxi-sign-in'); } catch {}
   document.documentElement.classList.add('app-mode');
   trackViewport();
   props.userName = clerk.user.fullName || clerk.user.primaryEmailAddress?.emailAddress || 'Signed in';
