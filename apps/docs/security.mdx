@@ -4,40 +4,40 @@ description: "How Proxi protects access to your chats. Greyed out items are plan
 ---
 
 <Card title="Rate limiting" icon="gauge">
-  Each user is limited in how many messages they can send in a short time, with caps on message, file and reply size.
+  Each user is limited in how many messages they can send in a short time.
 </Card>
 
 <Card title="Content Security Policy" icon="shield-check">
-  The browser only loads scripts, styles and data from approved sources, and only connects to Proxi and its sign-in provider.
+  The browser only loads scripts, styles and data from approved sources.
 </Card>
 
 <Card title="Encryption in transit" icon="lock">
-  All traffic uses HTTPS, and browsers are told to only connect over HTTPS (HSTS).
+  All traffic uses HTTPS.
 </Card>
 
 <div style={{opacity: 0.5}}>
   <Card title="Database access controls" icon="user-lock">
     <Badge color="gray" shape="pill">Planned</Badge>
     <br />
-    Row-level security so the database itself enforces that each user can only read their own chats, not just the app.
+    The database itself ensures each user can only read their own chats.
   </Card>
 
   <Card title="Encryption at rest" icon="database">
     <Badge color="gray" shape="pill">Planned</Badge>
     <br />
-    Customer data encrypted in storage, with encryption settings verified and documented.
+    Customer data is encrypted in storage.
   </Card>
 
   <Card title="SSO and MFA" icon="key">
     <Badge color="gray" shape="pill">Planned</Badge>
     <br />
-    Single sign-on with your identity provider, and multi-factor authentication for every account.
+    Single sign-on and multi-factor authentication for every account.
   </Card>
 
   <Card title="Role-based access" icon="users">
     <Badge color="gray" shape="pill">Planned</Badge>
     <br />
-    Roles and permissions for admins and members, following least privilege.
+    Roles and permissions for admins and members.
   </Card>
 
   <Card title="Audit logging" icon="list-check">
@@ -49,13 +49,13 @@ description: "How Proxi protects access to your chats. Greyed out items are plan
   <Card title="Vulnerability disclosure" icon="bug">
     <Badge color="gray" shape="pill">Planned</Badge>
     <br />
-    A security contact and policy for reporting issues, with response targets.
+    A security contact and policy for reporting issues.
   </Card>
 
   <Card title="Incident response" icon="siren-on">
     <Badge color="gray" shape="pill">Planned</Badge>
     <br />
-    A documented process for detecting, handling and reporting security incidents.
+    A documented process for handling security incidents.
   </Card>
 
 
