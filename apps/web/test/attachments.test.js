@@ -34,7 +34,7 @@ test('text files are wrapped, and card numbers, IBANs and emails are masked', as
   const text = 'Pay NL91 ABNA 0417 1643 00 with card 4111 1111 1111 1111, mail jane@example.com';
   const { blocks, kinds, redactions } = await processAttachments([file('notes.txt', text)]);
   assert.deepEqual(kinds, ['text']);
-  assert.equal(blocks[0].text, '<attached_file name="notes.txt">\nPay [IBAN] with card [CARD], mail [EMAIL]\n</attached_file>');
+  assert.equal(blocks[0].text, '<attached_file name="notes.txt">\nPay [IBAN] with card •••• •••• •••• 1111, mail [EMAIL]\n</attached_file>');
   assert.deepEqual(redactions, { IBAN: 1, CARD: 1, EMAIL: 1 });
 });
 
