@@ -1,17 +1,13 @@
 ---
 title: "Security"
-description: "How Proxi protects access to your chats."
+description: "How Proxi protects access to your chats. Greyed out items are planned."
 ---
 
 <Card title="Sign-in required" icon="lock">
   Only signed-in users can chat. The server rejects every request without a valid session.
 </Card>
 
-<Card title="Chats are private to you" icon="user-lock">
-  Saved chats are tied to your account. You can only see and delete your own.
-</Card>
-
-<Card title="Usage limits" icon="gauge">
+<Card title="Rate limiting" icon="gauge">
   Each user is limited in how many messages they can send in a short time, with caps on message, file and reply size.
 </Card>
 
@@ -22,3 +18,9 @@ description: "How Proxi protects access to your chats."
 <Card title="Browser protections" icon="shield">
   HTTPS only, no embedding in other sites, and no camera or location access.
 </Card>
+
+<div style={{opacity: 0.5}}>
+  <Card title="Planned: database access controls" icon="user-lock">
+    Row-level security so the database itself enforces that each user can only read their own chats, not just the app.
+  </Card>
+</div>
