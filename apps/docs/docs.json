@@ -41,5 +41,12 @@
       "source": "/features",
       "destination": "/what-is-proxi"
     }
-  ]
+  ],
+  "navbar": {
+    "primary": {
+      "type": "button",
+      "label": "Open Proxi",
+      "href": "https://proxi-three.vercel.app"
+    }
+  }
 }
