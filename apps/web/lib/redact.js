@@ -15,15 +15,10 @@ export function redact(text) {
     out = out.replace(regex, (match) => {
       if (valid && !valid(match)) return match;
       counts[type] = (counts[type] || 0) + 1;
-      return type === 'CARD' ? maskCard(match) : `[${type}]`;
+      return `[${type}]`;
     });
   }
   return { text: out, counts };
-}
-
-// Shown the way cards usually are: only the last four digits stay visible.
-export function maskCard(match) {
-  return `•••• •••• •••• ${match.replace(/\D/g, '').slice(-4)}`;
 }
 
 // Luhn checksum, so order numbers and timestamps aren't masked as cards.

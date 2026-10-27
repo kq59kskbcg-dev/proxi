@@ -399,6 +399,19 @@ function renderMarkdown(text) {
 
 const DOCS_URL = 'https://proxi.mintlify.site';
 
+function maskCards(text) {
+  return text.replace(/\b\d(?:[ -]?\d){12,18}\b/g, (match) => {
+    const digits = match.replace(/\D/g, '');
+    let sum = 0;
+    for (let i = 0; i < digits.length; i++) {
+      let d = Number(digits[digits.length - 1 - i]);
+      if (i % 2 === 1) { d *= 2; if (d > 9) d -= 9; }
+      sum += d;
+    }
+    return sum % 10 === 0 ? '•••• •••• •••• ' + digits.slice(-4) : match;
+  });
+}
+
 // The visible viewport shrinks when the browser bar shows or the keyboard opens, and
 // on iOS it also pans. Tracking it keeps the app exactly the size of what is visible.
 function trackViewport() {
@@ -774,7 +787,8 @@ class Component extends DCLogic {
     let fresh = null;
     if (!convId) {
       convId = crypto.randomUUID();
-      fresh = { id: convId, title: text ? (text.length > 40 ? text.slice(0, 40).trim() + '...' : text) : 'Attachment', group: 'Today', messages: [], loaded: true };
+      const title = maskCards(text);
+      fresh = { id: convId, title: title ? (title.length > 40 ? title.slice(0, 40).trim() + '...' : title) : 'Attachment', group: 'Today', messages: [], loaded: true };
     }
     this.setState((s) => {
       // The active chat moves to the top of Today.
@@ -885,8 +899,9 @@ class Component extends DCLogic {
       const v = s.votes[m.id];
       const key = 'm' + m.id;
       const copied = s.copied === key;
+      const shown = m.role === 'user' ? maskCards(m.text || '') : m.text || '';
       return {
-        text: m.text || '',
+        text: shown,
         attachments: (m.attachments || []).map((a, i) => ({
           key: i, thumb: a.data ? a.thumb : '', muted: !a.data,
           label: a.data ? a.name : KIND_LABELS[a.kind] + ' removed'
@@ -903,7 +918,7 @@ class Component extends DCLogic {
         downColor: v === 'down' ? accent : '#63636B',
         upFill: v === 'up' ? 'currentColor' : 'none',
         downFill: v === 'down' ? 'currentColor' : 'none',
-        onCopy: () => this.copy(key, m.text),
+        onCopy: () => this.copy(key, shown),
         onEdit: () => this.edit(m),
         onUp: () => this.vote(m, 'up'),
         onDown: () => this.vote(m, 'down'),
