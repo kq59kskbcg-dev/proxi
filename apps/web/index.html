@@ -350,7 +350,6 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
                 </template>
               </div>
             </template>
-            <button class="hov" type="button" aria-label="Voice input" @click="v.voice" style="flex: none; width: 44px; height: 44px; border: 0; background: transparent; border-radius: 50%; color: #3F3F46; display: flex; align-items: center; justify-content: center; cursor: pointer"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0M12 18v3"></path></svg></button>
             <template v-if="v.typing">
               <button type="button" aria-label="Stop generating" @click="v.stop" style="flex: none; width: 44px; height: 44px; border: 0; background: #111111; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer"><span style="width: 12px; height: 12px; border-radius: 2px; background: #FFFFFF"></span></button>
             </template>
@@ -1051,7 +1050,6 @@ class Component extends DCLogic {
         this.setState({ dragging: false });
         if (isChat || isNew) this.addFiles(e.dataTransfer.files);
       },
-      voice: () => this.showToast('Voice input is not part of this prototype'),
       model: s.model,
       models,
       modelMenu: s.modelMenu,
