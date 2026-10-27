@@ -6,6 +6,7 @@ import { getLangfuse, getSystemPrompt } from '../lib/langfuse.js';
 import { CONVERSATION_ID, hasDatabase, saveConversation } from '../lib/db.js';
 import { processAttachments, AttachmentError, KINDS, MAX_ATTACHMENTS } from '../lib/attachments.js';
 import { getMcpTools } from '../lib/mcp.js';
+import { makeTitle } from '../lib/title.js';
 
 // Only these models can be requested from the browser.
 const MODELS = {
@@ -117,6 +118,9 @@ export async function POST(request) {
     async start(controller) {
       const send = (event) => controller.enqueue(encoder.encode(JSON.stringify(event) + '\n'));
       send({ type: 'start', traceId: trace?.id ?? null, redactions, notices: attached.notices });
+      // A new chat gets a short AI title, made alongside the reply so nobody waits for it.
+      const firstMessage = history.length === 1 ? history[0] : null;
+      const titled = conversationId && firstMessage ? makeTitle(client, firstMessage.content, trace) : null;
       let text = '';
       let servedBy = model;
       try {
@@ -182,9 +186,13 @@ export async function POST(request) {
         }
       } finally {
         // Save the chat (already redacted), including a partial reply if it was stopped.
+        const aiTitle = titled ? await titled : null;
+        if (aiTitle) {
+          try { send({ type: 'title', title: aiTitle }); } catch {}
+        }
         if (conversationId && hasDatabase()) {
           const reply = text ? [{ role: 'assistant', content: text, model: servedBy, traceId: trace?.id ?? null }] : [];
-          await saveConversation(user.userId, conversationId, titleFrom(history), [...history, ...reply])
+          await saveConversation(user.userId, conversationId, aiTitle || titleFrom(history), [...history, ...reply], { replaceTitle: Boolean(aiTitle) })
             .catch((e) => console.error('saving chat failed', e));
         }
         await langfuse?.flushAsync().catch(() => {});
@@ -202,7 +210,7 @@ export async function POST(request) {
 function titleFrom(history) {
   const user = history.find((m) => m.role === 'user');
   const first = user?.content.trim().replace(/\s+/g, ' ') || (user?.attachments.length ? 'Attachment' : 'New chat');
-  return first.length > 60 ? first.slice(0, 60).trim() + '...' : first;
+  return first.length > 40 ? first.slice(0, 40).trim() + '...' : first;
 }
 
 // What the model receives for one message. Files that can't be re-sent (older

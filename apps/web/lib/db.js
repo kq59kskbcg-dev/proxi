@@ -73,12 +73,14 @@ export async function getMessages(userId, conversationId) {
 }
 
 // Replaces the stored conversation with its current state, so edits and
-// regenerations (which drop later messages) are saved too.
-export async function saveConversation(userId, conversationId, title, messages) {
+// regenerations (which drop later messages) are saved too. An existing chat keeps
+// its title unless replaceTitle is set (a new AI title for the first message).
+export async function saveConversation(userId, conversationId, title, messages, { replaceTitle = false } = {}) {
   const d = await db();
   await d.transaction([
     [`INSERT INTO conversations (user_id, id, title) VALUES ($1, $2, $3)
-      ON CONFLICT (user_id, id) DO UPDATE SET updated_at = now()`, [userId, conversationId, title]],
+      ON CONFLICT (user_id, id) DO UPDATE SET updated_at = now(),
+        title = CASE WHEN $4::boolean THEN EXCLUDED.title ELSE conversations.title END`, [userId, conversationId, title, replaceTitle]],
     ['DELETE FROM messages WHERE user_id = $1 AND conversation_id = $2', [userId, conversationId]],
     [`INSERT INTO messages (user_id, conversation_id, position, role, content, model, trace_id, attachments)
       SELECT $1, $2, p, r, c, m, t, a::jsonb FROM unnest($3::int[], $4::text[], $5::text[], $6::text[], $7::text[], $8::text[]) AS x(p, r, c, m, t, a)`,
