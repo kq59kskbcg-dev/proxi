@@ -1,0 +1,132 @@
+import { test, before, after } from 'node:test';
+import assert from 'node:assert/strict';
+import http from 'node:http';
+import { spawn } from 'node:child_process';
+import { existsSync } from 'node:fs';
+import { generateKeyPairSync, createSign } from 'node:crypto';
+import { fileURLToPath } from 'node:url';
+
+const mcpDir = fileURLToPath(new URL('../../mcp/', import.meta.url));
+const ready = existsSync(new URL('../../mcp/node_modules/', import.meta.url));
+
+const requests = [];
+let fakeClaude;
+let mcpServer;
+let token;
+
+before(async () => {
+  if (!ready) return;
+  const keys = generateKeyPairSync('rsa', { modulusLength: 2048 });
+  process.env.CLERK_JWT_KEY = keys.publicKey.export({ type: 'spki', format: 'pem' });
+  token = signJwt(keys.privateKey, { sub: 'user_e2e', azp: 'https://localhost' });
+
+  fakeClaude = http.createServer((req, res) => {
+    let raw = '';
+    req.on('data', (chunk) => { raw += chunk; });
+    req.on('end', () => {
+      const body = JSON.parse(raw);
+      requests.push(body);
+      res.writeHead(200, { 'content-type': 'text/event-stream' });
+      const turn = requests.length === 1 ? toolUseTurn() : textTurn(statusFrom(body));
+      for (const [event, data] of turn) res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+      res.end();
+    });
+  });
+  await listen(fakeClaude);
+  process.env.ANTHROPIC_BASE_URL = `http://127.0.0.1:${fakeClaude.address().port}`;
+  process.env.ANTHROPIC_API_KEY = 'test-key';
+
+  const port = await freePort();
+  mcpServer = spawn(process.execPath, ['server.js'], { cwd: mcpDir, env: { ...process.env, PORT: String(port) } });
+  await new Promise((resolve, reject) => {
+    mcpServer.stdout.on('data', (chunk) => { if (String(chunk).includes('localhost')) resolve(); });
+    mcpServer.on('exit', reject);
+  });
+  process.env.MCP_URL = `http://127.0.0.1:${port}/mcp`;
+});
+
+after(() => {
+  fakeClaude?.close();
+  mcpServer?.kill();
+});
+
+test('the agent discovers get_status over MCP and calls it', { skip: !ready && 'run npm install in apps/mcp first' }, async () => {
+  const { POST } = await import('../api/chat.js');
+  const response = await POST(new Request('http://localhost/api/chat', {
+    method: 'POST',
+    headers: { authorization: `Bearer ${token}`, host: 'localhost', 'content-type': 'application/json' },
+    body: JSON.stringify({ model: 'Haiku 5.5', messages: [{ role: 'user', content: 'Is the Proxi server up?' }] }),
+  }));
+  assert.equal(response.status, 200);
+  const events = (await response.text()).trim().split('\n').map((line) => JSON.parse(line));
+
+  assert.equal(requests.length, 2);
+  const offered = requests[0].tools.find((tool) => tool.name === 'get_status');
+  assert.ok(offered, 'get_status was discovered and offered to Claude');
+  assert.match(offered.description, /status/);
+  assert.equal(offered.input_schema.type, 'object');
+
+  const [assistant, toolTurn] = requests[1].messages.slice(-2);
+  assert.equal(assistant.content.find((block) => block.type === 'tool_use').name, 'get_status');
+  const result = toolTurn.content[0];
+  assert.equal(result.type, 'tool_result');
+  assert.equal(result.tool_use_id, 'toolu_1');
+  assert.notEqual(result.is_error, true);
+  assert.equal(JSON.parse(result.content[0].text).status, 'ok');
+
+  const text = events.filter((e) => e.type === 'text').map((e) => e.text).join('');
+  assert.match(text, /Proxi is up \(status: ok\)/);
+  assert.equal(events.at(-1).type, 'done');
+  assert.equal(events.at(-1).stopReason, 'end_turn');
+});
+
+function toolUseTurn() {
+  return [
+    ['message_start', { type: 'message_start', message: message() }],
+    ['content_block_start', { type: 'content_block_start', index: 0, content_block: { type: 'tool_use', id: 'toolu_1', name: 'get_status', input: {} } }],
+    ['content_block_delta', { type: 'content_block_delta', index: 0, delta: { type: 'input_json_delta', partial_json: '{}' } }],
+    ['content_block_stop', { type: 'content_block_stop', index: 0 }],
+    ['message_delta', { type: 'message_delta', delta: { stop_reason: 'tool_use', stop_sequence: null }, usage: { output_tokens: 5 } }],
+    ['message_stop', { type: 'message_stop' }],
+  ];
+}
+
+function textTurn(status) {
+  return [
+    ['message_start', { type: 'message_start', message: message() }],
+    ['content_block_start', { type: 'content_block_start', index: 0, content_block: { type: 'text', text: '' } }],
+    ['content_block_delta', { type: 'content_block_delta', index: 0, delta: { type: 'text_delta', text: `Proxi is up (status: ${status}).` } }],
+    ['content_block_stop', { type: 'content_block_stop', index: 0 }],
+    ['message_delta', { type: 'message_delta', delta: { stop_reason: 'end_turn', stop_sequence: null }, usage: { output_tokens: 8 } }],
+    ['message_stop', { type: 'message_stop' }],
+  ];
+}
+
+function message() {
+  return { id: 'msg_1', type: 'message', role: 'assistant', model: 'claude-haiku-5-5', content: [], stop_reason: null, stop_sequence: null, usage: { input_tokens: 10, output_tokens: 0 } };
+}
+
+function statusFrom(body) {
+  const result = body.messages.at(-1).content.find((block) => block.type === 'tool_result');
+  return JSON.parse(result.content[0].text).status;
+}
+
+function signJwt(privateKey, claims) {
+  const now = Math.floor(Date.now() / 1000);
+  const encode = (value) => Buffer.from(JSON.stringify(value)).toString('base64url');
+  const unsigned = `${encode({ alg: 'RS256', typ: 'JWT' })}.${encode({ iat: now, nbf: now - 5, exp: now + 300, ...claims })}`;
+  const signature = createSign('RSA-SHA256').update(unsigned).sign(privateKey, 'base64url');
+  return `${unsigned}.${signature}`;
+}
+
+function listen(server) {
+  return new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+}
+
+async function freePort() {
+  const probe = http.createServer();
+  await listen(probe);
+  const { port } = probe.address();
+  await new Promise((resolve) => probe.close(resolve));
+  return port;
+}

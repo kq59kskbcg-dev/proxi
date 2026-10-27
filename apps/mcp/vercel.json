@@ -1,0 +1,4 @@
+{
+  "regions": ["fra1"],
+  "rewrites": [{ "source": "/mcp", "destination": "/api/mcp" }]
+}

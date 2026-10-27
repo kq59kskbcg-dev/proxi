@@ -5,6 +5,7 @@ import { requireUser } from '../lib/auth.js';
 import { getLangfuse, getSystemPrompt } from '../lib/langfuse.js';
 import { CONVERSATION_ID, hasDatabase, saveConversation } from '../lib/db.js';
 import { processAttachments, AttachmentError, KINDS, MAX_ATTACHMENTS } from '../lib/attachments.js';
+import { getMcpTools } from '../lib/mcp.js';
 
 // Only these models can be requested from the browser.
 const MODELS = {
@@ -20,6 +21,7 @@ const MAX_MESSAGES = 40; // most recent messages sent to the model
 const MAX_HISTORY = 200; // messages kept in a saved chat
 const MAX_CHARS = 20000;
 const MAX_BODY_BYTES = 4_400_000; // Vercel rejects request bodies over 4.5 MB
+const MAX_TOOL_ROUNDS = 5;
 
 let client;
 
@@ -96,17 +98,19 @@ export async function POST(request) {
     name: 'reply', model, input: [{ role: 'system', content: system.text }, ...traced], prompt: system.prompt,
   });
 
+  const mcp = await getMcpTools();
   const params = {
     model,
     max_tokens: MAX_TOKENS,
     system: system.text,
     output_config: { effort: 'low' }, // chat rarely needs deep thinking; keeps replies fast and cheap
-    messages,
+    ...(mcp?.tools.length ? { tools: mcp.tools } : {}),
   };
   client ??= new Anthropic();
-  const stream = FALLBACK_MODELS.has(model)
-    ? client.beta.messages.stream({ ...params, betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default' }, { signal: request.signal })
-    : client.messages.stream(params, { signal: request.signal });
+  const open = (turns) => FALLBACK_MODELS.has(model)
+    ? client.beta.messages.stream({ ...params, messages: turns, betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default' }, { signal: request.signal })
+    : client.messages.stream({ ...params, messages: turns }, { signal: request.signal });
+  let stream;
 
   const encoder = new TextEncoder();
   const body$ = new ReadableStream({
@@ -116,20 +120,40 @@ export async function POST(request) {
       let text = '';
       let servedBy = model;
       try {
-        for await (const event of stream) {
-          if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
-            text += event.delta.text;
-            send({ type: 'text', text: event.delta.text });
+        const turns = [...messages];
+        const usage = { input: 0, output: 0 };
+        let final;
+        for (let round = 0; ; round++) {
+          stream = open(turns);
+          let gap = text.length > 0;
+          for await (const event of stream) {
+            if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
+              const chunk = (gap ? '\n\n' : '') + event.delta.text;
+              gap = false;
+              text += chunk;
+              send({ type: 'text', text: chunk });
+            }
           }
+          final = await stream.finalMessage();
+          usage.input += final.usage.input_tokens;
+          usage.output += final.usage.output_tokens;
+          if (final.stop_reason !== 'tool_use' || !mcp || round + 1 >= MAX_TOOL_ROUNDS) break;
+          const calls = final.content.filter((block) => block.type === 'tool_use');
+          const results = await Promise.all(calls.map(async (call) => {
+            const span = trace?.span({ name: `tool ${call.name}`, input: call.input });
+            const result = await mcp.call(call);
+            span?.end({ output: result.content, level: result.is_error ? 'ERROR' : 'DEFAULT' });
+            return result;
+          }));
+          turns.push({ role: 'assistant', content: final.content }, { role: 'user', content: results });
         }
-        const final = await stream.finalMessage();
         servedBy = final.model;
         if (final.stop_reason === 'refusal') {
           send({ type: 'error', error: "Proxi can't help with that request." });
         }
         generation?.end({
           output: text,
-          usageDetails: { input: final.usage.input_tokens, output: final.usage.output_tokens },
+          usageDetails: usage,
           metadata: { stopReason: final.stop_reason, servedBy: final.model },
         });
         trace?.update({ output: text });
@@ -152,7 +176,7 @@ export async function POST(request) {
         try { controller.close(); } catch {}
       }
     },
-    cancel() { stream.abort(); },
+    cancel() { stream?.abort(); },
   });
 
   return new Response(body$, {
