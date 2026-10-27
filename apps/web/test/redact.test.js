@@ -3,10 +3,9 @@ import assert from 'node:assert/strict';
 import { redact } from '../lib/redact.js';
 
 test('masks valid card numbers in common formats', () => {
-  const cases = { '4111111111111111': '1111', '4111 1111 1111 1111': '1111', '5500-0000-0000-0004': '0004', '378282246310005': '0005' };
-  for (const [card, last4] of Object.entries(cases)) {
+  for (const card of ['4111111111111111', '4111 1111 1111 1111', '5500-0000-0000-0004', '378282246310005']) {
     const { text, counts } = redact(`my card is ${card} thanks`);
-    assert.equal(text, `my card is •••• •••• •••• ${last4} thanks`);
+    assert.equal(text, 'my card is [CARD] thanks');
     assert.equal(counts.CARD, 1);
   }
 });
