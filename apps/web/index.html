@@ -64,12 +64,17 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 #auth{min-height:100vh;min-height:100dvh;box-sizing:border-box;padding:48px 16px;display:flex;flex-direction:column;align-items:center;gap:28px;background:#FAFAFB;font-family:Inter,system-ui,sans-serif}
 #auth[hidden]{display:none}
 .auth-mark{font-family:Manrope,Inter,sans-serif;font-weight:800;font-size:40px;letter-spacing:-0.04em;line-height:1;color:#111111}
+.auth-text{margin:0;font-size:15px;color:#52525B}
+.auth-button{min-width:200px;height:48px;border:0;border-radius:10px;background:#111111;color:#FFFFFF;font:600 15px Inter,system-ui,sans-serif;cursor:pointer}
+.auth-button:hover{background:#2A2A2E}
+.auth-button:focus-visible{outline:2px solid #6D28FF;outline-offset:2px}
 </style>
 </head>
 <body>
 <div id="auth" hidden>
   <span class="auth-mark">proxi</span>
-  <div id="sign-in"></div>
+  <p class="auth-text">Sign in to start chatting.</p>
+  <button type="button" id="sign-in" class="auth-button">Sign in</button>
 </div>
 <div id="app"></div>
 
@@ -1106,9 +1111,12 @@ async function start() {
   clerk.addListener(({ user }) => { if (user && !signedIn) location.reload(); });
   if (!signedIn) {
     document.getElementById('auth').hidden = false;
-    // withSignUp: one box for both, so a first Google or GitHub sign-in creates the account
-    // instead of failing with "External Account was not found".
-    clerk.mountSignIn(document.getElementById('sign-in'), { withSignUp: true });
+    // Sign-in happens on Clerk's hosted page (it handles sign-up, Google and GitHub, and
+    // Clerk's fraud checks under its own security policy), then returns here signed in.
+    document.getElementById('sign-in').addEventListener('click', () => {
+      const back = location.origin + '/';
+      clerk.redirectToSignIn({ signInForceRedirectUrl: back, signUpForceRedirectUrl: back });
+    });
     return;
   }
   document.documentElement.classList.add('app-mode');
