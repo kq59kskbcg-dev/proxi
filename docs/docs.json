@@ -1,0 +1,18 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "mint",
+  "name": "Proxi Help Center",
+  "colors": {
+    "primary": "#6D4AFF",
+    "light": "#8F73FF",
+    "dark": "#6D4AFF"
+  },
+  "favicon": "/favicon.svg",
+  "navigation": {
+    "groups": [
+      { "group": "Get started", "pages": ["index", "features"] },
+      { "group": "Privacy", "pages": ["privacy/data-we-handle", "privacy/sensitive-data", "privacy/attachments"] },
+      { "group": "Security", "pages": ["security/overview"] }
+    ]
+  }
+}

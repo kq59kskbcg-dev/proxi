@@ -1,0 +1,23 @@
+---
+title: "Sensitive data masking"
+description: "How Proxi masks card numbers, IBANs, emails and phone numbers."
+---
+
+Before your message goes anywhere else, Proxi looks for these kinds of data and replaces them with a placeholder:
+
+| Type | Example result |
+|---|---|
+| Payment card numbers | `[CARD]` |
+| IBANs | `[IBAN]` |
+| Email addresses | `[EMAIL]` |
+| Phone numbers | `[PHONE]` |
+
+Masking runs on every message in the conversation, including earlier ones, before the text reaches the model, the logs or the database.
+
+## How it avoids false alarms
+
+Card numbers and IBANs are only masked if they pass a checksum test (Luhn for cards, ISO mod-97 for IBANs). Order numbers and timestamps that merely look like card numbers are left alone.
+
+## What it does not catch
+
+Masking looks for patterns. It does not recognise names, addresses, account numbers in other formats, or personal details written in free text. Avoid typing information you would not want processed by an AI service.
