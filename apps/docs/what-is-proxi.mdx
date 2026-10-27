@@ -10,10 +10,10 @@ Proxi is a solo project: one developer designing, building and running a product
 <Card title="Privacy and security first" icon="shield-check">
   Sensitive data is kept out of the conversation from the start.
 
-  - Card numbers, IBANs, emails and phone numbers are redacted before reaching the AI
-  - You're told whenever something was removed
-  - Saved chats and logs only ever hold the redacted version
-  - Attachments are never stored, and PDFs with payment details are blocked
+  - Privacy by default: sensitive data is redacted before it reaches the AI, and files with payment details are blocked.
+  - Data minimization: files are never stored, and only redacted text is kept in chat history and logs.
+  - Least privilege: the agent's tools are read-only, and the app only connects to approved sources.
+  - Defense in depth: encrypted connections, per-user rate limiting and server-side checks on every request.
 </Card>
 
 <Card title="MCP tool integration" icon="plug">
