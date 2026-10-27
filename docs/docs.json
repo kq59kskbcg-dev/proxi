@@ -10,9 +10,7 @@
   "favicon": "/favicon.svg",
   "navigation": {
     "groups": [
-      { "group": "Get started", "pages": ["index", "features"] },
-      { "group": "Privacy", "pages": ["privacy/data-we-handle", "privacy/sensitive-data", "privacy/attachments"] },
-      { "group": "Security", "pages": ["security/overview"] }
+      { "group": "Get started", "pages": ["index", "features", "privacy-and-security"] }
     ]
   }
 }
