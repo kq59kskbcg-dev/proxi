@@ -4,24 +4,24 @@ description: "How Proxi handles your data. Greyed out items are planned."
 ---
 
 <Card title="Sensitive data redaction" icon="eye-slash">
-  Card numbers, IBANs, emails and phone numbers are redacted before reaching the model, the logs or the database.
+  Card numbers, IBANs, emails and phone numbers are redacted before reaching the model.
 </Card>
 
 <Card title="Attachments are never stored" icon="paperclip">
-  Files are used for one request only and never saved. PDFs with card numbers or IBANs are refused.
+  Files are used once and never saved.
 </Card>
 
 <div style={{opacity: 0.5}}>
   <Card title="Attachment scanning" icon="file-magnifying-glass">
     <Badge color="gray" shape="pill">Planned</Badge>
     <br />
-    Images and scanned documents are checked with OCR. Files with card numbers, IBANs, emails or phone numbers are rejected.
+    Images and scanned documents are checked and rejected if they contain sensitive data.
   </Card>
 
   <Card title="Retention policy" icon="clock">
     <Badge color="gray" shape="pill">Planned</Badge>
     <br />
-    Chats are deleted after 90 days without activity and monitoring traces after 30 days. Audit logs are kept for 12 months.
+    Chats are deleted after 90 days, traces after 30 days, audit logs after 12 months.
   </Card>
 
   <Card title="Data residency" icon="earth-europe">
@@ -38,8 +38,8 @@ These providers process data on Proxi's behalf.
 
 | Provider | Purpose | Data processed |
 |---|---|---|
-| Anthropic | Generates replies with Claude | Redacted messages, plus attachments sent with them |
-| Clerk | Sign-in and sessions | Account details such as your email and name |
-| Neon | Database for saved chats | Redacted chats, tied to your account ID |
-| Langfuse (EU) | Monitoring, tracing and feedback | Redacted message text, model used, token counts, account ID, thumbs up or down |
-| Vercel | Hosting (functions in Frankfurt, EU) | Requests to the app and its API |
+| Anthropic | Generates replies with Claude | Redacted messages and attachments |
+| Clerk | Sign-in and sessions | Account email and name |
+| Neon | Database for saved chats | Redacted chats |
+| Langfuse (EU) | Monitoring, tracing and feedback | Redacted messages, usage and feedback |
+| Vercel | Hosting (functions in Frankfurt, EU) | App requests |
