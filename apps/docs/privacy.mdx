@@ -3,12 +3,12 @@ title: "Privacy"
 description: "How Proxi handles your data. Greyed out items are planned."
 ---
 
-<Card title="Sensitive data masking" icon="eye-slash">
-  Card numbers, IBANs, emails and phone numbers are masked before reaching the model, the logs or the database.
+<Card title="Sensitive data redaction" icon="eye-slash">
+  Card numbers, IBANs, emails and phone numbers are redacted before reaching the model, the logs or the database.
 </Card>
 
 <Card title="Attachments are never stored" icon="paperclip">
-  Files are used for one request only. Text PDFs containing card numbers or IBANs are refused. Emails and phone numbers inside PDFs are not masked.
+  Files are used for one request only. Text PDFs containing card numbers or IBANs are refused. Emails and phone numbers inside PDFs are not redacted.
 </Card>
 
 <div style={{opacity: 0.5}}>
