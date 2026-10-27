@@ -845,8 +845,14 @@ class Component extends DCLogic {
       toggleUserMenu: () => this.setState({ userMenu: !s.userMenu, chatMenu: false, modelMenu: false }),
       menuPrivacy: () => { this.setState({ userMenu: false }); this.showToast('Privacy is not part of this prototype'); },
       menuSecurity: () => { this.setState({ userMenu: false }); this.showToast('Security is not part of this prototype'); },
-      // Signing out triggers Clerk's listener, which reloads to the sign-in screen.
-      logout: () => { this.setState({ userMenu: false }); window.Clerk.signOut(); },
+      logout: async () => {
+        this.setState({ userMenu: false });
+        try {
+          await window.Clerk.signOut({ redirectUrl: location.origin + '/' });
+        } catch (e) {
+          this.showToast("Couldn't log out. Please try again.");
+        }
+      },
 
       hasToast: !!s.toast,
       toast: s.toast
@@ -864,9 +870,10 @@ async function start() {
     ui: { ClerkUI: window.__internal_ClerkUICtor },
     appearance: { variables: { colorPrimary: '#6D28FF', fontFamily: 'Inter, system-ui, sans-serif', borderRadius: '10px' } }
   });
-  // Signing in or out swaps between the sign-in screen and the chat.
+  // Signing in swaps the sign-in screen for the chat. Signing out is handled by
+  // logout(), which must let Clerk finish ending the session before reloading.
   const signedIn = !!clerk.user;
-  clerk.addListener(({ user }) => { if (!!user !== signedIn) location.reload(); });
+  clerk.addListener(({ user }) => { if (user && !signedIn) location.reload(); });
   if (!signedIn) {
     document.getElementById('auth').hidden = false;
     clerk.mountSignIn(document.getElementById('sign-in'));
