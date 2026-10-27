@@ -24,7 +24,7 @@
   "favicon": "/favicon.svg",
   "navigation": {
     "groups": [
-      { "group": "Get started", "pages": ["index", "features", "privacy", "security"] }
+      { "group": "Get started", "pages": ["index", "features", "architecture", "privacy", "security"] }
     ]
   }
 }
