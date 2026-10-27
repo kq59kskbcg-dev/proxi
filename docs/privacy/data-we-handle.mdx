@@ -1,0 +1,30 @@
+---
+title: "What data we handle"
+description: "What Proxi stores, where it goes, and how to delete it."
+---
+
+## What is stored
+
+| Data | Where | Notes |
+|---|---|---|
+| Your account (sign-in) | Clerk | Handles sign-in and sessions. |
+| Your chats | Postgres database (Neon) | Stored **after masking**, and tied to your account ID. Only you can list, open or delete your chats. |
+| Message traces | Langfuse (EU) | Masked message text, the model used, token counts and your account ID, used to monitor quality and errors. |
+| Feedback | Langfuse | Your thumbs up or down on a reply. |
+
+## What is not stored
+
+- **Attached files.** They are used for a single request and never saved. Saved chats only remember that an image, PDF or file was attached.
+- **Unmasked sensitive data.** Card numbers, IBANs, emails and phone numbers are masked before they reach the model, the logs or the database. See [Sensitive data](/privacy/sensitive-data).
+
+## Who processes your messages
+
+Your masked messages are sent to Anthropic's Claude API to produce replies. Sign-in is handled by Clerk, chats by Neon, and monitoring by Langfuse.
+
+## Deleting your chats
+
+Open a chat in the sidebar and choose **Delete chat**. This removes the chat and all its messages from the database. Chats are otherwise kept until you delete them.
+
+<Note>
+Traces and feedback in Langfuse are kept separately from your saved chats. Deleting a chat does not remove them.
+</Note>
