@@ -164,6 +164,11 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
       </button>
       <template v-if="v.userMenu">
         <div class="pop" role="menu" style="position: absolute; bottom: 60px; left: 0; right: 0; z-index: 31; background: #FFFFFF; border: 1px solid #E7E5EE; border-radius: 12px; box-shadow: 0 8px 24px rgba(24,24,27,0.12); padding: 6px">
+          <a class="menu-item" role="menuitem" :href="v.docsHome" target="_blank" rel="noopener noreferrer" @click="v.closeUserMenu" style="width: 100%; height: 40px; box-sizing: border-box; border: 0; background: transparent; border-radius: 8px; display: flex; align-items: center; gap: 10px; padding: 0 10px; font-size: 14px; font-weight: 500; color: #111111; text-decoration: none; cursor: pointer">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M9.5 9a2.5 2.5 0 0 1 4.9.7c0 1.7-2.4 2.3-2.4 3.8"></path><path d="M12 17h.01"></path></svg>
+            Help Center
+            <svg style="margin-left: auto; color: #5C5C66" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17L17 7"></path><path d="M8 7h9v9"></path></svg>
+          </a>
           <a class="menu-item" role="menuitem" :href="v.docsPrivacy" target="_blank" rel="noopener noreferrer" @click="v.closeUserMenu" style="width: 100%; height: 40px; box-sizing: border-box; border: 0; background: transparent; border-radius: 8px; display: flex; align-items: center; gap: 10px; padding: 0 10px; font-size: 14px; font-weight: 500; color: #111111; text-decoration: none; cursor: pointer">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>
             Privacy
@@ -354,7 +359,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
             </template>
           </div>
         </div>
-        <p style="margin: 0; text-align: center; font-size: 12px; color: #5C5C66">Proxi can make mistakes. Check important info.</p>
+        <p style="margin: 0; text-align: center; font-size: 12px; color: #5C5C66">Proxi can make mistakes. Check important info. <a :href="v.privacyPolicy" target="_blank" rel="noopener noreferrer" style="color: inherit; text-decoration: underline">Privacy policy</a></p>
       </form>
       <template v-if="v.isNew">
         <div style="max-width: 720px; margin: 20px auto 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px">
@@ -1067,7 +1072,9 @@ class Component extends DCLogic {
       userMenu: s.userMenu,
       userMenuExpanded: s.userMenu ? 'true' : 'false',
       toggleUserMenu: () => this.setState({ userMenu: !s.userMenu, chatMenu: false, modelMenu: false }),
+      docsHome: DOCS_URL,
       docsPrivacy: DOCS_URL + '/privacy',
+      privacyPolicy: DOCS_URL + '/privacy-policy',
       docsSecurity: DOCS_URL + '/security',
       closeUserMenu: () => this.setState({ userMenu: false }),
       logout: async () => {
