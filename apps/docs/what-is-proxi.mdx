@@ -1,19 +1,32 @@
 ---
-title: "Features"
-description: "What Proxi is, and how it's built."
+title: "What is Proxi"
+description: "A solo-built AI assistant, and the engineering behind it."
 ---
 
 Proxi is a solo project: one developer designing, building and running a production-style AI assistant end to end, from the interface to the tools, retrieval and evaluation behind it.
 
-It's built around four pillars.
+## The app
 
 <Card title="Chat interface" icon="messages">
-  A polished chat app, powered by Claude, where you can try Proxi and look back through your conversations.
+  A polished chat app powered by Claude.
 
   - Choose between Claude models, with each reply showing which one answered
   - Search, reopen and delete past chats
   - Attach PDFs, images and text files
   - See how the agent reasons through a task <Badge color="gray" shape="pill">Planned</Badge>
+</Card>
+
+## Under the hood
+
+<Card title="Privacy and security first" icon="shield-check">
+  Sensitive data is kept out of the conversation from the start.
+
+  - Card numbers, IBANs, emails and phone numbers are redacted before reaching the AI
+  - You're told whenever something was removed
+  - Saved chats and logs only ever hold the redacted version
+  - Attachments are never stored, and PDFs with payment details are blocked
+
+  See [Privacy](/privacy) and [Security](/security).
 </Card>
 
 <Card title="MCP tool integration" icon="plug">
@@ -41,4 +54,4 @@ It's built around four pillars.
   - Automated evaluation with a reproducible dataset <Badge color="gray" shape="pill">Planned</Badge>
 </Card>
 
-Proxi also keeps sensitive data out of the conversation. See [Privacy](/privacy) and [Security](/security).
+See [Architecture](/architecture) for how these pieces fit together.
