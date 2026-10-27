@@ -33,6 +33,7 @@ AI chat assistant built on Claude, deployed on Vercel, with a Mintlify help cent
 | `CLERK_AUTHORIZED_PARTIES` | Optional: comma-separated site URLs allowed to use sign-in tokens. Defaults to the site's own URL. |
 | `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY` | Optional: tracing, prompts and feedback in Langfuse |
 | `LANGFUSE_BASE_URL` | `https://cloud.langfuse.com` (EU) |
+| `MCP_URL` | Optional: the MCP server's address, e.g. `https://<mcp-project>.vercel.app/mcp` |
 
 The system prompt can be edited in Langfuse as a text prompt named `proxi-system` with the label `production`. Without it, the built-in prompt in `apps/web/lib/langfuse.js` is used.
 
@@ -41,10 +42,36 @@ The system prompt can be edited in Langfuse as a text prompt named `proxi-system
 The tests cover redaction, attachment checks (including real PDF parsing) and chat storage, against an in-memory Postgres. Run them from the web app's folder:
 
 ```
-cd apps/web
-npm install
-npm test
+cd apps/mcp && npm install && npm test
+cd ../web && npm install && npm test
 ```
+
+The web tests include an end-to-end check: the chat endpoint discovers `get_status` from the MCP server, Claude (a scripted stand-in) calls it, and the result is routed back. It needs `npm install` in `apps/mcp` first.
+
+## MCP server
+
+`apps/mcp` uses the official MCP TypeScript SDK and serves Streamable HTTP at `/mcp`. It has one tool so far:
+
+- `get_status`: returns `{ "status": "ok", "service", "version", "uptimeSeconds", "time" }`
+
+Run it locally:
+
+```
+cd apps/mcp
+npm install
+npm start
+```
+
+It listens on `http://localhost:3001/mcp` (set `PORT` to change it). To try it by hand:
+
+```
+curl -s http://localhost:3001/mcp -H 'content-type: application/json' -H 'accept: application/json, text/event-stream' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
+```
+
+Or open it in the MCP Inspector with `npx @modelcontextprotocol/inspector`. To use it from the chat locally, set `MCP_URL=http://localhost:3001/mcp` for the web app.
+
+The server has no sign-in yet, so only add tools that are safe to expose publicly.
 
 ## Docs
 
