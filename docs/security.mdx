@@ -1,6 +1,6 @@
 ---
 title: "Security"
-description: "How Proxi protects access to your chats. Greyed out items are planned."
+description: "How Proxi protects access to your chats."
 ---
 
 <Card title="Sign-in required" icon="lock">
@@ -12,15 +12,9 @@ description: "How Proxi protects access to your chats. Greyed out items are plan
 </Card>
 
 <Card title="Usage limits" icon="gauge">
-  Each user can send 20 messages per 10 minutes, with caps on message, file and reply size. This slows down abuse but isn't a strict limit.
+  Each user is limited in how many messages they can send in a short time, with caps on message, file and reply size.
 </Card>
 
 <Card title="Browser protections" icon="shield">
   HTTPS only, a strict content policy, no embedding in other sites, and no camera or location access.
 </Card>
-
-<div style={{opacity: 0.5}}>
-  <Card title="Planned: strict usage limit" icon="gauge-high">
-    The limit is counted separately on each server, so a user can exceed it under heavy traffic. A shared counter is planned.
-  </Card>
-</div>
