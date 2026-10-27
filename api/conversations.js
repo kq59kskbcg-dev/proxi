@@ -4,7 +4,7 @@ import { CONVERSATION_ID, hasDatabase, listConversations, getMessages, deleteCon
 // GET: the signed-in user's chats, or one chat's messages with ?id=
 export async function GET(request) {
   const user = await requireUser(request);
-  if (!user.userId) return json({ error: user.error }, user.status);
+  if (!user.userId) return json({ error: user.error, code: user.reason }, user.status);
   if (!hasDatabase()) return json({ error: 'Chat history is not set up yet.' }, 503);
 
   try {
@@ -21,7 +21,7 @@ export async function GET(request) {
 // DELETE ?id=: removes one of the signed-in user's chats.
 export async function DELETE(request) {
   const user = await requireUser(request);
-  if (!user.userId) return json({ error: user.error }, user.status);
+  if (!user.userId) return json({ error: user.error, code: user.reason }, user.status);
   if (!hasDatabase()) return json({ error: 'Chat history is not set up yet.' }, 503);
 
   try {

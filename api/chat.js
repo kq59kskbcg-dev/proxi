@@ -25,7 +25,7 @@ let client;
 
 export async function POST(request) {
   const user = await requireUser(request);
-  if (!user.userId) return json({ error: user.error }, user.status);
+  if (!user.userId) return json({ error: user.error, code: user.reason }, user.status);
 
   const limit = rateLimit(user.userId);
   if (!limit.ok) {
