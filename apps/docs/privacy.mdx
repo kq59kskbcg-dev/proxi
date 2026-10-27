@@ -23,4 +23,30 @@ description: "How Proxi handles your data. Greyed out items are planned."
     <br />
     Admins set how long chats and traces are kept. Data is deleted automatically when the period ends, legal holds pause deletion for audits, and every deletion is logged.
   </Card>
+
+  <Card title="Data residency" icon="earth-europe">
+    <Badge color="gray" shape="pill">Planned</Badge>
+    <br />
+    All customer data stored and processed in a region you choose. Today the app and tracing run in the EU, but the database and model processing regions are not yet guaranteed.
+  </Card>
+
+  <Card title="GDPR documentation" icon="file-contract">
+    <Badge color="gray" shape="pill">Planned</Badge>
+    <br />
+    A data processing agreement, records of processing, and a process for access and deletion requests.
+  </Card>
 </div>
+
+## Subprocessors
+
+These providers process data on Proxi's behalf.
+
+| Provider | Purpose | Data processed |
+|---|---|---|
+| Anthropic | Generates replies with Claude | Redacted messages, plus attachments sent with them |
+| Clerk | Sign-in and sessions | Account details such as your email and name |
+| Neon | Database for saved chats | Redacted chats, tied to your account ID |
+| Langfuse (EU) | Monitoring, tracing and feedback | Redacted message text, model used, token counts, account ID, thumbs up or down |
+| Vercel | Hosting (functions in Frankfurt, EU) | Requests to the app and its API |
+| Cloudflare | Bot protection during sign-in, through Clerk | Browser details needed to check the sign-in is human |
+| Mintlify | Hosts this help center and its search | Search queries the assistant sends when looking up help articles |
