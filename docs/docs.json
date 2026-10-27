@@ -1,11 +1,25 @@
 {
   "$schema": "https://mintlify.com/docs.json",
   "theme": "mint",
-  "name": "Proxi Help Center",
+  "name": "Proxi",
+  "logo": {
+    "light": "/logo-light.svg",
+    "dark": "/logo-dark.svg",
+    "href": "/"
+  },
   "colors": {
-    "primary": "#6D4AFF",
-    "light": "#8F73FF",
-    "dark": "#6D4AFF"
+    "primary": "#6D28FF",
+    "light": "#9A6BFF",
+    "dark": "#6D28FF"
+  },
+  "background": {
+    "color": {
+      "light": "#FAFAFB",
+      "dark": "#0E0E12"
+    }
+  },
+  "fonts": {
+    "family": "Inter"
   },
   "favicon": "/favicon.svg",
   "navigation": {
