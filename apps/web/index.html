@@ -103,10 +103,6 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
         New chat
       </button>
-      <button :class="v.nav.knowledgeCls" :aria-current="v.nav.knowledgeCur" @click="v.openKnowledge" :style="`height: 44px; border: 0; background: ${v.nav.knowledgeBg}; box-shadow: ${v.nav.knowledgeShadow}; border-radius: 8px; display: flex; align-items: center; gap: 10px; padding: 0 10px; font-size: 14px; font-weight: 500; color: #111111; cursor: pointer`">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z"></path><path d="M4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5"></path></svg>
-        Knowledge
-      </button>
       <button :class="v.nav.skillsCls" :aria-current="v.nav.skillsCur" @click="v.openSkills" :style="`height: 44px; border: 0; background: ${v.nav.skillsBg}; box-shadow: ${v.nav.skillsShadow}; border-radius: 8px; display: flex; align-items: center; gap: 10px; padding: 0 10px; font-size: 14px; font-weight: 500; color: #111111; cursor: pointer`">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2L4 14h7l-1 8 9-12h-7z"></path></svg>
         Skills
@@ -168,16 +164,16 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
       </button>
       <template v-if="v.userMenu">
         <div class="pop" role="menu" style="position: absolute; bottom: 60px; left: 0; right: 0; z-index: 31; background: #FFFFFF; border: 1px solid #E7E5EE; border-radius: 12px; box-shadow: 0 8px 24px rgba(24,24,27,0.12); padding: 6px">
-          <button class="menu-item" role="menuitem" @click="v.menuPrivacy" style="width: 100%; height: 40px; border: 0; background: transparent; border-radius: 8px; display: flex; align-items: center; gap: 10px; padding: 0 10px; font-size: 14px; font-weight: 500; color: #111111; cursor: pointer">
+          <a class="menu-item" role="menuitem" :href="v.docsPrivacy" target="_blank" rel="noopener noreferrer" @click="v.closeUserMenu" style="width: 100%; height: 40px; box-sizing: border-box; border: 0; background: transparent; border-radius: 8px; display: flex; align-items: center; gap: 10px; padding: 0 10px; font-size: 14px; font-weight: 500; color: #111111; text-decoration: none; cursor: pointer">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>
             Privacy
             <svg style="margin-left: auto; color: #5C5C66" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17L17 7"></path><path d="M8 7h9v9"></path></svg>
-          </button>
-          <button class="menu-item" role="menuitem" @click="v.menuSecurity" style="width: 100%; height: 40px; border: 0; background: transparent; border-radius: 8px; display: flex; align-items: center; gap: 10px; padding: 0 10px; font-size: 14px; font-weight: 500; color: #111111; cursor: pointer">
+          </a>
+          <a class="menu-item" role="menuitem" :href="v.docsSecurity" target="_blank" rel="noopener noreferrer" @click="v.closeUserMenu" style="width: 100%; height: 40px; box-sizing: border-box; border: 0; background: transparent; border-radius: 8px; display: flex; align-items: center; gap: 10px; padding: 0 10px; font-size: 14px; font-weight: 500; color: #111111; text-decoration: none; cursor: pointer">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z"></path></svg>
             Security
             <svg style="margin-left: auto; color: #5C5C66" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17L17 7"></path><path d="M8 7h9v9"></path></svg>
-          </button>
+          </a>
           <button class="menu-item" role="menuitem" @click="v.logout" style="width: 100%; height: 40px; border: 0; background: transparent; border-radius: 8px; display: flex; align-items: center; gap: 10px; padding: 0 10px; font-size: 14px; font-weight: 500; color: #111111; cursor: pointer">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3"></path><path d="M10 17l-5-5 5-5"></path><path d="M5 12h11"></path></svg>
             Logout
@@ -264,9 +260,6 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
                   <button class="hov" aria-label="Good response" :aria-pressed="m.upPressed" @click="m.onUp" :style="`width: 44px; height: 44px; border: 0; background: transparent; border-radius: 8px; color: ${m.upColor}; display: flex; align-items: center; justify-content: center; cursor: pointer`"><svg width="16" height="16" viewBox="0 0 24 24" :fill="m.upFill" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 10v11H4V10z"></path><path d="M7 10l4-8a3 3 0 0 1 3 3v4h5.5a2 2 0 0 1 2 2.3l-1.4 8A2 2 0 0 1 18 21H7"></path></svg></button>
                   <button class="hov" aria-label="Bad response" :aria-pressed="m.downPressed" @click="m.onDown" :style="`width: 44px; height: 44px; border: 0; background: transparent; border-radius: 8px; color: ${m.downColor}; display: flex; align-items: center; justify-content: center; cursor: pointer`"><svg width="16" height="16" viewBox="0 0 24 24" :fill="m.downFill" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 14V3h3v11z"></path><path d="M17 14l-4 8a3 3 0 0 1-3-3v-4H4.5a2 2 0 0 1-2-2.3l1.4-8A2 2 0 0 1 6 3h11"></path></svg></button>
                   <button class="hov" aria-label="Regenerate" @click="m.onRegen" style="width: 44px; height: 44px; border: 0; background: transparent; border-radius: 8px; color: #63636B; display: flex; align-items: center; justify-content: center; cursor: pointer"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.6-6.4"></path><path d="M21 3v6h-6"></path></svg></button>
-                  <template v-if="m.modelLabel">
-                    <span :title="m.modelTitle" style="align-self: center; margin-left: 6px; font-size: 12px; font-weight: 500; color: #5C5C66">{{ m.modelLabel }}</span>
-                  </template>
                 </div>
               </div>
             </article>
@@ -404,10 +397,7 @@ function renderMarkdown(text) {
   return DOMPurify.sanitize(marked.parse(text, { gfm: true, breaks: true }), { FORBID_TAGS: ['img', 'style'], FORBID_ATTR: ['style'] });
 }
 
-const MODEL_NAMES = { 'claude-opus-5-5': 'Opus 5.5', 'claude-sonnet-5-5': 'Sonnet 5.5', 'claude-haiku-5-5': 'Haiku 5.5' };
-function modelName(id) {
-  return id ? (MODEL_NAMES[id] || id) : '';
-}
+const DOCS_URL = 'https://proxi.mintlify.site';
 
 // The visible viewport shrinks when the browser bar shows or the keyboard opens, and
 // on iOS it also pans. Tracking it keeps the app exactly the size of what is visible.
@@ -858,11 +848,10 @@ class Component extends DCLogic {
     const isChat = s.view === 'chat' && !!conv;
     const isNew = s.view === 'new' || (s.view === 'chat' && !conv);
     const pages = {
-      knowledge: { title: 'Knowledge', desc: 'Files and notes Proxi can draw on in every chat.', empty: 'No knowledge added yet', hint: 'Add documents, links or notes and Proxi will use them as context when they are relevant.', action: 'Add files' },
       skills: { title: 'Skills', desc: 'Reusable instructions Proxi can apply when a task calls for them.', empty: 'No skills yet', hint: 'Create a skill for a task you repeat, like a weekly report format or a code review checklist.', action: 'Create a skill' },
       behavior: { title: 'Behavior', desc: 'Set how Proxi responds: tone, length and format.', empty: 'Using default behavior', hint: 'Write custom instructions to change how Proxi answers in every new chat.', action: 'Write instructions' }
     };
-    const page = pages[s.view] || pages.knowledge;
+    const page = pages[s.view] || pages.skills;
     const isPage = !!pages[s.view];
 
     const q = s.query.trim().toLowerCase();
@@ -884,7 +873,7 @@ class Component extends DCLogic {
     const older = list.filter((c) => c.group !== 'Today').map(item);
 
     const nav = {};
-    ['new', 'knowledge', 'skills', 'behavior'].forEach((k) => {
+    ['new', 'skills', 'behavior'].forEach((k) => {
       const on = k === 'new' ? isNew : s.view === k;
       nav[k + 'Cls'] = on ? '' : 'hov';
       nav[k + 'Cur'] = on ? 'page' : 'false';
@@ -905,8 +894,6 @@ class Component extends DCLogic {
         isUser: m.role === 'user',
         isAssistant: m.role === 'assistant',
         html: m.role === 'assistant' ? renderMarkdown(m.text || '') : '',
-        modelLabel: modelName(m.model),
-        modelTitle: m.model ? 'Answered by ' + m.model : '',
         copied,
         notCopied: !copied,
         copyLabel: copied ? 'Copied' : (m.role === 'user' ? 'Copy message' : 'Copy response'),
@@ -951,7 +938,6 @@ class Component extends DCLogic {
       openNav: () => (this.isNarrow() ? this.setState({ narrowNav: true, collapsed: false }) : this.setState({ collapsed: false })),
       nav,
       newChat: () => { this.go({ view: 'new', activeId: null, draft: '' }); this.focusComposer(); },
-      openKnowledge: () => this.showToast('Knowledge is not part of this prototype'),
       openSkills: () => this.showToast('Skills is not part of this prototype'),
       openBehavior: () => this.showToast('Behavior is not part of this prototype'),
       openSettings: () => this.showToast('Settings are not part of this prototype'),
@@ -1066,8 +1052,9 @@ class Component extends DCLogic {
       userMenu: s.userMenu,
       userMenuExpanded: s.userMenu ? 'true' : 'false',
       toggleUserMenu: () => this.setState({ userMenu: !s.userMenu, chatMenu: false, modelMenu: false }),
-      menuPrivacy: () => { this.setState({ userMenu: false }); this.showToast('Privacy is not part of this prototype'); },
-      menuSecurity: () => { this.setState({ userMenu: false }); this.showToast('Security is not part of this prototype'); },
+      docsPrivacy: DOCS_URL + '/privacy',
+      docsSecurity: DOCS_URL + '/security',
+      closeUserMenu: () => this.setState({ userMenu: false }),
       logout: async () => {
         this.setState({ userMenu: false });
         try {
