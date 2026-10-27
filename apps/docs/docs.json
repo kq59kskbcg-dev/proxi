@@ -24,7 +24,22 @@
   "favicon": "/favicon.svg",
   "navigation": {
     "groups": [
-      { "group": "Get started", "pages": ["index", "features", "architecture", "privacy", "security"] }
+      {
+        "group": "Get started",
+        "pages": [
+          "index",
+          "what-is-proxi",
+          "architecture",
+          "privacy",
+          "security"
+        ]
+      }
     ]
-  }
+  },
+  "redirects": [
+    {
+      "source": "/features",
+      "destination": "/what-is-proxi"
+    }
+  ]
 }
