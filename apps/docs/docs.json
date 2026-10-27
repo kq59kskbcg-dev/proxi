@@ -48,5 +48,22 @@
       "label": "Open Proxi",
       "href": "https://proxi-three.vercel.app"
     }
+  },
+  "footer": {
+    "links": [
+      {
+        "header": "Legal",
+        "items": [
+          {
+            "label": "Privacy policy",
+            "href": "/privacy-policy"
+          },
+          {
+            "label": "Terms of service",
+            "href": "/terms"
+          }
+        ]
+      }
+    ]
   }
 }
