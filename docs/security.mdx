@@ -1,31 +1,26 @@
 ---
 title: "Security"
-description: "How Proxi protects access to your chats."
+description: "How Proxi protects access to your chats. Greyed out items are planned."
 ---
 
-## Access control
+<Card title="Sign-in required" icon="lock">
+  Only signed-in users can chat. The server rejects every request without a valid session.
+</Card>
 
-- **Sign-in is required.** The chat only appears to signed-in users, and the server rejects every request without a valid session token.
-- **Chats are private to you.** They are keyed to your account ID, and you can only list, open or delete your own.
+<Card title="Chats are private to you" icon="user-lock">
+  Saved chats are tied to your account. You can only see and delete your own.
+</Card>
 
-## Abuse protection
+<Card title="Usage limits" icon="gauge">
+  20 messages per 10 minutes per user, with caps on message, file and reply size.
+</Card>
 
-- Each user can send 20 messages per 10 minutes.
-- Message length, file count, file size and reply length are capped.
-- Only a fixed list of models can be requested.
+<Card title="Browser protections" icon="shield">
+  HTTPS only, a strict content policy, no embedding in other sites, and no camera or location access.
+</Card>
 
-## Browser protections
-
-- HTTPS only (HSTS)
-- A strict Content Security Policy that limits which sites the app can load from or talk to
-- No embedding of Proxi in other sites (clickjacking protection)
-- No camera, microphone, location or payment access
-- No referrer information sent to other sites
-
-## Hosting
-
-The app runs on Vercel, with its functions in the Frankfurt (EU) region.
-
-## Reporting a problem
-
-If you find a security issue, please contact the Proxi team directly instead of posting it publicly.
+<div style={{opacity: 0.5}}>
+  <Card title="Planned: global rate limit" icon="gauge-high">
+    Today's limit is per server instance, so it slows down abuse but isn't a hard cap.
+  </Card>
+</div>

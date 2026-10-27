@@ -1,37 +1,26 @@
 ---
 title: "Privacy"
-description: "What Proxi stores, how sensitive data is masked, and how attachments are handled."
+description: "How Proxi handles your data. Greyed out items are planned."
 ---
 
-## What data we handle
+<Card title="Sensitive data masking" icon="eye-slash">
+  Card numbers, IBANs, emails and phone numbers are masked before reaching the model, the logs or the database.
+</Card>
 
-| Data | Where | Notes |
-|---|---|---|
-| Your account (sign-in) | Clerk | Handles sign-in and sessions. |
-| Your chats | Postgres database (Neon) | Stored **after masking**, and tied to your account ID. Only you can list, open or delete your chats. |
-| Message traces | Langfuse (EU) | Masked message text, the model used, token counts and your account ID, used to monitor quality and errors. |
-| Feedback | Langfuse | Your thumbs up or down on a reply. |
+<Card title="Private, deletable chats" icon="message">
+  Chats are saved masked and visible only to you. Delete any chat from the sidebar.
+</Card>
 
-Your masked messages are sent to Anthropic's Claude API to produce replies.
+<Card title="Attachments are never stored" icon="paperclip">
+  Files are used for one request only. PDFs with card numbers or IBANs are refused.
+</Card>
 
-To delete a chat, open it in the sidebar and choose **Delete chat**. Chats are otherwise kept until you delete them. Traces and feedback in Langfuse are kept separately, so deleting a chat does not remove them.
+<div style={{opacity: 0.5}}>
+  <Card title="Planned: image scanning" icon="image">
+    Images can't be scanned for sensitive data yet, so Proxi warns you before you attach one.
+  </Card>
 
-## Sensitive data masking
-
-Before your message goes anywhere else, Proxi replaces these with a placeholder: payment card numbers (`[CARD]`), IBANs (`[IBAN]`), email addresses (`[EMAIL]`) and phone numbers (`[PHONE]`).
-
-Masking runs on every message in the conversation, before the text reaches the model, the logs or the database. Card numbers and IBANs are only masked if they pass a checksum test, so order numbers and timestamps are left alone.
-
-<Warning>
-Masking looks for patterns. It does not recognise names, addresses, account numbers in other formats, or personal details in free text. Avoid typing information you would not want processed by an AI service.
-</Warning>
-
-## Attachments
-
-You can attach images, PDFs and plain text files, up to 3 files and 3 MB per message.
-
-- Files are checked by what they contain, not just their name.
-- A file is used for one request and never stored. Saved chats only remember that a file was attached, so Claude cannot see it again when you reopen the chat.
-- Text files are masked like typed messages.
-- PDFs are scanned and refused if they contain a card number or IBAN.
-- Images cannot be scanned. Proxi warns you before you attach one, so check it before sending.
+  <Card title="Planned: automatic chat deletion" icon="clock">
+    Chats are kept until you delete them. Automatic expiry is not available yet.
+  </Card>
+</div>
