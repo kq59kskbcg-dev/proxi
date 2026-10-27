@@ -675,7 +675,7 @@ class Component extends DCLogic {
         let error = res.status === 404 ? "Proxi's AI isn't connected on this site yet."
           : res.status === 413 ? 'That message is too large to send. Try fewer or smaller attachments.'
           : 'Something went wrong. Please try again.';
-        try { const data = await res.json(); if (data.error) error = data.error; } catch (e) {}
+        try { const data = await res.json(); if (data.error) error = data.error + (data.code ? ' (error ' + res.status + ' · ' + data.code + ')' : ''); } catch (e) {}
         fail(error);
         return finish();
       }
