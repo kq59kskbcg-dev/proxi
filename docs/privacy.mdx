@@ -1,6 +1,6 @@
 ---
-title: "Privacy and security"
-description: "What Proxi stores, how sensitive data is handled, and how access is protected."
+title: "Privacy"
+description: "What Proxi stores, how sensitive data is masked, and how attachments are handled."
 ---
 
 ## What data we handle
@@ -35,13 +35,3 @@ You can attach images, PDFs and plain text files, up to 3 files and 3 MB per mes
 - Text files are masked like typed messages.
 - PDFs are scanned and refused if they contain a card number or IBAN.
 - Images cannot be scanned. Proxi warns you before you attach one, so check it before sending.
-
-## Security
-
-- **Sign-in is required.** The chat only appears to signed-in users, and the server rejects every request without a valid session token.
-- **Chats are private to you.** They are keyed to your account ID.
-- **Abuse limits.** Each user can send 20 messages per 10 minutes. Message length, file size and reply length are capped, and only a fixed list of models can be requested.
-- **Browser protections.** HTTPS only, a strict Content Security Policy, no embedding in other sites, no camera, microphone or location access, and no referrer sent to other sites.
-- **Hosting.** The app runs on Vercel, with its functions in the Frankfurt (EU) region.
-
-If you find a security issue, please contact the Proxi team directly instead of posting it publicly.
