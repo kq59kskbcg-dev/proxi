@@ -2,13 +2,17 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, interactive-widget=resizes-content">
 <title>Proxi</title>
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Manrope:wght@800&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
 <style>
+:root{--app-h:100vh}
+@supports (height:100dvh){:root{--app-h:100dvh}}
 body{margin:0;background:#FAFAFB}
+.app{position:fixed;left:0;right:0;top:var(--app-top,0px);height:var(--app-h)}
+.app-mode,.app-mode body{overflow:hidden;overscroll-behavior:none}
 a{color:#6D28FF}a:hover{color:#5214E0}
 button{font-family:inherit}
 textarea,input{font-family:inherit}
@@ -35,9 +39,9 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 .side.collapsed{margin-left:-280px;visibility:hidden}
 }
 @media (max-width: 830px){
-.side{display:flex !important;position:fixed;top:0;left:0;bottom:0;width:280px;z-index:40;transform:translateX(-100%);visibility:hidden;transition:transform 0.3s cubic-bezier(0.32,0.72,0,1),visibility 0.3s,box-shadow 0.3s}
+.side{display:flex !important;position:absolute;top:0;left:0;bottom:0;width:280px;z-index:40;transform:translateX(-100%);visibility:hidden;transition:transform 0.3s cubic-bezier(0.32,0.72,0,1),visibility 0.3s,box-shadow 0.3s}
 .side.open{transform:none;visibility:visible;box-shadow:8px 0 24px rgba(24,24,27,0.16)}
-.scrim{display:block;position:fixed;inset:0;z-index:39;border:0;padding:0;margin:0;background:rgba(24,24,27,0.25);cursor:default;opacity:0;pointer-events:none;transition:opacity 0.25s ease}
+.scrim{display:block;position:absolute;inset:0;z-index:39;border:0;padding:0;margin:0;background:rgba(24,24,27,0.25);cursor:default;opacity:0;pointer-events:none;transition:opacity 0.25s ease}
 .scrim.on{opacity:1;pointer-events:auto}
 .menu-btn{display:flex !important}
 }
@@ -57,7 +61,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 .md table{border-collapse:collapse;display:block;overflow-x:auto}
 .md th,.md td{border:1px solid #E7E5EE;padding:6px 10px;text-align:left}
 .md hr{border:0;border-top:1px solid #E7E5EE;margin:16px 0}
-#auth{min-height:100vh;box-sizing:border-box;padding:48px 16px;display:flex;flex-direction:column;align-items:center;gap:28px;background:#FAFAFB;font-family:Inter,system-ui,sans-serif}
+#auth{min-height:100vh;min-height:100dvh;box-sizing:border-box;padding:48px 16px;display:flex;flex-direction:column;align-items:center;gap:28px;background:#FAFAFB;font-family:Inter,system-ui,sans-serif}
 #auth[hidden]{display:none}
 .auth-mark{font-family:Manrope,Inter,sans-serif;font-weight:800;font-size:40px;letter-spacing:-0.04em;line-height:1;color:#111111}
 </style>
@@ -70,7 +74,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 <div id="app"></div>
 
 <script type="text/x-template" id="tpl">
-<div @dragover="v.onDragOver" @dragleave="v.onDragLeave" @drop="v.onDrop" :style="`--accent: ${v.accent}; position: relative; height: 100vh; min-height: 560px; overflow: hidden; display: flex; background: #FAFAFB; font-family: Inter, system-ui, sans-serif; color: #111111; font-size: 15px`">
+<div class="app" @dragover="v.onDragOver" @dragleave="v.onDragLeave" @drop="v.onDrop" :style="`--accent: ${v.accent}; overflow: hidden; display: flex; background: #FAFAFB; font-family: Inter, system-ui, sans-serif; color: #111111; font-size: 15px`">
 
   <template v-if="v.anyMenu">
     <button aria-label="Close menu" tabindex="-1" @click="v.closeMenus" style="position: absolute; inset: 0; z-index: 30; border: 0; padding: 0; margin: 0; background: transparent; cursor: default"></button>
@@ -175,8 +179,8 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
   </nav>
   </template>
 
-  <main style="flex: 1 1 auto; min-width: 0; min-height: 0; display: flex; flex-direction: column; background: #FFFFFF">
-    <header :style="`flex: none; height: 64px; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 20px; border-bottom: 1px solid ${v.headerBorder}`">
+  <main :style="`flex: 1 1 auto; min-width: 0; min-height: 0; display: flex; flex-direction: column; background: #FFFFFF; overflow-y: ${v.isNew ? 'auto' : 'visible'}; overscroll-behavior: contain`">
+    <header :style="`flex: none; position: sticky; top: 0; z-index: 5; background: #FFFFFF; height: 64px; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 20px; border-bottom: 1px solid ${v.headerBorder}`">
       <div style="display: flex; align-items: center; gap: 4px; min-width: 0; flex: 1 1 auto">
         <button class="menu-btn hov" aria-label="Open sidebar" @click="v.openNav" :style="`display: ${v.menuBtnDisplay}; flex: none; width: 44px; height: 44px; border: 0; background: transparent; border-radius: 10px; color: #3F3F46; align-items: center; justify-content: center; cursor: pointer`">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h10"></path></svg>
@@ -210,7 +214,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
     </header>
 
     <template v-if="v.isChat">
-    <section aria-label="Messages" :ref="v.msgRef" style="flex: 1; min-height: 0; overflow-y: auto; padding: 32px 24px 24px">
+    <section aria-label="Messages" :ref="v.msgRef" @scroll.passive="v.onMsgScroll" style="flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 32px 24px 24px">
       <div style="max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; gap: 28px">
         <template v-for="(m, i_m) in v.msgs" :key="i_m">
           <template v-if="m.isUser">
@@ -271,7 +275,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
     </template>
 
     <template v-if="v.isNew">
-      <section style="flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; justify-content: flex-end; padding: 24px 24px 0">
+      <section style="flex: 1 1 0; display: flex; flex-direction: column; justify-content: flex-end; padding: 24px 24px 0">
         <h1 style="margin: 0 0 28px; text-align: center; font-size: 32px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.2">What can I help with?</h1>
       </section>
     </template>
@@ -393,6 +397,29 @@ function modelName(id) {
   return id ? (MODEL_NAMES[id] || id) : '';
 }
 
+// The visible viewport shrinks when the browser bar shows or the keyboard opens, and
+// on iOS it also pans. Tracking it keeps the app exactly the size of what is visible.
+function trackViewport() {
+  const vv = window.visualViewport;
+  if (!vv) return;
+  const root = document.documentElement;
+  let frame = 0;
+  const apply = () => {
+    frame = 0;
+    if (vv.scale > 1.01) { // pinch-zoomed: leave sizing to the browser
+      root.style.removeProperty('--app-h');
+      root.style.removeProperty('--app-top');
+      return;
+    }
+    root.style.setProperty('--app-h', vv.height + 'px');
+    root.style.setProperty('--app-top', vv.offsetTop + 'px');
+  };
+  const schedule = () => { if (!frame) frame = requestAnimationFrame(apply); };
+  vv.addEventListener('resize', schedule);
+  vv.addEventListener('scroll', schedule);
+  apply();
+}
+
 async function authHeaders() {
   const token = await window.Clerk.session.getToken();
   return { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token };
@@ -502,18 +529,32 @@ class Component extends DCLogic {
   componentWillUnmount() {
     this.timers.forEach((t) => clearTimeout(t));
     if (this.mq) this.mq.removeEventListener('change', this.onBreakpoint);
+    if (this.msgObserver) this.msgObserver.disconnect();
   }
 
+  // Follow new content only while the reader is at the bottom. Opening a chat or
+  // sending a message always jumps to the bottom; a reply that arrives while
+  // someone is reading older messages does not pull them away.
   componentDidUpdate() {
+    const el = this.msgEl;
+    if (!el) return;
     const conv = this.state.convs.find((c) => c.id === this.state.activeId);
-    const sig = this.state.view + ':' + this.state.activeId + ':' + (conv ? conv.messages.length : 0) + ':' + this.state.typing;
-    if (sig !== this.sig) {
-      this.sig = sig;
-      if (this.msgEl) this.msgEl.scrollTop = this.msgEl.scrollHeight;
-    } else if (this.state.replyStarted && this.msgEl) {
-      const el = this.msgEl;
-      if (el.scrollHeight - el.scrollTop - el.clientHeight < 120) el.scrollTop = el.scrollHeight;
+    const messages = conv ? conv.messages : [];
+    const last = messages[messages.length - 1];
+    const opened = this.state.view + ':' + this.state.activeId;
+    if (opened !== this.opened) {
+      this.opened = opened;
+      this.atBottom = true;
+    } else if (messages.length !== this.messageCount && last && last.role === 'user') {
+      this.atBottom = true;
     }
+    this.messageCount = messages.length;
+    if (this.atBottom) el.scrollTop = el.scrollHeight;
+  }
+
+  onMsgScroll() {
+    const el = this.msgEl;
+    if (el) this.atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
   }
 
   later(fn, ms) {
@@ -930,7 +971,17 @@ class Component extends DCLogic {
       },
       share: () => this.showToast('Link copied to clipboard'),
 
-      msgRef: (el) => { this.msgEl = el; },
+      msgRef: (el) => {
+        if (el === this.msgEl) return;
+        this.msgEl = el;
+        // When the list's height changes (keyboard, attachments, rotation), stay at the bottom if we were there.
+        if (this.msgObserver) this.msgObserver.disconnect();
+        if (el && window.ResizeObserver) {
+          this.msgObserver = new ResizeObserver(() => { if (this.atBottom) el.scrollTop = el.scrollHeight; });
+          this.msgObserver.observe(el);
+        }
+      },
+      onMsgScroll: () => this.onMsgScroll(),
       msgs,
       showTyping: isChat && ((s.typing && !s.replyStarted && s.typingConv === s.activeId) || !!conv.loading),
 
@@ -1027,6 +1078,8 @@ async function start() {
     clerk.mountSignIn(document.getElementById('sign-in'));
     return;
   }
+  document.documentElement.classList.add('app-mode');
+  trackViewport();
   props.userName = clerk.user.fullName || clerk.user.primaryEmailAddress?.emailAddress || 'Signed in';
   props.userImage = clerk.user.hasImage ? clerk.user.imageUrl : '';
   createApp({
