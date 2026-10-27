@@ -50,8 +50,20 @@ export function toClaudeContent(result) {
   const blocks = (result.content ?? []).map((item) => {
     if (item.type === 'text') return { type: 'text', text: item.text };
     if (item.type === 'image') return { type: 'image', source: { type: 'base64', media_type: item.mimeType, data: item.data } };
+    if (item.type === 'resource' && typeof item.resource?.text === 'string') return toSearchResult(item.resource);
     return { type: 'text', text: JSON.stringify(item) };
   });
   if (!blocks.length && result.structuredContent) blocks.push({ type: 'text', text: JSON.stringify(result.structuredContent) });
   return blocks.length ? blocks : [{ type: 'text', text: '(no output)' }];
+}
+
+function toSearchResult(resource) {
+  const title = resource._meta?.title ?? resource.title ?? resource.uri;
+  return {
+    type: 'search_result',
+    source: resource.uri,
+    title: String(title),
+    content: [{ type: 'text', text: resource.text }],
+    citations: { enabled: true },
+  };
 }
