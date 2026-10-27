@@ -67,3 +67,11 @@ test('remembers which kinds of files were attached, but nothing else about them'
   assert.deepEqual(first.attachments, [{ kind: 'image' }, { kind: 'pdf' }]);
   assert.equal(second.attachments, null);
 });
+
+test('a saved chat keeps its title unless a new title is asked for', async () => {
+  await saveConversation('user_t', 't1', 'Plan a trip to Lisbon', chat);
+  await saveConversation('user_t', 't1', 'Something else', chat);
+  assert.equal((await listConversations('user_t'))[0].title, 'Plan a trip to Lisbon');
+  await saveConversation('user_t', 't1', 'Lisbon trip plan', chat, { replaceTitle: true });
+  assert.equal((await listConversations('user_t'))[0].title, 'Lisbon trip plan');
+});

@@ -724,6 +724,8 @@ class Component extends DCLogic {
             this.patchMessage(convId, msgId, (m) => ({ ...m, text: m.text + event.text }));
           } else if (event.type === 'done') {
             if (msgId) this.patchMessage(convId, msgId, (m) => ({ ...m, model: event.model }));
+          } else if (event.type === 'title') {
+            this.setState((s) => ({ convs: s.convs.map((c) => c.id === convId ? { ...c, title: event.title } : c) }));
           } else if (event.type === 'error') {
             fail(event.error);
           }
