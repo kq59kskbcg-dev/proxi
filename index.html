@@ -138,6 +138,11 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
           <button :class="c.cls" :aria-current="c.current" @click="c.open" :style="`border: 0; text-align: left; cursor: pointer; color: ${c.color}; background: ${c.bg}; box-shadow: ${c.shadow}; border-radius: 8px; padding: 10px 10px; font-size: 14px; font-weight: ${c.weight}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis`">{{ c.title }}</button>
         </template>
       </template>
+      <template v-if="v.historyNote">
+        <p style="margin: 0; padding: 6px 10px; font-size: 13px; line-height: 1.45; color: #5C5C66">{{ v.historyNote }}
+          <template v-if="v.historyRetry"><button class="hov" @click="v.historyRetry" style="margin-left: 2px; border: 0; background: transparent; padding: 2px 4px; border-radius: 6px; font: inherit; color: #5214E0; text-decoration: underline; cursor: pointer">Try again</button></template>
+        </p>
+      </template>
       <template v-if="v.noResults">
         <p style="margin: 0; padding: 10px; font-size: 14px; color: #52525B">No chats match "{{ v.query }}".</p>
       </template>
@@ -180,7 +185,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
   </template>
 
   <main :style="`flex: 1 1 auto; min-width: 0; min-height: 0; display: flex; flex-direction: column; background: #FFFFFF; overflow-y: ${v.isNew ? 'auto' : 'visible'}; overscroll-behavior: contain`">
-    <header :style="`flex: none; position: sticky; top: 0; z-index: 5; background: #FFFFFF; height: 64px; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 20px; border-bottom: 1px solid ${v.headerBorder}`">
+    <header :style="`flex: none; ${v.isNew ? 'position: sticky; top: 0; z-index: 5;' : ''} background: #FFFFFF; height: 64px; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 20px; border-bottom: 1px solid ${v.headerBorder}`">
       <div style="display: flex; align-items: center; gap: 4px; min-width: 0; flex: 1 1 auto">
         <button class="menu-btn hov" aria-label="Open sidebar" @click="v.openNav" :style="`display: ${v.menuBtnDisplay}; flex: none; width: 44px; height: 44px; border: 0; background: transparent; border-radius: 10px; color: #3F3F46; align-items: center; justify-content: center; cursor: pointer`">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h10"></path></svg>
@@ -496,6 +501,7 @@ class Component extends DCLogic {
       replyStarted: false,
       pending: [],
       reading: false,
+      history: 'loading',
       dragging: false,
       model: 'Haiku 5.5',
       modelMenu: false,
@@ -717,10 +723,11 @@ class Component extends DCLogic {
 
   // The signed-in user's saved chats, newest first. Messages load when a chat is opened.
   async loadConversations() {
+    this.setState({ history: 'loading' });
     try {
       const res = await fetch('/api/conversations', { headers: await authHeaders() });
-      if (res.status === 503) return this.showToast('Chat history is not set up yet');
-      if (!res.ok) throw new Error(res.status);
+      if (res.status === 503) return this.setState({ history: 'off' });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
       const { conversations } = await res.json();
       const today = new Date().toDateString();
       this.setState((s) => {
@@ -728,10 +735,11 @@ class Component extends DCLogic {
         const saved = conversations.filter((c) => !known.has(c.id)).map((c) => ({
           id: c.id, title: c.title, group: new Date(c.updatedAt).toDateString() === today ? 'Today' : 'Earlier', messages: [], loaded: false
         }));
-        return { convs: [...s.convs, ...saved] };
+        return { convs: [...s.convs, ...saved], history: 'ok' };
       });
     } catch (e) {
-      this.showToast("Couldn't load your previous chats");
+      console.error('Loading chats failed:', e);
+      this.setState({ history: 'error' });
     }
   }
 
@@ -950,6 +958,10 @@ class Component extends DCLogic {
       hasToday: today.length > 0,
       hasOlder: older.length > 0,
       noResults: !!q && list.length === 0,
+      historyNote: q ? '' : s.history === 'loading' && !list.length ? 'Loading your chats...'
+        : s.history === 'off' ? "Chat history isn't set up yet, so chats aren't saved."
+        : s.history === 'error' ? "Couldn't load your previous chats." : '',
+      historyRetry: s.history === 'error' ? () => this.loadConversations() : null,
 
       isChat, isNew, isPage, page,
       pageAction: () => this.showToast(page.action + ' is not part of this prototype'),
