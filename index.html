@@ -727,7 +727,12 @@ class Component extends DCLogic {
     try {
       const res = await fetch('/api/conversations', { headers: await authHeaders() });
       if (res.status === 503) return this.setState({ history: 'off' });
-      if (!res.ok) throw new Error('HTTP ' + res.status);
+      if (!res.ok) {
+        let detail = {};
+        try { detail = await res.json(); } catch (e) {}
+        // A short, safe reference (status and database error code) to help find the cause.
+        return this.setState({ history: 'error', historyRef: [res.status, detail.code || detail.kind].filter(Boolean).join(' · ') });
+      }
       const { conversations } = await res.json();
       const today = new Date().toDateString();
       this.setState((s) => {
@@ -739,7 +744,7 @@ class Component extends DCLogic {
       });
     } catch (e) {
       console.error('Loading chats failed:', e);
-      this.setState({ history: 'error' });
+      this.setState({ history: 'error', historyRef: 'network' });
     }
   }
 
@@ -960,7 +965,7 @@ class Component extends DCLogic {
       noResults: !!q && list.length === 0,
       historyNote: q ? '' : s.history === 'loading' && !list.length ? 'Loading your chats...'
         : s.history === 'off' ? "Chat history isn't set up yet, so chats aren't saved."
-        : s.history === 'error' ? "Couldn't load your previous chats." : '',
+        : s.history === 'error' ? "Couldn't load your previous chats" + (s.historyRef ? ' (error ' + s.historyRef + ').' : '.') : '',
       historyRetry: s.history === 'error' ? () => this.loadConversations() : null,
 
       isChat, isNew, isPage, page,

@@ -7,14 +7,14 @@ export async function GET(request) {
   if (!user.userId) return json({ error: user.error }, user.status);
   if (!hasDatabase()) return json({ error: 'Chat history is not set up yet.' }, 503);
 
-  const id = new URL(request.url).searchParams.get('id');
   try {
+    const id = chatId(request);
     if (id === null) return json({ conversations: await listConversations(user.userId) });
     if (!CONVERSATION_ID.test(id)) return json({ error: 'Invalid chat.' }, 400);
     return json({ messages: await getMessages(user.userId, id) });
   } catch (error) {
     console.error('conversations GET failed', error);
-    return json({ error: 'Could not load your chats.' }, 500);
+    return json({ error: 'Could not load your chats.', ...diagnosis(error) }, 500);
   }
 }
 
@@ -24,15 +24,28 @@ export async function DELETE(request) {
   if (!user.userId) return json({ error: user.error }, user.status);
   if (!hasDatabase()) return json({ error: 'Chat history is not set up yet.' }, 503);
 
-  const id = new URL(request.url).searchParams.get('id');
-  if (!id || !CONVERSATION_ID.test(id)) return json({ error: 'Invalid chat.' }, 400);
   try {
+    const id = chatId(request);
+    if (!id || !CONVERSATION_ID.test(id)) return json({ error: 'Invalid chat.' }, 400);
     await deleteConversation(user.userId, id);
     return new Response(null, { status: 204 });
   } catch (error) {
     console.error('conversations DELETE failed', error);
-    return json({ error: 'Could not delete the chat.' }, 500);
+    return json({ error: 'Could not delete the chat.', ...diagnosis(error) }, 500);
   }
+}
+
+// request.url can be a bare path on some hosts, so give it a base.
+function chatId(request) {
+  return new URL(request.url, 'http://localhost').searchParams.get('id');
+}
+
+// Enough to tell what went wrong without exposing anything sensitive: the
+// standard 5-character Postgres error code, or the error's type name.
+function diagnosis(error) {
+  const code = typeof error?.code === 'string' && /^[0-9A-Z]{5}$/.test(error.code) ? error.code : undefined;
+  const kind = typeof error?.name === 'string' && /^\w{1,40}$/.test(error.name) ? error.name : undefined;
+  return { code, kind };
 }
 
 function json(data, status = 200) {
