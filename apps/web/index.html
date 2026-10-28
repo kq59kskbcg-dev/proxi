@@ -34,6 +34,9 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 .temp-toggle[aria-pressed="false"]:hover{background:#F4F4F6 !important}
 @media (max-width: 480px){.model-ver{display:none}}
 #composer::placeholder{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.steps summary::-webkit-details-marker{display:none}
+.steps-chev{transition:transform 0.15s}
+.steps[open] .steps-chev{transform:rotate(90deg)}
 .scrim{display:none}
 @media (min-width: 831px){
 .side{transition:margin-left 0.3s cubic-bezier(0.32,0.72,0,1),visibility 0.3s}
@@ -263,10 +266,18 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
             <article style="display: flex">
               <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 14px; line-height: 1.65">
                 <template v-if="m.hasSteps">
-                  <div style="display: flex; align-items: center; gap: 6px; font-size: 13px; color: #63636B">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"></path></svg>
-                    {{ m.steps }}
-                  </div>
+                  <details class="steps" style="font-size: 13px; color: #63636B">
+                    <summary style="display: inline-flex; align-items: center; gap: 6px; cursor: pointer; list-style: none">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"></path></svg>
+                      {{ m.steps }}
+                      <svg class="steps-chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
+                    </summary>
+                    <ol style="list-style: none; margin: 10px 0 0 6px; padding: 0 0 0 14px; border-left: 2px solid #E7E5EE; display: flex; flex-direction: column; gap: 8px">
+                      <template v-for="st in m.stepList" :key="st.key">
+                        <li style="position: relative; line-height: 1.45"><span aria-hidden="true" :style="`position: absolute; left: -20px; top: 5px; width: 8px; height: 8px; border-radius: 50%; background: ${v.accent}`"></span>{{ st.text }}</li>
+                      </template>
+                    </ol>
+                  </details>
                 </template>
                 <div class="md" v-html="m.html"></div>
                 <div style="display: flex; gap: 0; margin-left: -12px">
@@ -455,6 +466,25 @@ function trackViewport() {
   vv.addEventListener('resize', schedule);
   vv.addEventListener('scroll', schedule);
   apply();
+}
+
+const MODEL_LABELS = { 'claude-opus-5-5': 'Opus 5.5', 'claude-sonnet-5-5': 'Sonnet 5.5', 'claude-haiku-5-5': 'Haiku 5.5' };
+function modelLabel(id) {
+  return MODEL_LABELS[id] || id;
+}
+
+// Timeline entries on a reply: a short form for the summary line, a full one for the list.
+function toStep(a) {
+  return { short: a.done, text: a.detail || a.done };
+}
+
+const REDACTED_NAMES = { CARD: ['card number', 'card numbers'], IBAN: ['IBAN', 'IBANs'], EMAIL: ['email address', 'email addresses'], PHONE: ['phone number', 'phone numbers'] };
+function redactionSteps(counts) {
+  const parts = Object.entries(counts || {}).filter(([, n]) => n > 0)
+    .map(([k, n]) => n + ' ' + (REDACTED_NAMES[k] ? REDACTED_NAMES[k][n === 1 ? 0 : 1] : k));
+  if (!parts.length) return [];
+  const list = parts.length > 1 ? parts.slice(0, -1).join(', ') + ' and ' + parts[parts.length - 1] : parts[0];
+  return [{ done: 'Redacted personal data', detail: 'Removed ' + list + ' before sending' }];
 }
 
 // Shown while waiting for a reply, until the agent reports a real step.
@@ -757,22 +787,17 @@ class Component extends DCLogic {
           const event = JSON.parse(line);
           if (event.type === 'start') {
             traceId = event.traceId;
-            const kinds = Object.keys(event.redactions || {});
-            const notes = [];
-            if (kinds.length) {
-              const names = { CARD: 'card numbers', IBAN: 'IBANs', EMAIL: 'email addresses', PHONE: 'phone numbers' };
-              notes.push('Removed ' + kinds.map((k) => names[k] || k).join(', ') + ' before sending.');
-            }
-            notes.push(...(event.notices || []));
-            if (notes.length) this.showToast(notes.join(' '));
+            // What Proxi did before sending goes in the reply's timeline, not a toast.
+            const entries = redactionSteps(event.redactions).concat((event.notices || []).map((n) => ({ done: 'Checked attachments', detail: n })));
+            if (entries.length) this.setState((s) => ({ activity: [...s.activity, ...entries] }));
           } else if (event.type === 'activity') {
             // A tool call. Before the reply starts it's shown live; after, it's added to the reply's steps.
-            if (msgId) this.patchMessage(convId, msgId, (m) => ({ ...m, steps: [...(m.steps || []), event.done] }));
+            if (msgId) this.patchMessage(convId, msgId, (m) => ({ ...m, steps: [...(m.steps || []), toStep(event)] }));
             else this.setState((s) => ({ activity: [...s.activity, event] }));
           } else if (event.type === 'text') {
             if (!msgId) {
               msgId = this.addAssistant(convId, '');
-              const steps = this.state.activity.map((a) => a.done);
+              const steps = this.state.activity.map(toStep);
               this.patchMessage(convId, msgId, (m) => ({ ...m, traceId, steps }));
               clearInterval(this.verbTimer);
               this.setState({ replyStarted: true, activity: [] });
@@ -972,7 +997,8 @@ class Component extends DCLogic {
         isUser: m.role === 'user',
         isAssistant: m.role === 'assistant',
         hasSteps: !!(m.steps && m.steps.length),
-        steps: [...new Set(m.steps || [])].join(' · '),
+        steps: [...new Set((m.steps || []).map((st) => st.short))].join(' · '),
+        stepList: [...(m.steps || []).map((st) => st.text), ...(m.model ? ['Answered with ' + modelLabel(m.model)] : [])].map((text, i) => ({ key: i, text })),
         canVote: !conv.temporary,
         html: m.role === 'assistant' ? renderMarkdown(m.text || '') : '',
         copied,
@@ -1010,6 +1036,7 @@ class Component extends DCLogic {
 
     const canSend = (!!s.draft.trim() || s.pending.length > 0) && !s.reading;
     const tall = s.composerTall || s.pending.length > 0;
+    const liveStep = [...s.activity].reverse().find((a) => a.label);
     const showNav = true;
 
     return {
@@ -1088,7 +1115,7 @@ class Component extends DCLogic {
       },
       onMsgScroll: () => this.onMsgScroll(),
       msgs,
-      workingLabel: conv && conv.loading ? 'Loading' : s.activity.length ? s.activity[s.activity.length - 1].label : WORKING_VERBS[s.verbTick % WORKING_VERBS.length],
+      workingLabel: conv && conv.loading ? 'Loading' : liveStep ? liveStep.label : WORKING_VERBS[s.verbTick % WORKING_VERBS.length],
       showTyping: isChat && ((s.typing && !s.replyStarted && s.typingConv === s.activeId) || !!conv.loading),
 
       showComposer: isChat || isNew,

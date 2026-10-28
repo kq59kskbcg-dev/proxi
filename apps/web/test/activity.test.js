@@ -4,9 +4,9 @@ import { toolActivity } from '../lib/activity.js';
 
 test('known tools get friendly wording, with the search query', () => {
   assert.deepEqual(toolActivity('search_docs', 'Search Proxi docs', { query: 'what gets masked' }),
-    { label: 'Searching the help center for "what gets masked"', done: 'Searched the help center' });
+    { label: 'Searching the help center for "what gets masked"', done: 'Searched the help center', detail: 'Searched the help center for "what gets masked"' });
   assert.deepEqual(toolActivity('get_status', 'Get status', {}),
-    { label: "Checking Proxi's status", done: "Checked Proxi's status" });
+    { label: "Checking Proxi's status", done: "Checked Proxi's status", detail: "Checked Proxi's status" });
 });
 
 test('long queries are shortened and missing ones are left out', () => {
@@ -15,6 +15,6 @@ test('long queries are shortened and missing ones are left out', () => {
 });
 
 test('other tools fall back to their MCP title', () => {
-  assert.deepEqual(toolActivity('web_search', 'Search the web', {}), { label: 'Using Search the web', done: 'Used Search the web' });
-  assert.deepEqual(toolActivity('mystery', undefined, {}), { label: 'Using mystery', done: 'Used mystery' });
+  assert.deepEqual(toolActivity('web_search', 'Search the web', {}), { label: 'Using Search the web', done: 'Used Search the web', detail: 'Used Search the web' });
+  assert.deepEqual(toolActivity('mystery', undefined, {}), { label: 'Using mystery', done: 'Used mystery', detail: 'Used mystery' });
 });

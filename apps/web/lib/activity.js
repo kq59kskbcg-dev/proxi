@@ -6,15 +6,16 @@ const KNOWN = {
   search_docs: (input) => ({
     label: quoted('Searching the help center', input?.query),
     done: 'Searched the help center',
+    detail: quoted('Searched the help center', input?.query),
   }),
-  get_status: () => ({ label: "Checking Proxi's status", done: "Checked Proxi's status" }),
+  get_status: () => ({ label: "Checking Proxi's status", done: "Checked Proxi's status", detail: "Checked Proxi's status" }),
 };
 
 export function toolActivity(name, title, input) {
   const known = KNOWN[name];
   if (known) return known(input);
   const what = title || name;
-  return { label: `Using ${what}`, done: `Used ${what}` };
+  return { label: `Using ${what}`, done: `Used ${what}`, detail: `Used ${what}` };
 }
 
 function quoted(text, query) {

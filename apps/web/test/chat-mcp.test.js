@@ -106,7 +106,7 @@ test('the agent discovers get_status over MCP and calls it', { skip }, async () 
   assert.equal(events.at(-1).type, 'done');
   assert.equal(events.at(-1).stopReason, 'end_turn');
   const activity = events.find((e) => e.type === 'activity');
-  assert.deepEqual(activity, { type: 'activity', label: "Checking Proxi's status", done: "Checked Proxi's status" });
+  assert.deepEqual(activity, { type: 'activity', label: "Checking Proxi's status", done: "Checked Proxi's status", detail: "Checked Proxi's status" });
   assert.ok(events.indexOf(activity) < events.findIndex((e) => e.type === 'text'), 'activity is sent before the reply text');
 });
 
@@ -140,6 +140,19 @@ test('a temporary chat is not titled, saved or traced', { skip }, async () => {
   assert.equal(events[0].traceId, null);
   assert.ok(!events.some((e) => e.type === 'title'));
   assert.equal(events.at(-1).type, 'done');
+});
+
+test('only the message just sent is counted as redacted, and replies are not redacted', { skip }, async () => {
+  script = [(body) => textTurn(JSON.stringify(body.messages.map((m) => m.content)))];
+  const events = await chat('', { messages: [
+    { role: 'user', content: 'Mail me at jane@example.com' },
+    { role: 'assistant', content: 'Proxi was released on 2026-10-27.' },
+    { role: 'user', content: 'Can you answer what Proxi is?' },
+  ] });
+  assert.deepEqual(events[0].redactions, {});
+  const sent = JSON.parse(events.filter((e) => e.type === 'text').map((e) => e.text).join(''));
+  assert.equal(sent[0], 'Mail me at [EMAIL]');
+  assert.equal(sent[1], 'Proxi was released on 2026-10-27.');
 });
 
 function toolUseTurn(name, input) {

@@ -40,3 +40,12 @@ test('keeps ordinary text, years and short numbers intact', () => {
   assert.equal(text, input);
   assert.deepEqual(counts, {});
 });
+
+test('dates are not mistaken for phone numbers, real numbers still are', () => {
+  for (const date of ['Released 2026-10-27 at 19:38', 'Met on 27-10-2026', 'Due 2026/01/05']) {
+    assert.deepEqual(redact(date).counts, {}, date);
+  }
+  for (const phone of ['06 12345678', '+31 6 1234 5678', '020-1234567', '+44 20 7946 0958']) {
+    assert.equal(redact(phone).counts.PHONE, 1, phone);
+  }
+});
