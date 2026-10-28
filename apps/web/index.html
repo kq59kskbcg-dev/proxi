@@ -673,7 +673,7 @@ class Component extends DCLogic {
       else { const id = this.addAssistant(convId, text); this.patchMessage(convId, id, (m) => ({ ...m, error: true })); }
     };
     try {
-      const payload = JSON.stringify({ model: this.state.model, messages, conversationId: convId });
+      const payload = JSON.stringify({ model: this.state.model, messages, conversationId: convId, retitle: conv.title === 'New chat' });
       // The host rejects request bodies over 4.5 MB, so say so before sending.
       if (payload.length > 4400000) {
         fail('That message is too large to send. Try fewer or smaller attachments.');
