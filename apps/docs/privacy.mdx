@@ -49,5 +49,5 @@ These providers process data on Proxi's behalf.
 
 Proxi is a personal project. These are known tradeoffs made to keep it free to run.
 
-- **Redaction covers structured data only.** Proxi redacts cards, IBANs, emails and phone numbers before anything leaves its servers, but not names or addresses. Pattern matching runs at no extra cost. A company could add a small self-hosted model to catch the rest.
-- **Observability runs on Langfuse Cloud.** Redacted conversations are stored by Langfuse in the EU. The cloud version is free and needs no maintenance. In a company, Langfuse could be self-hosted so the data never leaves its infrastructure.
+- **Redaction covers structured data only.** Proxi uses pattern matching to redact cards, IBANs, emails and phone numbers, but can't catch names or addresses. A company could add a small self-hosted model for those.
+- **Observability runs on Langfuse Cloud.** Redacted conversations are stored by Langfuse in the EU. A company could self-host it to keep that data in its own infrastructure.
