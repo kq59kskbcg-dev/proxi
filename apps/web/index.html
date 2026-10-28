@@ -7,21 +7,48 @@
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Manrope:wght@800&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<script>
+// Applies the saved theme before the page paints. "system" follows the device setting.
+(function () {
+  const media = window.matchMedia('(prefers-color-scheme: dark)');
+  let choice = 'system';
+  try { choice = localStorage.getItem('proxi-theme') || 'system'; } catch {}
+  const apply = () => { document.documentElement.dataset.theme = choice === 'system' ? (media.matches ? 'dark' : 'light') : choice; };
+  apply();
+  media.addEventListener('change', apply);
+  window.proxiTheme = {
+    get: () => choice,
+    set: (next) => { choice = next; try { localStorage.setItem('proxi-theme', next); } catch {} apply(); },
+  };
+})();
+</script>
 <style>
-:root{--app-h:100vh}
+:root{--app-h:100vh;color-scheme:light;
+--bg:#FAFAFB;--surface:#FFFFFF;--side:#F6F5F9;--sunken:#F1F1F4;--soft:#FBFBFC;--hover-solid:#F4F4F6;--hover:rgba(24,24,27,0.06);
+--divider:#EDEDF0;--disabled:#E4E4E8;--border:#E7E5EE;--border-strong:#D4D4DA;--border-hover:#C4C4CC;
+--accent-line:#DDD6FE;--accent-soft:#EFE8FF;--temp-border:#A78BFA;--link:#6D28FF;--link-hover:#5214E0;
+--text:#111111;--text-code:#27272A;--text-2:#3F3F46;--text-muted:#52525B;--text-muted-2:#5C5C66;--text-muted-3:#63636B;--placeholder:#6B6B74;--text-disabled:#71717A;
+--danger:#B42318;--inverse:#111111;--inverse-hover:#2A2A2E;--on-inverse:#FFFFFF}
+:root[data-theme="dark"]{color-scheme:dark;
+--bg:#121116;--surface:#18171D;--side:#141318;--sunken:#26242D;--soft:#1E1D24;--hover-solid:#24222B;--hover:rgba(255,255,255,0.07);
+--divider:#26242D;--disabled:#2E2C36;--border:#2C2A34;--border-strong:#3A3843;--border-hover:#4A4754;
+--accent-line:#4A3B82;--accent-soft:#2A2340;--temp-border:#8B76D9;--link:#A78BFA;--link-hover:#C4B5FD;
+--text:#ECEBF1;--text-code:#DAD9E0;--text-2:#C9C8D1;--text-muted:#A9A8B3;--text-muted-2:#A1A0AB;--text-muted-3:#9A99A4;--placeholder:#8A8994;--text-disabled:#7D7C87;
+--danger:#F97066;--inverse:#ECEBF1;--inverse-hover:#D6D5DD;--on-inverse:#111111}
 @supports (height:100dvh){:root{--app-h:100dvh}}
-body{margin:0;background:#FAFAFB}
+body{margin:0;background:var(--bg)}
 .app{position:fixed;left:0;right:0;top:var(--app-top,0px);height:var(--app-h)}
 .app-mode,.app-mode body{overflow:hidden;overscroll-behavior:none}
-a{color:#6D28FF}a:hover{color:#5214E0}
+a{color:var(--link)}a:hover{color:var(--link-hover)}
 button{font-family:inherit}
 textarea,input{font-family:inherit}
-input::placeholder,textarea::placeholder{color:#6B6B74}
+input::placeholder,textarea::placeholder{color:var(--placeholder)}
 button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .composer:focus-within,.composer.drop{border-color:var(--accent) !important;box-shadow:0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent) !important}
-.hov:hover{background:rgba(24,24,27,0.06) !important}
-.chip:hover{background:#FAFAFB !important;border-color:#C4C4CC !important}
-.menu-item:hover{background:#F1F1F4 !important}
+.hov:hover{background:var(--hover) !important}
+.chip:hover{background:var(--bg) !important;border-color:var(--border-hover) !important}
+.menu-item:hover{background:var(--sunken) !important}
+.legal-link:hover{color:var(--text) !important;text-decoration:underline !important}
 .umsg .uact{opacity:0}
 .umsg:hover .uact,.umsg:focus-within .uact{opacity:1}
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -31,18 +58,18 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 .toast{animation:toast-rise 0.16s ease-out}
 .pop{animation:rise 0.16s ease-out}
 @media (prefers-reduced-motion: reduce){.spinner{animation-duration:2.4s}.pop,.toast{animation:none}}
-.temp-toggle[aria-pressed="false"]:hover{background:#F4F4F6 !important}
+.temp-toggle[aria-pressed="false"]:hover{background:var(--hover-solid) !important}
 @media (max-width: 480px){.model-ver{display:none}}
 #composer::placeholder{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .steps summary::-webkit-details-marker{display:none}
 .steps-chev{transition:transform 0.15s}
 .steps[open] .steps-chev{transform:rotate(90deg)}
-.steps-card{margin-top:10px;border:1px solid #E7E5EE;border-radius:12px;background:#FAFAFB;padding:14px 16px}
+.steps-card{margin-top:10px;border:1px solid var(--border);border-radius:12px;background:var(--bg);padding:14px 16px}
 .steps-list{list-style:none;margin:0;padding:0}
-.steps-list li{display:flex;align-items:center;gap:12px;position:relative;font-size:13px;color:#3F3F46;line-height:18px}
+.steps-list li{display:flex;align-items:center;gap:12px;position:relative;font-size:13px;color:var(--text-2);line-height:18px}
 .steps-list li+li{margin-top:14px}
-.steps-list li:not(:last-child)::after{content:"";position:absolute;left:11.25px;top:calc(50% + 12px);height:calc(100% + 14px - 24px);width:1.5px;background:#DDD6FE}
-.steps-mark{flex:none;width:24px;height:24px;border-radius:50%;background:#EFE8FF;color:#6D28FF;display:flex;align-items:center;justify-content:center}
+.steps-list li:not(:last-child)::after{content:"";position:absolute;left:11.25px;top:calc(50% + 12px);height:calc(100% + 14px - 24px);width:1.5px;background:var(--accent-line)}
+.steps-mark{flex:none;width:24px;height:24px;border-radius:50%;background:var(--accent-soft);color:var(--link);display:flex;align-items:center;justify-content:center}
 .scrim{display:none}
 @media (min-width: 831px){
 .side{transition:margin-left 0.3s cubic-bezier(0.32,0.72,0,1),visibility 0.3s}
@@ -63,21 +90,41 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 .md h1,.md h2,.md h3,.md h4{margin:20px 0 10px;font-size:16px;font-weight:600;line-height:1.4}
 .md h1{font-size:20px}.md h2{font-size:18px}
 .md ul,.md ol{padding-left:22px}.md li{margin:4px 0}
-.md a{color:#6D28FF;text-underline-offset:3px}
-.md code{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:13px;background:#F1F1F4;padding:2px 6px;border-radius:5px}
-.md pre{border:1px solid #E7E5EE;border-radius:12px;background:#FBFBFC;padding:16px;overflow-x:auto;line-height:1.7}
-.md pre code{background:none;padding:0;border-radius:0;color:#27272A}
-.md blockquote{border-left:3px solid #E7E5EE;padding-left:14px;color:#52525B}
+.md a{color:var(--link);text-underline-offset:3px}
+.md code{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:13px;background:var(--sunken);padding:2px 6px;border-radius:5px}
+.md pre{border:1px solid var(--border);border-radius:12px;background:var(--soft);padding:16px;overflow-x:auto;line-height:1.7}
+.md pre code{background:none;padding:0;border-radius:0;color:var(--text-code)}
+.md blockquote{border-left:3px solid var(--border);padding-left:14px;color:var(--text-muted)}
 .md table{border-collapse:collapse;display:block;overflow-x:auto}
-.md th,.md td{border:1px solid #E7E5EE;padding:6px 10px;text-align:left}
-.md hr{border:0;border-top:1px solid #E7E5EE;margin:16px 0}
-#auth{min-height:100vh;min-height:100dvh;box-sizing:border-box;padding:48px 16px;display:flex;flex-direction:column;align-items:center;gap:28px;background:#FAFAFB;font-family:Inter,system-ui,sans-serif}
+.md th,.md td{border:1px solid var(--border);padding:6px 10px;text-align:left}
+.md .cite{display:inline-flex;align-items:center;height:20px;padding:0 8px;margin-left:4px;border-radius:10px;background:var(--sunken);color:var(--text-muted);font-size:12px;font-weight:500;line-height:1;text-decoration:none;vertical-align:1px;white-space:nowrap}
+.md .cite:hover{background:var(--accent-soft);color:var(--link)}
+.md .sources{margin-top:14px}
+.md .sources summary{list-style:none;display:inline-flex;align-items:center;gap:8px;height:32px;box-sizing:border-box;padding:0 12px 0 6px;border:1px solid var(--border);border-radius:16px;font-size:13px;font-weight:500;color:var(--text-2);cursor:pointer}
+.md .sources summary::-webkit-details-marker{display:none}
+.md .sources summary:hover{background:var(--soft);border-color:var(--border-hover)}
+.src-stack{display:flex}
+.src-tile{width:20px;height:20px;box-sizing:border-box;border-radius:50%;border:2px solid var(--surface);margin-left:-6px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#FFFFFF}
+.src-tile:first-child{margin-left:0}
+.src-tile.t0{background:#6D28FF}.src-tile.t1{background:#0F7B5F}.src-tile.t2{background:#F4511E}.src-tile.t3{background:#2563EB}.src-tile.t4{background:#B45309}
+.md .sources ul{list-style:none;margin:10px 0 0;padding:0;border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.md .sources li{margin:0}
+.md .sources li+li{border-top:1px solid var(--border)}
+.md .sources li a{display:flex;flex-direction:column;gap:2px;padding:10px 14px;text-decoration:none;color:var(--text)}
+.md .sources li a:hover{background:var(--soft)}
+.src-title{font-size:14px;font-weight:500}
+.src-host{font-size:12px;color:var(--text-muted)}
+.md hr{border:0;border-top:1px solid var(--border);margin:16px 0}
+#auth{min-height:100vh;min-height:100dvh;box-sizing:border-box;padding:48px 16px;display:flex;flex-direction:column;align-items:center;gap:28px;background:var(--bg);font-family:Inter,system-ui,sans-serif}
 #auth[hidden]{display:none}
-.auth-mark{font-family:Manrope,Inter,sans-serif;font-weight:800;font-size:40px;letter-spacing:-0.04em;line-height:1;color:#111111}
-.auth-text{margin:0;font-size:15px;color:#52525B}
-.auth-button{min-width:200px;height:48px;border:0;border-radius:10px;background:#111111;color:#FFFFFF;font:600 15px Inter,system-ui,sans-serif;cursor:pointer}
-.auth-button:hover{background:#2A2A2E}
-.auth-button:focus-visible{outline:2px solid #6D28FF;outline-offset:2px}
+.auth-mark{font-family:Manrope,Inter,sans-serif;font-weight:800;font-size:40px;letter-spacing:-0.04em;line-height:1;color:var(--text)}
+.auth-text{margin:0;font-size:15px;color:var(--text-muted)}
+.auth-legal{margin:0;max-width:360px;text-align:center;font-size:13px;line-height:1.5;color:var(--text-muted-2)}
+.auth-legal a{white-space:nowrap;color:inherit;text-decoration:underline;text-underline-offset:2px}
+.auth-legal a:hover{color:var(--text)}
+.auth-button{min-width:200px;height:48px;border:0;border-radius:10px;background:var(--inverse);color:var(--on-inverse);font:600 15px Inter,system-ui,sans-serif;cursor:pointer}
+.auth-button:hover{background:var(--inverse-hover)}
+.auth-button:focus-visible{outline:2px solid var(--link);outline-offset:2px}
 </style>
 </head>
 <body>
@@ -85,11 +132,12 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
   <span class="auth-mark">proxi</span>
   <p class="auth-text">Sign in to start chatting.</p>
   <button type="button" id="sign-in" class="auth-button">Sign in</button>
+  <p class="auth-legal">By signing in, you agree to the <a href="https://proxi.mintlify.site/terms" target="_blank" rel="noopener noreferrer">Terms</a> and <a href="https://proxi.mintlify.site/privacy-policy" target="_blank" rel="noopener noreferrer">Privacy policy</a>.</p>
 </div>
 <div id="app"></div>
 
 <script type="text/x-template" id="tpl">
-<div class="app" @dragover="v.onDragOver" @dragleave="v.onDragLeave" @drop="v.onDrop" :style="`--accent: ${v.accent}; overflow: hidden; display: flex; background: #FAFAFB; font-family: Inter, system-ui, sans-serif; color: #111111; font-size: 15px`">
+<div class="app" @dragover="v.onDragOver" @dragleave="v.onDragLeave" @drop="v.onDrop" :style="`--accent: ${v.accent}; overflow: hidden; display: flex; background: var(--bg); font-family: Inter, system-ui, sans-serif; color: var(--text); font-size: 15px`">
 
   <template v-if="v.anyMenu">
     <button aria-label="Close menu" tabindex="-1" @click="v.closeMenus" style="position: absolute; inset: 0; z-index: 30; border: 0; padding: 0; margin: 0; background: transparent; cursor: default"></button>
@@ -97,27 +145,27 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
   <button aria-label="Close sidebar" tabindex="-1" :class="v.narrowNav ? 'scrim on' : 'scrim'" @click="v.collapse"></button>
 
   <template v-if="v.showNav">
-  <nav :class="v.navClass" aria-label="Conversations" style="flex: 0 0 280px; max-height: 100%; overflow: hidden; box-sizing: border-box; background: #F6F5F9; border-right: 1px solid #E7E5EE; display: flex; flex-direction: column">
+  <nav :class="v.navClass" aria-label="Conversations" style="flex: 0 0 280px; max-height: 100%; overflow: hidden; box-sizing: border-box; background: var(--side); border-right: 1px solid var(--border); display: flex; flex-direction: column">
     <div style="flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 16px 12px; display: flex; flex-direction: column; gap: 16px">
     <div style="display: flex; align-items: center; justify-content: space-between; padding: 4px 6px">
       <div style="display: flex; align-items: center; gap: 10px">
         <span style="font-family: Manrope, Inter, sans-serif; font-weight: 800; font-size: 22px; letter-spacing: -0.04em; line-height: 1">proxi</span>
       </div>
-      <button class="hov" aria-label="Collapse sidebar" @click="v.collapse" style="width: 44px; height: 44px; border: 0; background: transparent; border-radius: 10px; color: #52525B; display: flex; align-items: center; justify-content: center; cursor: pointer">
+      <button class="hov" aria-label="Collapse sidebar" @click="v.collapse" style="width: 44px; height: 44px; border: 0; background: transparent; border-radius: 10px; color: var(--text-muted); display: flex; align-items: center; justify-content: center; cursor: pointer">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M9 4v16"></path></svg>
       </button>
     </div>
 
     <div style="display: flex; flex-direction: column; gap: 2px">
-      <button :class="v.nav.newCls" :aria-current="v.nav.newCur" @click="v.newChat" :style="`height: 44px; border: 0; background: ${v.nav.newBg}; box-shadow: ${v.nav.newShadow}; border-radius: 8px; display: flex; align-items: center; gap: 10px; padding: 0 10px; font-size: 14px; font-weight: 500; color: #111111; cursor: pointer`">
+      <button :class="v.nav.newCls" :aria-current="v.nav.newCur" @click="v.newChat" :style="`height: 44px; border: 0; background: ${v.nav.newBg}; box-shadow: ${v.nav.newShadow}; border-radius: 8px; display: flex; align-items: center; gap: 10px; padding: 0 10px; font-size: 14px; font-weight: 500; color: var(--text); cursor: pointer`">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
         New chat
       </button>
-      <button :class="v.nav.skillsCls" :aria-current="v.nav.skillsCur" @click="v.openSkills" :style="`height: 44px; border: 0; background: ${v.nav.skillsBg}; box-shadow: ${v.nav.skillsShadow}; border-radius: 8px; display: flex; align-items: center; gap: 10px; padding: 0 10px; font-size: 14px; font-weight: 500; color: #111111; cursor: pointer`">
+      <button :class="v.nav.skillsCls" :aria-current="v.nav.skillsCur" @click="v.openSkills" :style="`height: 44px; border: 0; background: ${v.nav.skillsBg}; box-shadow: ${v.nav.skillsShadow}; border-radius: 8px; display: flex; align-items: center; gap: 10px; padding: 0 10px; font-size: 14px; font-weight: 500; color: var(--text); cursor: pointer`">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2L4 14h7l-1 8 9-12h-7z"></path></svg>
         Skills
       </button>
-      <button :class="v.nav.behaviorCls" :aria-current="v.nav.behaviorCur" @click="v.openBehavior" :style="`height: 44px; border: 0; background: ${v.nav.behaviorBg}; box-shadow: ${v.nav.behaviorShadow}; border-radius: 8px; display: flex; align-items: center; gap: 10px; padding: 0 10px; font-size: 14px; font-weight: 500; color: #111111; cursor: pointer`">
+      <button :class="v.nav.behaviorCls" :aria-current="v.nav.behaviorCur" @click="v.openBehavior" :style="`height: 44px; border: 0; background: ${v.nav.behaviorBg}; box-shadow: ${v.nav.behaviorShadow}; border-radius: 8px; display: flex; align-items: center; gap: 10px; padding: 0 10px; font-size: 14px; font-weight: 500; color: var(--text); cursor: pointer`">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12"></path><circle cx="16" cy="6" r="2"></circle><circle cx="10" cy="12" r="2"></circle><circle cx="18" cy="18" r="2"></circle></svg>
         Behavior
       </button>
@@ -125,15 +173,15 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 
     <div style="display: flex; flex-direction: column; gap: 2px">
       <div style="display: flex; align-items: center; justify-content: space-between; padding: 4px 4px 2px 10px">
-        <span style="font-size: 12px; font-weight: 600; color: #5C5C66; letter-spacing: 0.02em">Recents</span>
-        <button class="hov" aria-label="Search chats" :aria-expanded="v.searchExpanded" @click="v.toggleSearch" style="width: 32px; height: 32px; border: 0; background: transparent; border-radius: 8px; color: #52525B; display: flex; align-items: center; justify-content: center; cursor: pointer"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg></button>
+        <span style="font-size: 12px; font-weight: 600; color: var(--text-muted-2); letter-spacing: 0.02em">Recents</span>
+        <button class="hov" aria-label="Search chats" :aria-expanded="v.searchExpanded" @click="v.toggleSearch" style="width: 32px; height: 32px; border: 0; background: transparent; border-radius: 8px; color: var(--text-muted); display: flex; align-items: center; justify-content: center; cursor: pointer"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg></button>
       </div>
       <template v-if="v.searchOpen">
-  <div style="height: 44px; display: flex; align-items: center; gap: 8px; padding: 0 4px 0 10px; border-radius: 8px; background: #FFFFFF; box-shadow: 0 1px 2px rgba(0,0,0,0.06)">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#52525B" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+  <div style="height: 44px; display: flex; align-items: center; gap: 8px; padding: 0 4px 0 10px; border-radius: 8px; background: var(--surface); box-shadow: 0 1px 2px rgba(0,0,0,0.06)">
+          <svg style="flex: none; color: var(--text-muted)" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
           <label for="chat-search" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Search chats</label>
-          <input id="chat-search" :ref="v.searchRef" type="search" placeholder="Search chats" :value="v.query" @input="v.onQuery" style="flex: 1; min-width: 0; border: 0; background: transparent; font-size: 14px; color: #111111; outline: none">
-          <button class="hov" aria-label="Close search" @click="v.closeSearch" style="width: 36px; height: 36px; border: 0; background: transparent; border-radius: 8px; color: #52525B; display: flex; align-items: center; justify-content: center; cursor: pointer">
+          <input id="chat-search" :ref="v.searchRef" type="search" placeholder="Search chats" :value="v.query" @input="v.onQuery" style="flex: 1; min-width: 0; border: 0; background: transparent; font-size: 14px; color: var(--text); outline: none">
+          <button class="hov" aria-label="Close search" @click="v.closeSearch" style="width: 36px; height: 36px; border: 0; background: transparent; border-radius: 8px; color: var(--text-muted); display: flex; align-items: center; justify-content: center; cursor: pointer">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg>
           </button>
         </div>
@@ -144,25 +192,25 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
         </template>
       </template>
       <template v-if="v.hasOlder">
-        <div style="font-size: 12px; font-weight: 600; color: #5C5C66; padding: 16px 10px 6px; letter-spacing: 0.02em">Earlier</div>
+        <div style="font-size: 12px; font-weight: 600; color: var(--text-muted-2); padding: 16px 10px 6px; letter-spacing: 0.02em">Earlier</div>
         <template v-for="(c, i_c) in v.older" :key="i_c">
           <button :class="c.cls" :aria-current="c.current" @click="c.open" :style="`border: 0; text-align: left; cursor: pointer; color: ${c.color}; background: ${c.bg}; box-shadow: ${c.shadow}; border-radius: 8px; padding: 10px 10px; font-size: 14px; font-weight: ${c.weight}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis`">{{ c.title }}</button>
         </template>
       </template>
       <template v-if="v.historyNote">
-        <p style="margin: 0; padding: 6px 10px; font-size: 13px; line-height: 1.45; color: #5C5C66">{{ v.historyNote }}
-          <template v-if="v.historyRetry"><button class="hov" @click="v.historyRetry" style="margin-left: 2px; border: 0; background: transparent; padding: 2px 4px; border-radius: 6px; font: inherit; color: #5214E0; text-decoration: underline; cursor: pointer">Try again</button></template>
+        <p style="margin: 0; padding: 6px 10px; font-size: 13px; line-height: 1.45; color: var(--text-muted-2)">{{ v.historyNote }}
+          <template v-if="v.historyRetry"><button class="hov" @click="v.historyRetry" style="margin-left: 2px; border: 0; background: transparent; padding: 2px 4px; border-radius: 6px; font: inherit; color: var(--link-hover); text-decoration: underline; cursor: pointer">Try again</button></template>
         </p>
       </template>
       <template v-if="v.noResults">
-        <p style="margin: 0; padding: 10px; font-size: 14px; color: #52525B">No chats match "{{ v.query }}".</p>
+        <p style="margin: 0; padding: 10px; font-size: 14px; color: var(--text-muted)">No chats match "{{ v.query }}".</p>
       </template>
     </div>
 
     </div>
 
-    <div style="flex: none; position: relative; margin: 0 12px; display: flex; align-items: center; gap: 4px; padding: 8px 0 8px; border-top: 1px solid #E7E5EE">
-      <button class="hov" aria-haspopup="menu" :aria-expanded="v.userMenuExpanded" @click="v.toggleUserMenu" style="flex: 1; min-width: 0; height: 48px; border: 0; background: transparent; border-radius: 10px; padding: 0 8px; display: flex; align-items: center; gap: 10px; color: #111111; cursor: pointer; text-align: left">
+    <div style="flex: none; position: relative; margin: 0 12px; display: flex; align-items: center; gap: 4px; padding: 8px 0 8px; border-top: 1px solid var(--border)">
+      <button class="hov" aria-haspopup="menu" :aria-expanded="v.userMenuExpanded" @click="v.toggleUserMenu" style="flex: 1; min-width: 0; height: 48px; border: 0; background: transparent; border-radius: 10px; padding: 0 8px; display: flex; align-items: center; gap: 10px; color: var(--text); cursor: pointer; text-align: left">
         <template v-if="v.userImage">
           <img :src="v.userImage" alt="" style="flex: none; width: 32px; height: 32px; border-radius: 50%; object-fit: cover">
         </template>
@@ -170,53 +218,58 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
           <span aria-hidden="true" :style="`flex: none; width: 32px; height: 32px; border-radius: 50%; background: ${v.accent}; color: #FFFFFF; font-size: 14px; font-weight: 600; display: flex; align-items: center; justify-content: center`">{{ v.userInitial }}</span>
         </template>
         <span style="flex: 1; min-width: 0; font-size: 14px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{ v.userName }}</span>
-        <svg style="flex: none; color: #52525B" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 15l6-6 6 6"></path></svg>
+        <svg style="flex: none; color: var(--text-muted)" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 15l6-6 6 6"></path></svg>
       </button>
       <template v-if="v.userMenu">
-        <div class="pop" role="menu" style="position: absolute; bottom: 60px; left: 0; right: 0; z-index: 31; background: #FFFFFF; border: 1px solid #E7E5EE; border-radius: 12px; box-shadow: 0 8px 24px rgba(24,24,27,0.12); padding: 6px">
-          <a class="menu-item" role="menuitem" :href="v.docsHome" target="_blank" rel="noopener noreferrer" @click="v.closeUserMenu" style="width: 100%; height: 40px; box-sizing: border-box; border: 0; background: transparent; border-radius: 8px; display: flex; align-items: center; gap: 10px; padding: 0 10px; font-size: 14px; font-weight: 500; color: #111111; text-decoration: none; cursor: pointer">
+        <div class="pop" role="menu" style="position: absolute; bottom: 60px; left: 0; right: 0; z-index: 31; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 8px 24px rgba(24,24,27,0.12); padding: 6px">
+          <a class="menu-item" role="menuitem" :href="v.docsHome" target="_blank" rel="noopener noreferrer" @click="v.closeUserMenu" style="width: 100%; height: 40px; box-sizing: border-box; border: 0; background: transparent; border-radius: 8px; display: flex; align-items: center; gap: 10px; padding: 0 10px; font-size: 14px; font-weight: 500; color: var(--text); text-decoration: none; cursor: pointer">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M9.5 9a2.5 2.5 0 0 1 4.9.7c0 1.7-2.4 2.3-2.4 3.8"></path><path d="M12 17h.01"></path></svg>
             Help Center
-            <svg style="margin-left: auto; color: #5C5C66" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17L17 7"></path><path d="M8 7h9v9"></path></svg>
+            <svg style="margin-left: auto; color: var(--text-muted-2)" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17L17 7"></path><path d="M8 7h9v9"></path></svg>
           </a>
-          <a class="menu-item" role="menuitem" :href="v.docsPrivacy" target="_blank" rel="noopener noreferrer" @click="v.closeUserMenu" style="width: 100%; height: 40px; box-sizing: border-box; border: 0; background: transparent; border-radius: 8px; display: flex; align-items: center; gap: 10px; padding: 0 10px; font-size: 14px; font-weight: 500; color: #111111; text-decoration: none; cursor: pointer">
+          <a class="menu-item" role="menuitem" :href="v.docsPrivacy" target="_blank" rel="noopener noreferrer" @click="v.closeUserMenu" style="width: 100%; height: 40px; box-sizing: border-box; border: 0; background: transparent; border-radius: 8px; display: flex; align-items: center; gap: 10px; padding: 0 10px; font-size: 14px; font-weight: 500; color: var(--text); text-decoration: none; cursor: pointer">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>
             Privacy
-            <svg style="margin-left: auto; color: #5C5C66" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17L17 7"></path><path d="M8 7h9v9"></path></svg>
+            <svg style="margin-left: auto; color: var(--text-muted-2)" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17L17 7"></path><path d="M8 7h9v9"></path></svg>
           </a>
-          <a class="menu-item" role="menuitem" :href="v.docsSecurity" target="_blank" rel="noopener noreferrer" @click="v.closeUserMenu" style="width: 100%; height: 40px; box-sizing: border-box; border: 0; background: transparent; border-radius: 8px; display: flex; align-items: center; gap: 10px; padding: 0 10px; font-size: 14px; font-weight: 500; color: #111111; text-decoration: none; cursor: pointer">
+          <a class="menu-item" role="menuitem" :href="v.docsSecurity" target="_blank" rel="noopener noreferrer" @click="v.closeUserMenu" style="width: 100%; height: 40px; box-sizing: border-box; border: 0; background: transparent; border-radius: 8px; display: flex; align-items: center; gap: 10px; padding: 0 10px; font-size: 14px; font-weight: 500; color: var(--text); text-decoration: none; cursor: pointer">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z"></path></svg>
             Security
-            <svg style="margin-left: auto; color: #5C5C66" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17L17 7"></path><path d="M8 7h9v9"></path></svg>
+            <svg style="margin-left: auto; color: var(--text-muted-2)" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17L17 7"></path><path d="M8 7h9v9"></path></svg>
           </a>
-          <button class="menu-item" role="menuitem" @click="v.logout" style="width: 100%; height: 40px; border: 0; background: transparent; border-radius: 8px; display: flex; align-items: center; gap: 10px; padding: 0 10px; font-size: 14px; font-weight: 500; color: #111111; cursor: pointer">
+          <div style="display: flex; align-items: center; gap: 6px; padding: 6px 10px 8px; font-size: 12px; color: var(--text-muted-2)">
+            <a role="menuitem" :href="v.privacyPolicy" target="_blank" rel="noopener noreferrer" class="legal-link" @click="v.closeUserMenu" style="color: inherit; text-decoration: none">Privacy policy</a>
+            <span aria-hidden="true">·</span>
+            <a role="menuitem" :href="v.terms" target="_blank" rel="noopener noreferrer" class="legal-link" @click="v.closeUserMenu" style="color: inherit; text-decoration: none">Terms</a>
+          </div>
+          <button class="menu-item" role="menuitem" @click="v.logout" style="width: 100%; height: 40px; border: 0; background: transparent; border-radius: 8px; display: flex; align-items: center; gap: 10px; padding: 0 10px; font-size: 14px; font-weight: 500; color: var(--text); cursor: pointer">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3"></path><path d="M10 17l-5-5 5-5"></path><path d="M5 12h11"></path></svg>
             Logout
           </button>
         </div>
       </template>
-      <button class="hov" aria-label="Settings" @click="v.openSettings" style="width: 44px; height: 44px; border: 0; background: transparent; border-radius: 10px; color: #52525B; display: flex; align-items: center; justify-content: center; cursor: pointer">
+      <button class="hov" aria-label="Settings" @click="v.openSettings" style="width: 44px; height: 44px; border: 0; background: transparent; border-radius: 10px; color: var(--text-muted); display: flex; align-items: center; justify-content: center; cursor: pointer">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"></path></svg>
       </button>
     </div>
   </nav>
   </template>
 
-  <main :style="`flex: 1 1 auto; min-width: 0; min-height: 0; display: flex; flex-direction: column; background: #FFFFFF; overflow-y: ${v.isNew ? 'auto' : 'visible'}; overscroll-behavior: contain`">
-    <header :style="`flex: none; ${v.isNew ? 'position: sticky; top: 0; z-index: 5;' : ''} background: #FFFFFF; height: 64px; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 20px; border-bottom: 1px solid ${v.headerBorder}`">
+  <main :style="`flex: 1 1 auto; min-width: 0; min-height: 0; display: flex; flex-direction: column; background: var(--surface); overflow-y: ${v.isNew ? 'auto' : 'visible'}; overscroll-behavior: contain`">
+    <header :style="`flex: none; ${v.isNew ? 'position: sticky; top: 0; z-index: 5;' : ''} background: var(--surface); height: 64px; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 20px; border-bottom: 1px solid ${v.headerBorder}`">
       <div style="display: flex; align-items: center; gap: 4px; min-width: 0; flex: 1 1 auto">
-        <button class="menu-btn hov" aria-label="Open sidebar" @click="v.openNav" :style="`display: ${v.menuBtnDisplay}; flex: none; width: 44px; height: 44px; border: 0; background: transparent; border-radius: 10px; color: #3F3F46; align-items: center; justify-content: center; cursor: pointer`">
+        <button class="menu-btn hov" aria-label="Open sidebar" @click="v.openNav" :style="`display: ${v.menuBtnDisplay}; flex: none; width: 44px; height: 44px; border: 0; background: transparent; border-radius: 10px; color: var(--text-2); align-items: center; justify-content: center; cursor: pointer`">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h10"></path></svg>
         </button>
         <template v-if="v.isChat">
           <div style="position: relative; min-width: 0">
-            <button class="hov" :aria-label="`${v.chatTitle}, chat options`" :aria-expanded="v.chatMenuExpanded" @click="v.toggleChatMenu" style="max-width: 100%; height: 40px; border: 0; background: transparent; border-radius: 10px; padding: 0 10px; display: flex; align-items: center; gap: 6px; font-size: 15px; font-weight: 600; color: #111111; cursor: pointer">
+            <button class="hov" :aria-label="`${v.chatTitle}, chat options`" :aria-expanded="v.chatMenuExpanded" @click="v.toggleChatMenu" style="max-width: 100%; height: 40px; border: 0; background: transparent; border-radius: 10px; padding: 0 10px; display: flex; align-items: center; gap: 6px; font-size: 15px; font-weight: 600; color: var(--text); cursor: pointer">
               <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{ v.chatTitle }}</span>
               <svg style="flex: none" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg>
             </button>
             <template v-if="v.chatMenu">
-              <div class="pop" role="menu" style="position: absolute; top: 46px; left: 0; z-index: 31; min-width: 200px; background: #FFFFFF; border: 1px solid #E7E5EE; border-radius: 12px; box-shadow: 0 8px 24px rgba(24,24,27,0.12); padding: 6px">
-                <button class="menu-item" role="menuitem" @click="v.deleteChat" style="width: 100%; height: 40px; border: 0; background: transparent; border-radius: 8px; display: flex; align-items: center; gap: 10px; padding: 0 10px; font-size: 14px; font-weight: 500; color: #B42318; cursor: pointer">
+              <div class="pop" role="menu" style="position: absolute; top: 46px; left: 0; z-index: 31; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 8px 24px rgba(24,24,27,0.12); padding: 6px">
+                <button class="menu-item" role="menuitem" @click="v.deleteChat" style="width: 100%; height: 40px; border: 0; background: transparent; border-radius: 8px; display: flex; align-items: center; gap: 10px; padding: 0 10px; font-size: 14px; font-weight: 500; color: var(--danger); cursor: pointer">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"></path></svg>
                   Delete chat
                 </button>
@@ -232,7 +285,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
         </template>
       </div>
       <template v-if="v.isChat">
-        <button class="hov" @click="v.share" style="flex: none; height: 40px; border: 1px solid #E7E5EE; background: #FFFFFF; border-radius: 10px; padding: 0 14px; display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 500; color: #111111; cursor: pointer">
+        <button class="hov" @click="v.share" style="flex: none; height: 40px; border: 1px solid var(--border); background: var(--surface); border-radius: 10px; padding: 0 14px; display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 500; color: var(--text); cursor: pointer">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7"></path><path d="M16 6l-4-4-4 4"></path><path d="M12 2v13"></path></svg>
           Share
         </button>
@@ -253,18 +306,18 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
               <template v-if="m.attachments.length">
                 <div style="max-width: 80%; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px">
                   <template v-for="a in m.attachments" :key="a.key">
-                    <div :style="`display: flex; align-items: center; gap: 8px; max-width: 100%; height: 40px; padding: 0 12px 0 6px; border: 1px solid #E7E5EE; border-radius: 12px; background: #FFFFFF; font-size: 13px; color: ${a.muted ? '#5C5C66' : '#111111'}`">
+                    <div :style="`display: flex; align-items: center; gap: 8px; max-width: 100%; height: 40px; padding: 0 12px 0 6px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); font-size: 13px; color: ${a.muted ? 'var(--text-muted-2)' : 'var(--text)'}`">
                       <img v-if="a.thumb" :src="a.thumb" alt="" style="flex: none; width: 28px; height: 28px; border-radius: 7px; object-fit: cover">
-                      <span v-else aria-hidden="true" style="flex: none; width: 28px; height: 28px; border-radius: 7px; background: #F1F1F4; color: #52525B; display: flex; align-items: center; justify-content: center"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"></path><path d="M14 3v5h5"></path></svg></span>
+                      <span v-else aria-hidden="true" style="flex: none; width: 28px; height: 28px; border-radius: 7px; background: var(--sunken); color: var(--text-muted); display: flex; align-items: center; justify-content: center"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"></path><path d="M14 3v5h5"></path></svg></span>
                       <span style="min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{ a.label }}</span>
                     </div>
                   </template>
                 </div>
               </template>
-              <div v-if="m.text" style="max-width: 80%; background: #F1F1F4; border-radius: 18px 18px 6px 18px; padding: 12px 16px; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere">{{ m.text }}</div>
+              <div v-if="m.text" style="max-width: 80%; background: var(--sunken); border-radius: 18px 18px 6px 18px; padding: 12px 16px; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere">{{ m.text }}</div>
               <div class="uact" style="display: flex; gap: 2px">
-                <button class="hov" aria-label="Edit message" @click="m.onEdit" style="width: 32px; height: 32px; border: 0; background: transparent; border-radius: 8px; color: #63636B; display: flex; align-items: center; justify-content: center; cursor: pointer"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"></path></svg></button>
-                <button class="hov" :aria-label="m.copyLabel" @click="m.onCopy" style="width: 32px; height: 32px; border: 0; background: transparent; border-radius: 8px; color: #63636B; display: flex; align-items: center; justify-content: center; cursor: pointer">
+                <button class="hov" aria-label="Edit message" @click="m.onEdit" style="width: 32px; height: 32px; border: 0; background: transparent; border-radius: 8px; color: var(--text-muted-3); display: flex; align-items: center; justify-content: center; cursor: pointer"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"></path></svg></button>
+                <button class="hov" :aria-label="m.copyLabel" @click="m.onCopy" style="width: 32px; height: 32px; border: 0; background: transparent; border-radius: 8px; color: var(--text-muted-3); display: flex; align-items: center; justify-content: center; cursor: pointer">
                   <template v-if="m.copied"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"></path></svg></template>
                   <template v-if="m.notCopied"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"></rect><path d="M5 15V5a2 2 0 0 1 2-2h10"></path></svg></template>
                 </button>
@@ -275,7 +328,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
             <article style="display: flex">
               <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 14px; line-height: 1.65">
                 <template v-if="m.hasSteps">
-                  <details class="steps" style="font-size: 13px; color: #63636B">
+                  <details class="steps" style="font-size: 13px; color: var(--text-muted-3)">
                     <summary style="display: inline-flex; align-items: center; gap: 6px; cursor: pointer; list-style: none">
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"></path></svg>
                       {{ m.steps }}
@@ -292,7 +345,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
                 </template>
                 <div class="md" v-html="m.html"></div>
                 <div style="display: flex; gap: 0; margin-left: -12px">
-                  <button class="hov" :aria-label="m.copyLabel" @click="m.onCopy" style="width: 44px; height: 44px; border: 0; background: transparent; border-radius: 8px; color: #63636B; display: flex; align-items: center; justify-content: center; cursor: pointer">
+                  <button class="hov" :aria-label="m.copyLabel" @click="m.onCopy" style="width: 44px; height: 44px; border: 0; background: transparent; border-radius: 8px; color: var(--text-muted-3); display: flex; align-items: center; justify-content: center; cursor: pointer">
                     <template v-if="m.copied"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"></path></svg></template>
                     <template v-if="m.notCopied"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"></rect><path d="M5 15V5a2 2 0 0 1 2-2h10"></path></svg></template>
                   </button>
@@ -300,7 +353,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
                   <button class="hov" aria-label="Good response" :aria-pressed="m.upPressed" @click="m.onUp" :style="`width: 44px; height: 44px; border: 0; background: transparent; border-radius: 8px; color: ${m.upColor}; display: flex; align-items: center; justify-content: center; cursor: pointer`"><svg width="16" height="16" viewBox="0 0 24 24" :fill="m.upFill" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 10v11H4V10z"></path><path d="M7 10l4-8a3 3 0 0 1 3 3v4h5.5a2 2 0 0 1 2 2.3l-1.4 8A2 2 0 0 1 18 21H7"></path></svg></button>
                   <button class="hov" aria-label="Bad response" :aria-pressed="m.downPressed" @click="m.onDown" :style="`width: 44px; height: 44px; border: 0; background: transparent; border-radius: 8px; color: ${m.downColor}; display: flex; align-items: center; justify-content: center; cursor: pointer`"><svg width="16" height="16" viewBox="0 0 24 24" :fill="m.downFill" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 14V3h3v11z"></path><path d="M17 14l-4 8a3 3 0 0 1-3-3v-4H4.5a2 2 0 0 1-2-2.3l1.4-8A2 2 0 0 1 6 3h11"></path></svg></button>
                   </template>
-                  <button class="hov" aria-label="Regenerate" @click="m.onRegen" style="width: 44px; height: 44px; border: 0; background: transparent; border-radius: 8px; color: #63636B; display: flex; align-items: center; justify-content: center; cursor: pointer"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.6-6.4"></path><path d="M21 3v6h-6"></path></svg></button>
+                  <button class="hov" aria-label="Regenerate" @click="m.onRegen" style="width: 44px; height: 44px; border: 0; background: transparent; border-radius: 8px; color: var(--text-muted-3); display: flex; align-items: center; justify-content: center; cursor: pointer"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.6-6.4"></path><path d="M21 3v6h-6"></path></svg></button>
                 </div>
               </div>
             </article>
@@ -330,7 +383,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
               <svg :style="`flex: none; color: ${v.accent}`" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke-dasharray="3 3"></circle><path d="M12 7v5l3 2"></path></svg>
               <h1 style="margin: 0; font-size: 32px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.2">Temporary chat</h1>
             </div>
-            <p style="position: absolute; top: 100%; left: 50%; transform: translateX(-50%); width: max-content; max-width: calc(100vw - 48px); margin: 6px 0 0; font-size: 14px; color: #52525B">Not saved or shown in your history.</p>
+            <p style="position: absolute; top: 100%; left: 50%; transform: translateX(-50%); width: max-content; max-width: calc(100vw - 48px); margin: 6px 0 0; font-size: 14px; color: var(--text-muted)">Not saved or shown in your history.</p>
           </div>
         </template>
       </section>
@@ -341,12 +394,12 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
         <div style="max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px">
           <div style="display: flex; flex-direction: column; gap: 6px">
             <h2 style="margin: 0; font-size: 28px; font-weight: 600; letter-spacing: -0.02em">{{ v.page.title }}</h2>
-            <p style="margin: 0; color: #52525B; line-height: 1.55">{{ v.page.desc }}</p>
+            <p style="margin: 0; color: var(--text-muted); line-height: 1.55">{{ v.page.desc }}</p>
           </div>
-          <div style="border: 1px dashed #C4C4CC; border-radius: 16px; padding: 40px 24px; display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center">
+          <div style="border: 1px dashed var(--border-hover); border-radius: 16px; padding: 40px 24px; display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center">
             <p style="margin: 0; font-weight: 600">{{ v.page.empty }}</p>
-            <p style="margin: 0; font-size: 14px; color: #52525B; max-width: 420px; line-height: 1.5">{{ v.page.hint }}</p>
-            <button @click="v.pageAction" style="margin-top: 4px; height: 44px; border: 0; background: #111111; border-radius: 10px; padding: 0 18px; font-size: 14px; font-weight: 600; color: #FFFFFF; cursor: pointer">{{ v.page.action }}</button>
+            <p style="margin: 0; font-size: 14px; color: var(--text-muted); max-width: 420px; line-height: 1.5">{{ v.page.hint }}</p>
+            <button @click="v.pageAction" style="margin-top: 4px; height: 44px; border: 0; background: var(--inverse); border-radius: 10px; padding: 0 18px; font-size: 14px; font-weight: 600; color: var(--on-inverse); cursor: pointer">{{ v.page.action }}</button>
           </div>
         </div>
       </section>
@@ -356,12 +409,21 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
       <section style="flex: 1; min-height: 0; overflow-y: auto; padding: 40px 24px">
         <div style="max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px">
           <h2 style="margin: 0; font-size: 28px; font-weight: 600; letter-spacing: -0.02em">Settings</h2>
-          <div style="border: 1px solid #E7E5EE; border-radius: 16px; padding: 20px; background: #FFFFFF; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px">
+          <div style="border: 1px solid var(--border); border-radius: 16px; padding: 20px; background: var(--surface); display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px">
+            <div style="flex: 1 1 260px; min-width: 0; display: flex; flex-direction: column; gap: 4px">
+              <label for="theme" style="font-weight: 600">Theme</label>
+              <p style="margin: 0; font-size: 14px; color: var(--text-muted); line-height: 1.5">System matches your device setting.</p>
+            </div>
+            <select id="theme" :value="v.themeValue" @change="v.changeTheme" style="height: 44px; min-width: 140px; border: 1px solid var(--border); border-radius: 10px; padding: 0 12px; font-size: 15px; background: var(--surface); color: var(--text); cursor: pointer">
+              <template v-for="(o, i_o) in v.themeChoices" :key="i_o"><option :value="o.value">{{ o.label }}</option></template>
+            </select>
+          </div>
+          <div style="border: 1px solid var(--border); border-radius: 16px; padding: 20px; background: var(--surface); display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px">
             <div style="flex: 1 1 260px; min-width: 0; display: flex; flex-direction: column; gap: 4px">
               <label for="retention" style="font-weight: 600">Delete chats after</label>
-              <p style="margin: 0; font-size: 14px; color: #52525B; line-height: 1.5">Chats are deleted after this many days without activity. A shorter period applies at the next daily cleanup.</p>
+              <p style="margin: 0; font-size: 14px; color: var(--text-muted); line-height: 1.5">Chats are deleted after this many days without activity. A shorter period applies at the next daily cleanup.</p>
             </div>
-            <select id="retention" :disabled="v.settingsBusy" :value="v.retentionValue" @change="v.changeRetention" style="height: 44px; min-width: 140px; border: 1px solid #E7E5EE; border-radius: 10px; padding: 0 12px; font-size: 15px; background: #FFFFFF; color: #111111; cursor: pointer">
+            <select id="retention" :disabled="v.settingsBusy" :value="v.retentionValue" @change="v.changeRetention" style="height: 44px; min-width: 140px; border: 1px solid var(--border); border-radius: 10px; padding: 0 12px; font-size: 15px; background: var(--surface); color: var(--text); cursor: pointer">
               <template v-for="(o, i_o) in v.retentionChoices" :key="i_o"><option :value="o.value">{{ o.label }}</option></template>
             </select>
           </div>
@@ -372,48 +434,48 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
     <template v-if="v.showComposer">
     <div :style="`flex: none; position: relative; padding: ${v.composerPad}`">
       <template v-if="v.isChat">
-        <div aria-hidden="true" style="position: absolute; left: 0; right: 0; top: -40px; height: 40px; background: linear-gradient(to bottom, rgba(255,255,255,0), #FFFFFF); pointer-events: none"></div>
+        <div aria-hidden="true" style="position: absolute; left: 0; right: 0; top: -40px; height: 40px; background: linear-gradient(to bottom, transparent, var(--surface)); pointer-events: none"></div>
       </template>
       <template v-if="v.showChips">
         <div :style="`max-width: ${v.composerMax}; margin: 0 auto 10px; display: flex; flex-direction: column; align-items: flex-start; gap: 8px`">
           <template v-for="(ch, i_ch) in v.chips" :key="i_ch">
-            <button class="chip" type="button" @click="ch.pick" style="border: 1px solid #E7E5EE; background: #FFFFFF; border-radius: 999px; padding: 0 14px; height: 34px; font-size: 13px; font-weight: 500; color: #3F3F46; cursor: pointer">{{ ch.label }}</button>
+            <button class="chip" type="button" @click="ch.pick" style="border: 1px solid var(--border); background: var(--surface); border-radius: 999px; padding: 0 14px; height: 34px; font-size: 13px; font-weight: 500; color: var(--text-2); cursor: pointer">{{ ch.label }}</button>
           </template>
         </div>
       </template>
       <form @submit="v.onSubmit" :style="`max-width: ${v.composerMax}; margin: 0 auto; display: flex; flex-direction: column; gap: 10px`">
-        <div class="composer" :class="{ drop: v.dragging }" :style="`border: 1px ${v.composerBorderStyle} ${v.composerBorder}; border-radius: ${v.composerRadius}; padding: ${v.composerPadding}`" style="background: #FFFFFF; box-shadow: 0 4px 18px rgba(24,24,27,0.06); display: flex; flex-wrap: wrap; align-items: flex-end; gap: 4px 4px">
+        <div class="composer" :class="{ drop: v.dragging }" :style="`border: 1px ${v.composerBorderStyle} ${v.composerBorder}; border-radius: ${v.composerRadius}; padding: ${v.composerPadding}`" style="background: var(--surface); box-shadow: 0 4px 18px rgba(24,24,27,0.06); display: flex; flex-wrap: wrap; align-items: flex-end; gap: 4px 4px">
           <input type="file" multiple hidden tabindex="-1" aria-hidden="true" :accept="v.accept" :ref="v.fileRef" @change="v.onFiles">
           <template v-if="v.pending.length">
             <div style="flex: 1 0 100%; display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 4px">
               <template v-for="a in v.pending" :key="a.id">
-                <div style="display: flex; align-items: center; gap: 10px; min-width: 0; max-width: 100%; height: 52px; padding: 0 4px 0 8px; border: 1px solid #E7E5EE; border-radius: 12px; background: #FAFAFB">
+                <div style="display: flex; align-items: center; gap: 10px; min-width: 0; max-width: 100%; height: 52px; padding: 0 4px 0 8px; border: 1px solid var(--border); border-radius: 12px; background: var(--bg)">
                   <img v-if="a.thumb" :src="a.thumb" alt="" style="flex: none; width: 36px; height: 36px; border-radius: 8px; object-fit: cover">
-                  <span v-else aria-hidden="true" style="flex: none; width: 36px; height: 36px; border-radius: 8px; background: #F1F1F4; color: #52525B; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"></path><path d="M14 3v5h5"></path></svg></span>
+                  <span v-else aria-hidden="true" style="flex: none; width: 36px; height: 36px; border-radius: 8px; background: var(--sunken); color: var(--text-muted); display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"></path><path d="M14 3v5h5"></path></svg></span>
                   <span style="min-width: 0; display: flex; flex-direction: column; font-size: 13px; line-height: 1.3">
                     <span style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500">{{ a.name }}</span>
-                    <span style="color: #5C5C66">{{ a.size }}</span>
+                    <span style="color: var(--text-muted-2)">{{ a.size }}</span>
                   </span>
-                  <button class="hov" type="button" :aria-label="`Remove ${a.name}`" @click="a.remove" style="flex: none; width: 44px; height: 44px; border: 0; background: transparent; border-radius: 10px; color: #52525B; display: flex; align-items: center; justify-content: center; cursor: pointer"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+                  <button class="hov" type="button" :aria-label="`Remove ${a.name}`" @click="a.remove" style="flex: none; width: 44px; height: 44px; border: 0; background: transparent; border-radius: 10px; color: var(--text-muted); display: flex; align-items: center; justify-content: center; cursor: pointer"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
                 </div>
               </template>
             </div>
             <template v-if="v.imageHint">
-              <p style="flex: 1 0 100%; margin: 0 0 4px; font-size: 12px; color: #5C5C66">Images aren't checked for card numbers or IDs. Only attach what you're comfortable sharing.</p>
+              <p style="flex: 1 0 100%; margin: 0 0 4px; font-size: 12px; color: var(--text-muted-2)">Images aren't checked for card numbers or IDs. Only attach what you're comfortable sharing.</p>
             </template>
           </template>
           <label for="composer" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Message Proxi</label>
-          <button class="hov" type="button" aria-label="Attach file" @click="v.attach" :style="`order: ${v.attachOrder}`" style="flex: none; width: 44px; height: 44px; border: 0; background: transparent; border-radius: 50%; color: #3F3F46; display: flex; align-items: center; justify-content: center; cursor: pointer"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5l-8.6 8.6a5 5 0 0 1-7-7l8.6-8.6a3.3 3.3 0 0 1 4.7 4.7l-8.6 8.6a1.7 1.7 0 0 1-2.4-2.4l8-8"></path></svg></button>
-          <textarea id="composer" :ref="v.taRef" rows="1" placeholder="Message Proxi" :value="v.draft" @input="v.onDraft" @keydown="v.onKey" @paste="v.onPaste" :style="`order: ${v.textOrder}; flex: ${v.textFlex}; padding: ${v.textPadding}`" style="min-width: 0; box-sizing: border-box; height: 44px; border: 0; resize: none; outline: none; font-size: 16px; line-height: 24px; color: #111111; background: transparent; overflow-y: hidden"></textarea>
+          <button class="hov" type="button" aria-label="Attach file" @click="v.attach" :style="`order: ${v.attachOrder}`" style="flex: none; width: 44px; height: 44px; border: 0; background: transparent; border-radius: 50%; color: var(--text-2); display: flex; align-items: center; justify-content: center; cursor: pointer"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5l-8.6 8.6a5 5 0 0 1-7-7l8.6-8.6a3.3 3.3 0 0 1 4.7 4.7l-8.6 8.6a1.7 1.7 0 0 1-2.4-2.4l8-8"></path></svg></button>
+          <textarea id="composer" :ref="v.taRef" rows="1" placeholder="Message Proxi" :value="v.draft" @input="v.onDraft" @keydown="v.onKey" @paste="v.onPaste" :style="`order: ${v.textOrder}; flex: ${v.textFlex}; padding: ${v.textPadding}`" style="min-width: 0; box-sizing: border-box; height: 44px; border: 0; resize: none; outline: none; font-size: 16px; line-height: 24px; color: var(--text); background: transparent; overflow-y: hidden"></textarea>
           <div style="order: 3; margin-left: auto; position: relative; display: flex; align-items: center; gap: 4px">
-            <button class="hov" type="button" :aria-label="`Model: ${v.model}, change model`" :aria-expanded="v.modelMenuExpanded" @click="v.toggleModelMenu" style="margin-left: auto; height: 44px; border: 0; background: transparent; border-radius: 22px; padding: 0 4px; display: flex; align-items: center; cursor: pointer"><span style="height: 34px; padding: 0 10px 0 12px; border-radius: 17px; background: #EFE8FF; display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: #111111"><span :style="`width: 8px; height: 8px; border-radius: 50%; background: ${v.accent}`"></span><span>{{ v.modelName }}<span class="model-ver">&nbsp;{{ v.modelVersion }}</span></span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg></span></button>
+            <button class="hov" type="button" :aria-label="`Model: ${v.model}, change model`" :aria-expanded="v.modelMenuExpanded" @click="v.toggleModelMenu" style="margin-left: auto; height: 44px; border: 0; background: transparent; border-radius: 22px; padding: 0 4px; display: flex; align-items: center; cursor: pointer"><span style="height: 34px; padding: 0 10px 0 12px; border-radius: 17px; background: var(--accent-soft); display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: var(--text)"><span :style="`width: 8px; height: 8px; border-radius: 50%; background: ${v.accent}`"></span><span>{{ v.modelName }}<span class="model-ver">&nbsp;{{ v.modelVersion }}</span></span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg></span></button>
             <template v-if="v.modelMenu">
-              <div class="pop" role="menu" style="position: absolute; bottom: 52px; right: 44px; z-index: 31; width: 220px; background: #FFFFFF; border: 1px solid #E7E5EE; border-radius: 12px; box-shadow: 0 8px 24px rgba(24,24,27,0.12); padding: 6px">
+              <div class="pop" role="menu" style="position: absolute; bottom: 52px; right: 44px; z-index: 31; width: 220px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 8px 24px rgba(24,24,27,0.12); padding: 6px">
                 <template v-for="(o, i_o) in v.models" :key="i_o">
-                  <button class="menu-item" role="menuitemradio" :aria-checked="o.checked" @click="o.pick" style="width: 100%; border: 0; background: transparent; border-radius: 8px; padding: 8px 10px; display: flex; align-items: center; gap: 10px; text-align: left; cursor: pointer; color: #111111">
+                  <button class="menu-item" role="menuitemradio" :aria-checked="o.checked" @click="o.pick" style="width: 100%; border: 0; background: transparent; border-radius: 8px; padding: 8px 10px; display: flex; align-items: center; gap: 10px; text-align: left; cursor: pointer; color: var(--text)">
                     <span style="flex: 1; display: flex; flex-direction: column; gap: 2px">
                       <span style="font-size: 14px; font-weight: 500">{{ o.name }}</span>
-                      <span style="font-size: 12px; color: #5C5C66">{{ o.note }}</span>
+                      <span style="font-size: 12px; color: var(--text-muted-2)">{{ o.note }}</span>
                     </span>
                     <template v-if="o.on"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" :stroke="v.accent" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"></path></svg></template>
                   </button>
@@ -421,21 +483,21 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
               </div>
             </template>
             <template v-if="v.typing">
-              <button type="button" aria-label="Stop generating" @click="v.stop" style="flex: none; width: 44px; height: 44px; border: 0; background: #111111; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer"><span style="width: 12px; height: 12px; border-radius: 2px; background: #FFFFFF"></span></button>
+              <button type="button" aria-label="Stop generating" @click="v.stop" style="flex: none; width: 44px; height: 44px; border: 0; background: var(--inverse); border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer"><span style="width: 12px; height: 12px; border-radius: 2px; background: var(--on-inverse)"></span></button>
             </template>
             <template v-if="v.notTyping">
               <button type="submit" aria-label="Send message" :disabled="v.noSend" :style="`flex: none; width: 44px; height: 44px; border: 0; background: ${v.sendBg}; border-radius: 50%; color: ${v.sendColor}; display: flex; align-items: center; justify-content: center; cursor: ${v.sendCursor}`"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"></path></svg></button>
             </template>
           </div>
         </div>
-        <p style="margin: 0; text-align: center; font-size: 12px; color: #5C5C66">Proxi can make mistakes. Check important info. <a :href="v.privacyPolicy" target="_blank" rel="noopener noreferrer" style="color: inherit; text-decoration: underline">Privacy policy</a></p>
+        <p style="margin: 0; text-align: center; font-size: 12px; color: var(--text-muted-2)">Proxi can make mistakes. Check important info.</p>
       </form>
     </div>
     </template>
   </main>
 
   <template v-if="v.hasToast">
-    <div class="toast" role="status" style="position: absolute; left: 50%; bottom: 28px; transform: translateX(-50%); z-index: 50; background: #111111; color: #FFFFFF; font-size: 14px; font-weight: 500; padding: 10px 16px; border-radius: 10px; box-shadow: 0 8px 24px rgba(24,24,27,0.2); width: max-content; max-width: min(92vw, 460px); text-align: center; line-height: 1.4">{{ v.toast }}</div>
+    <div class="toast" role="status" style="position: absolute; left: 50%; bottom: 28px; transform: translateX(-50%); z-index: 50; background: var(--inverse); color: var(--on-inverse); font-size: 14px; font-weight: 500; padding: 10px 16px; border-radius: 10px; box-shadow: 0 8px 24px rgba(24,24,27,0.2); width: max-content; max-width: min(92vw, 460px); text-align: center; line-height: 1.4">{{ v.toast }}</div>
   </template>
 </div>
 </script>
@@ -459,6 +521,70 @@ function renderMarkdown(text) {
 }
 
 const DOCS_URL = 'https://proxi.mintlify.site';
+
+// Citations arrive as Markdown: [[1]](url) after a sentence and a "Sources" list at the end.
+// Turn them into source name pills and a collapsible list. Runs on sanitized HTML.
+function renderCitations(html) {
+  if (!html.includes('<strong>Sources</strong>')) return html;
+  const root = document.createElement('template');
+  root.innerHTML = html;
+  const heading = [...root.content.querySelectorAll('p')].find((p) => p.textContent.trim() === 'Sources' && p.querySelector('strong'));
+  const list = heading?.nextElementSibling;
+  if (!list || list.tagName !== 'OL') return html;
+  const host = (url) => { try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return ''; } };
+  const label = (url) => url.startsWith(DOCS_URL) ? 'Help center' : host(url);
+  const sources = [...list.querySelectorAll('a')].map((a) => ({ url: a.getAttribute('href'), title: a.textContent }));
+  const link = (url, cls) => {
+    const a = document.createElement('a');
+    a.href = url; a.className = cls; a.target = '_blank'; a.rel = 'noopener noreferrer';
+    return a;
+  };
+  // Consecutive [n] links become one pill: "Help center +1".
+  const cites = [...root.content.querySelectorAll('a')].filter((a) => /^\[\d+\]$/.test(a.textContent));
+  const groups = [];
+  for (const a of cites) {
+    const last = groups.at(-1);
+    if (last && last.at(-1).nextSibling === a) last.push(a); else groups.push([a]);
+  }
+  for (const group of groups) {
+    const url = group[0].getAttribute('href');
+    const pill = link(url, 'cite');
+    pill.textContent = label(url) + (group.length > 1 ? ' +' + (group.length - 1) : '');
+    pill.title = group.map((a) => sources.find((s) => s.url === a.getAttribute('href'))?.title || label(a.getAttribute('href'))).join('\n');
+    group[0].replaceWith(pill);
+    group.slice(1).forEach((a) => a.remove());
+  }
+  const details = document.createElement('details');
+  details.className = 'sources';
+  const summary = document.createElement('summary');
+  const stack = document.createElement('span');
+  stack.className = 'src-stack';
+  stack.setAttribute('aria-hidden', 'true');
+  // One tile per site, up to three.
+  for (const name of [...new Set(sources.map((src) => label(src.url) || '?'))].slice(0, 3)) {
+    const tile = document.createElement('span');
+    tile.className = 'src-tile t' + ([...name].reduce((n, ch) => n + ch.charCodeAt(0), 0) % 5);
+    tile.textContent = name[0].toUpperCase();
+    stack.append(tile);
+  }
+  summary.append(stack, sources.length === 1 ? '1 source' : sources.length + ' sources');
+  const ul = document.createElement('ul');
+  for (const src of sources) {
+    const a = link(src.url, '');
+    const title = document.createElement('span');
+    title.className = 'src-title'; title.textContent = src.title;
+    const site = document.createElement('span');
+    site.className = 'src-host'; site.textContent = host(src.url);
+    a.append(title, site);
+    const li = document.createElement('li');
+    li.append(a);
+    ul.append(li);
+  }
+  details.append(summary, ul);
+  heading.replaceWith(details);
+  list.remove();
+  return root.innerHTML;
+}
 
 function maskCards(text) {
   return text.replace(/\b\d(?:[ -]?\d){12,18}\b/g, (match) => {
@@ -625,6 +751,7 @@ class Component extends DCLogic {
       toast: '',
       settings: null,
       settingsBusy: false,
+      theme: window.proxiTheme?.get() || 'system',
       temporary: false,
       votes: {}
     };
@@ -1033,9 +1160,9 @@ class Component extends DCLogic {
         title: c.title,
         cls: on ? '' : 'hov',
         current: on ? 'page' : 'false',
-        bg: on ? '#EFE8FF' : 'transparent',
+        bg: on ? 'var(--accent-soft)' : 'transparent',
         shadow: 'none',
-        color: on ? '#111111' : '#3F3F46',
+        color: on ? 'var(--text)' : 'var(--text-2)',
         weight: on ? '500' : '400',
         open: () => this.openConversation(c.id)
       };
@@ -1050,7 +1177,7 @@ class Component extends DCLogic {
       const on = k === 'new' ? isNew : s.view === k;
       nav[k + 'Cls'] = on ? '' : 'hov';
       nav[k + 'Cur'] = on ? 'page' : 'false';
-      nav[k + 'Bg'] = on ? '#EFE8FF' : 'transparent';
+      nav[k + 'Bg'] = on ? 'var(--accent-soft)' : 'transparent';
       nav[k + 'Shadow'] = 'none';
     });
 
@@ -1071,14 +1198,14 @@ class Component extends DCLogic {
         steps: [...new Set((m.steps || []).map((st) => st.short))].join(' · '),
         stepList: [...(m.steps || []), ...(m.model ? [{ text: 'Answered with ' + modelLabel(m.model), icon: 'spark' }] : [])].map((st, i) => ({ key: i, text: st.text, icon: stepIcon(st.icon) })),
         canVote: !conv.temporary,
-        html: m.role === 'assistant' ? renderMarkdown(m.text || '') : '',
+        html: m.role === 'assistant' ? renderCitations(renderMarkdown(m.text || '')) : '',
         copied,
         notCopied: !copied,
         copyLabel: copied ? 'Copied' : (m.role === 'user' ? 'Copy message' : 'Copy response'),
         upPressed: v === 'up' ? 'true' : 'false',
         downPressed: v === 'down' ? 'true' : 'false',
-        upColor: v === 'up' ? accent : '#63636B',
-        downColor: v === 'down' ? accent : '#63636B',
+        upColor: v === 'up' ? accent : 'var(--text-muted-3)',
+        downColor: v === 'down' ? accent : 'var(--text-muted-3)',
         upFill: v === 'up' ? 'currentColor' : 'none',
         downFill: v === 'down' ? 'currentColor' : 'none',
         onCopy: () => this.copy(key, shown),
@@ -1130,6 +1257,9 @@ class Component extends DCLogic {
       retentionValue: String(s.settings?.chatRetentionDays ?? 30),
       retentionChoices: (s.settings?.options || [7, 30, 90]).map((d) => ({ value: String(d), label: d + ' days' })),
       changeRetention: (e) => this.saveRetention(Number(e.target.value)),
+      themeValue: s.theme,
+      themeChoices: [{ value: 'system', label: 'System' }, { value: 'light', label: 'Light' }, { value: 'dark', label: 'Dark' }],
+      changeTheme: (e) => { window.proxiTheme?.set(e.target.value); this.setState({ theme: e.target.value }); },
       searchOpen: s.searchOpen,
       searchExpanded: s.searchOpen ? 'true' : 'false',
       toggleSearch: () => {
@@ -1152,16 +1282,16 @@ class Component extends DCLogic {
 
       isChat, isNew, isPage, page,
       pageAction: () => this.showToast(page.action + ' is not part of this prototype'),
-      headerBorder: isNew ? '#FFFFFF' : '#EDEDF0',
+      headerBorder: isNew ? 'var(--surface)' : 'var(--divider)',
       chatTitle: conv ? (conv.temporary ? 'Temporary chat' : conv.title) : '',
       temporary: s.temporary,
       temporaryPressed: s.temporary ? 'true' : 'false',
       notTemporary: !s.temporary,
-      temporaryBg: s.temporary ? accent : '#FFFFFF',
-      temporaryBorder: s.temporary ? accent : '#E7E5EE',
-      temporaryColor: s.temporary ? '#FFFFFF' : '#52525B',
+      temporaryBg: s.temporary ? accent : 'var(--surface)',
+      temporaryBorder: s.temporary ? accent : 'var(--border)',
+      temporaryColor: s.temporary ? '#FFFFFF' : 'var(--text-muted)',
       temporaryHint: "Temporary chats aren't saved or shown in your history",
-      composerBorder: (isNew && s.temporary) || (isChat && conv.temporary) ? '#A78BFA' : '#D4D4DA',
+      composerBorder: (isNew && s.temporary) || (isChat && conv.temporary) ? 'var(--temp-border)' : 'var(--border-strong)',
       composerBorderStyle: (isNew && s.temporary) || (isChat && conv.temporary) ? 'dashed' : 'solid',
       toggleTemporary: () => this.setState({ temporary: !s.temporary }),
       chatMenu: s.chatMenu,
@@ -1248,8 +1378,8 @@ class Component extends DCLogic {
       notTyping: !s.typing,
       stop: () => this.stop(),
       noSend: !canSend,
-      sendBg: canSend ? '#111111' : '#E4E4E8',
-      sendColor: canSend ? '#FFFFFF' : '#71717A',
+      sendBg: canSend ? 'var(--inverse)' : 'var(--disabled)',
+      sendColor: canSend ? 'var(--on-inverse)' : 'var(--text-disabled)',
       sendCursor: canSend ? 'pointer' : 'default',
       chips,
 
@@ -1262,6 +1392,7 @@ class Component extends DCLogic {
       docsHome: DOCS_URL,
       docsPrivacy: DOCS_URL + '/privacy',
       privacyPolicy: DOCS_URL + '/privacy-policy',
+      terms: DOCS_URL + '/terms',
       docsSecurity: DOCS_URL + '/security',
       closeUserMenu: () => this.setState({ userMenu: false }),
       logout: async () => {
