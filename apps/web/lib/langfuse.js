@@ -18,13 +18,13 @@ Some details in the conversation may appear as [IBAN], [EMAIL] or [PHONE], and c
 For questions about Proxi itself (features, privacy, security), use the search_docs tool and base your answer on what it returns.
 Use web_search only when the answer depends on current or changing information, or on facts you don't know. Otherwise answer directly. Cite the web pages you use.`;
 
-// The system prompt is edited in Langfuse (prompt "proxi-system", label "production").
+// The system prompt is edited in Langfuse (prompt "main-system", label "production").
 // Falls back to the built-in prompt if Langfuse is not set up or unreachable.
 export async function getSystemPrompt() {
   const langfuse = getLangfuse();
   if (!langfuse) return { text: DEFAULT_SYSTEM_PROMPT, prompt: undefined };
   try {
-    const prompt = await langfuse.getPrompt('proxi-system', undefined, {
+    const prompt = await langfuse.getPrompt('main-system', undefined, {
       label: 'production', fallback: DEFAULT_SYSTEM_PROMPT, cacheTtlSeconds: 60, fetchTimeoutMs: 2000,
     });
     return { text: prompt.compile(), prompt: prompt.isFallback ? undefined : prompt };
