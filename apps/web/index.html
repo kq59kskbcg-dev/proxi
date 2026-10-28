@@ -58,6 +58,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 .toast{animation:toast-rise 0.16s ease-out}
 .pop{animation:rise 0.16s ease-out}
 @media (prefers-reduced-motion: reduce){.spinner{animation-duration:2.4s}.pop,.toast{animation:none}}
+#instructions:focus{outline:none;border-color:var(--accent) !important;box-shadow:0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent)}
 .temp-toggle[aria-pressed="false"]:hover{background:var(--hover-solid) !important}
 @media (max-width: 480px){.model-ver{display:none}}
 #composer::placeholder{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -164,10 +165,6 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
       <button :class="v.nav.skillsCls" :aria-current="v.nav.skillsCur" @click="v.openSkills" :style="`height: 44px; border: 0; background: ${v.nav.skillsBg}; box-shadow: ${v.nav.skillsShadow}; border-radius: 8px; display: flex; align-items: center; gap: 10px; padding: 0 10px; font-size: 14px; font-weight: 500; color: var(--text); cursor: pointer`">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2L4 14h7l-1 8 9-12h-7z"></path></svg>
         Skills
-      </button>
-      <button :class="v.nav.behaviorCls" :aria-current="v.nav.behaviorCur" @click="v.openBehavior" :style="`height: 44px; border: 0; background: ${v.nav.behaviorBg}; box-shadow: ${v.nav.behaviorShadow}; border-radius: 8px; display: flex; align-items: center; gap: 10px; padding: 0 10px; font-size: 14px; font-weight: 500; color: var(--text); cursor: pointer`">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12"></path><circle cx="16" cy="6" r="2"></circle><circle cx="10" cy="12" r="2"></circle><circle cx="18" cy="18" r="2"></circle></svg>
-        Behavior
       </button>
     </div>
 
@@ -409,10 +406,21 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
       <section style="flex: 1; min-height: 0; overflow-y: auto; padding: 40px 24px">
         <div style="max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px">
           <h2 style="margin: 0; font-size: 28px; font-weight: 600; letter-spacing: -0.02em">Settings</h2>
+          <div style="border: 1px solid var(--border); border-radius: 16px; padding: 20px; background: var(--surface); display: flex; flex-direction: column; gap: 12px">
+            <div style="display: flex; flex-direction: column; gap: 4px">
+              <label for="instructions" style="font-weight: 600">Custom instructions</label>
+              <p style="margin: 0; font-size: 14px; color: var(--text-muted); line-height: 1.5">Tell Proxi about yourself and how you'd like it to respond.</p>
+            </div>
+            <textarea id="instructions" rows="5" :maxlength="v.instructionsMax" :disabled="v.settingsBusy" :value="v.instructionsDraft" @input="v.onInstructions" placeholder="For example: I'm a product designer. Keep answers short and use bullet points." style="width: 100%; box-sizing: border-box; min-height: 132px; resize: vertical; border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; font: inherit; font-size: 15px; line-height: 1.55; background: var(--surface); color: var(--text)"></textarea>
+            <div style="display: flex; align-items: center; justify-content: flex-end; gap: 12px">
+              <span style="font-size: 13px; color: var(--text-muted-2)">{{ v.instructionsCount }}</span>
+              <button type="button" :disabled="v.noSaveInstructions" @click="v.saveInstructions" :style="`height: 40px; border: 0; border-radius: 10px; padding: 0 18px; font-size: 14px; font-weight: 600; background: ${v.saveInstructionsBg}; color: ${v.saveInstructionsColor}; cursor: ${v.noSaveInstructions ? 'default' : 'pointer'}`">Save</button>
+            </div>
+          </div>
           <div style="border: 1px solid var(--border); border-radius: 16px; padding: 20px; background: var(--surface); display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px">
             <div style="flex: 1 1 260px; min-width: 0; display: flex; flex-direction: column; gap: 4px">
               <label for="theme" style="font-weight: 600">Theme</label>
-              <p style="margin: 0; font-size: 14px; color: var(--text-muted); line-height: 1.5">System matches your device setting.</p>
+              <p style="margin: 0; font-size: 14px; color: var(--text-muted); line-height: 1.5">Match your device, or always use light or dark.</p>
             </div>
             <select id="theme" :value="v.themeValue" @change="v.changeTheme" style="height: 44px; min-width: 140px; border: 1px solid var(--border); border-radius: 10px; padding: 0 12px; font-size: 15px; background: var(--surface); color: var(--text); cursor: pointer">
               <template v-for="(o, i_o) in v.themeChoices" :key="i_o"><option :value="o.value">{{ o.label }}</option></template>
@@ -421,7 +429,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
           <div style="border: 1px solid var(--border); border-radius: 16px; padding: 20px; background: var(--surface); display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px">
             <div style="flex: 1 1 260px; min-width: 0; display: flex; flex-direction: column; gap: 4px">
               <label for="retention" style="font-weight: 600">Delete chats after</label>
-              <p style="margin: 0; font-size: 14px; color: var(--text-muted); line-height: 1.5">Chats are deleted after this many days without activity. A shorter period applies at the next daily cleanup.</p>
+              <p style="margin: 0; font-size: 14px; color: var(--text-muted); line-height: 1.5">Chats are deleted after this many days without activity.</p>
             </div>
             <select id="retention" :disabled="v.settingsBusy" :value="v.retentionValue" @change="v.changeRetention" style="height: 44px; min-width: 140px; border: 1px solid var(--border); border-radius: 10px; padding: 0 12px; font-size: 15px; background: var(--surface); color: var(--text); cursor: pointer">
               <template v-for="(o, i_o) in v.retentionChoices" :key="i_o"><option :value="o.value">{{ o.label }}</option></template>
@@ -751,6 +759,7 @@ class Component extends DCLogic {
       toast: '',
       settings: null,
       settingsBusy: false,
+      instructionsDraft: '',
       theme: window.proxiTheme?.get() || 'system',
       temporary: false,
       votes: {}
@@ -1109,13 +1118,16 @@ class Component extends DCLogic {
     }
   }
 
-  // ---- Settings: "Delete chats after" (7, 30 or 90 days) ----
+  // ---- Settings: custom instructions and "Delete chats after" (7, 30 or 90 days) ----
   async loadSettings() {
     try {
       const res = await fetch('/api/settings', { headers: await authHeaders() });
       if (!res.ok) throw new Error('settings ' + res.status);
       const data = await res.json();
-      this.setState({ settings: { chatRetentionDays: data.chatRetentionDays, options: data.retentionOptions } });
+      this.setState({
+        settings: { chatRetentionDays: data.chatRetentionDays, options: data.retentionOptions, customInstructions: data.customInstructions || '', instructionsMax: data.customInstructionsMax || 1500 },
+        instructionsDraft: data.customInstructions || ''
+      });
     } catch {
       this.showToast("Couldn't load your settings. Please try again.");
     }
@@ -1136,6 +1148,22 @@ class Component extends DCLogic {
     this.setState({ settingsBusy: false });
   }
 
+  async saveInstructions() {
+    const before = this.state.settings;
+    const text = this.state.instructionsDraft.trim();
+    if (!before || text === before.customInstructions) return;
+    this.setState({ settingsBusy: true });
+    try {
+      const res = await fetch('/api/settings', { method: 'PUT', headers: await authHeaders(), body: JSON.stringify({ customInstructions: text }) });
+      if (!res.ok) throw new Error('settings ' + res.status);
+      this.setState({ settings: { ...before, customInstructions: text }, instructionsDraft: text });
+      this.showToast('Instructions saved');
+    } catch {
+      this.showToast("Couldn't save your instructions. Please try again.");
+    }
+    this.setState({ settingsBusy: false });
+  }
+
   go(patch) {
     this.setState({ chatMenu: false, modelMenu: false, userMenu: false, narrowNav: false, ...patch });
   }
@@ -1148,7 +1176,6 @@ class Component extends DCLogic {
     const isNew = s.view === 'new' || (s.view === 'chat' && !conv);
     const pages = {
       skills: { title: 'Skills', desc: 'Reusable instructions Proxi can apply when a task calls for them.', empty: 'No skills yet', hint: 'Create a skill for a task you repeat, like a weekly report format or a code review checklist.', action: 'Create a skill' },
-      behavior: { title: 'Behavior', desc: 'Set how Proxi responds: tone, length and format.', empty: 'Using default behavior', hint: 'Write custom instructions to change how Proxi answers in every new chat.', action: 'Write instructions' }
     };
     const page = pages[s.view] || pages.skills;
     const isPage = !!pages[s.view];
@@ -1173,7 +1200,7 @@ class Component extends DCLogic {
     const older = list.filter((c) => c.group !== 'Today').map(item);
 
     const nav = {};
-    ['new', 'skills', 'behavior'].forEach((k) => {
+    ['new', 'skills'].forEach((k) => {
       const on = k === 'new' ? isNew : s.view === k;
       nav[k + 'Cls'] = on ? '' : 'hov';
       nav[k + 'Cur'] = on ? 'page' : 'false';
@@ -1250,13 +1277,20 @@ class Component extends DCLogic {
       nav,
       newChat: () => { this.go({ view: 'new', activeId: null, draft: '' }); this.focusComposer(); },
       openSkills: () => this.showToast('Skills is not part of this prototype'),
-      openBehavior: () => this.showToast('Behavior is not part of this prototype'),
       openSettings: () => { this.go({ view: 'settings' }); this.loadSettings(); },
       isSettings: s.view === 'settings',
       settingsBusy: !s.settings || s.settingsBusy,
       retentionValue: String(s.settings?.chatRetentionDays ?? 30),
       retentionChoices: (s.settings?.options || [7, 30, 90]).map((d) => ({ value: String(d), label: d + ' days' })),
       changeRetention: (e) => this.saveRetention(Number(e.target.value)),
+      instructionsMax: s.settings?.instructionsMax || 1500,
+      instructionsDraft: s.instructionsDraft,
+      instructionsCount: `${s.instructionsDraft.length.toLocaleString('en-US')} / ${(s.settings?.instructionsMax || 1500).toLocaleString('en-US')}`,
+      onInstructions: (e) => this.setState({ instructionsDraft: e.target.value }),
+      noSaveInstructions: !s.settings || s.settingsBusy || s.instructionsDraft.trim() === s.settings.customInstructions,
+      saveInstructionsBg: !s.settings || s.settingsBusy || s.instructionsDraft.trim() === s.settings.customInstructions ? 'var(--disabled)' : 'var(--inverse)',
+      saveInstructionsColor: !s.settings || s.settingsBusy || s.instructionsDraft.trim() === s.settings.customInstructions ? 'var(--text-disabled)' : 'var(--on-inverse)',
+      saveInstructions: () => this.saveInstructions(),
       themeValue: s.theme,
       themeChoices: [{ value: 'system', label: 'System' }, { value: 'light', label: 'Light' }, { value: 'dark', label: 'Dark' }],
       changeTheme: (e) => { window.proxiTheme?.set(e.target.value); this.setState({ theme: e.target.value }); },
