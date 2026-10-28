@@ -1,5 +1,5 @@
 {
-  "ignoreCommand": "git diff HEAD^ HEAD --quiet -- .",
+  "ignoreCommand": "[ \"$VERCEL_ENV\" = \"preview\" ] || git diff HEAD^ HEAD --quiet -- .",
   "regions": ["fra1"],
   "rewrites": [{ "source": "/mcp", "destination": "/api/mcp" }]
 }
