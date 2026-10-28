@@ -1167,8 +1167,26 @@ class Component extends DCLogic {
         open: () => this.openConversation(c.id)
       };
     };
+    const fold = (t) => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+    const terms = fold(q).split(/\s+/).filter(Boolean);
+    // Every word must match. Title hits rank above message hits; word starts above mid-word hits.
+    const score = (c) => {
+      const title = fold(c.title);
+      const body = c.messages.map((m) => fold(m.text)).join(' ');
+      let total = 0;
+      for (const t of terms) {
+        const inTitle = title.indexOf(t);
+        if (inTitle >= 0) total += inTitle === 0 || title[inTitle - 1] === ' ' ? 4 : 3;
+        else if (body.includes(t)) total += 1;
+        else return 0;
+      }
+      return total;
+    };
     // Temporary chats are never listed: they exist only until the page reloads.
-    const list = s.convs.filter((c) => !c.temporary && (!q || c.title.toLowerCase().includes(q)));
+    const visible = s.convs.filter((c) => !c.temporary);
+    const list = terms.length
+      ? visible.map((c) => [c, score(c)]).filter(([, n]) => n > 0).sort((a, b) => b[1] - a[1]).map(([c]) => c)
+      : visible;
     const today = list.filter((c) => c.group === 'Today').map(item);
     const older = list.filter((c) => c.group !== 'Today').map(item);
 
