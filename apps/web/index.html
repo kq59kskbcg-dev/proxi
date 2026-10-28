@@ -37,6 +37,12 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 .steps summary::-webkit-details-marker{display:none}
 .steps-chev{transition:transform 0.15s}
 .steps[open] .steps-chev{transform:rotate(90deg)}
+.steps-card{margin-top:10px;border:1px solid #E7E5EE;border-radius:12px;background:#FAFAFB;padding:14px 16px}
+.steps-list{list-style:none;margin:0;padding:0}
+.steps-list li{display:flex;align-items:center;gap:12px;position:relative;font-size:13px;color:#3F3F46;line-height:18px}
+.steps-list li+li{margin-top:14px}
+.steps-list li:not(:last-child)::after{content:"";position:absolute;left:11.25px;top:calc(50% + 12px);height:calc(100% + 14px - 24px);width:1.5px;background:#DDD6FE}
+.steps-mark{flex:none;width:24px;height:24px;border-radius:50%;background:#EFE8FF;color:#6D28FF;display:flex;align-items:center;justify-content:center}
 .scrim{display:none}
 @media (min-width: 831px){
 .side{transition:margin-left 0.3s cubic-bezier(0.32,0.72,0,1),visibility 0.3s}
@@ -275,11 +281,13 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
                       {{ m.steps }}
                       <svg class="steps-chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
                     </summary>
-                    <ol style="list-style: none; margin: 10px 0 0 6px; padding: 0 0 0 14px; border-left: 2px solid #E7E5EE; display: flex; flex-direction: column; gap: 8px">
-                      <template v-for="st in m.stepList" :key="st.key">
-                        <li style="position: relative; line-height: 1.45"><span aria-hidden="true" :style="`position: absolute; left: -20px; top: 5px; width: 8px; height: 8px; border-radius: 50%; background: ${v.accent}`"></span>{{ st.text }}</li>
-                      </template>
-                    </ol>
+                    <div class="steps-card">
+                      <ol class="steps-list">
+                        <template v-for="st in m.stepList" :key="st.key">
+                          <li><span class="steps-mark" v-html="st.icon"></span><span>{{ st.text }}</span></li>
+                        </template>
+                      </ol>
+                    </div>
                   </details>
                 </template>
                 <div class="md" v-html="m.html"></div>
@@ -494,8 +502,22 @@ function modelLabel(id) {
 }
 
 // Timeline entries on a reply: a short form for the summary line, a full one for the list.
+// Icons for timeline steps: what was done, or which tool ran.
+const STEP_ICONS = {
+  shield: '<path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z"></path>',
+  book: '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z"></path><path d="M4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5"></path>',
+  globe: '<circle cx="12" cy="12" r="9"></circle><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"></path>',
+  pulse: '<path d="M3 12h4l3-8 4 16 3-8h4"></path>',
+  file: '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"></path><path d="M14 3v5h5"></path>',
+  tool: '<path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.4-.6-.6-2.4z"></path>',
+  spark: '<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"></path>'
+};
+const TOOL_ICONS = { search_docs: 'book', web_search: 'globe', get_status: 'pulse' };
 function toStep(a) {
-  return { short: a.done, text: a.detail || a.done };
+  return { short: a.done, text: a.detail || a.done, icon: a.icon || TOOL_ICONS[a.tool] || 'tool' };
+}
+function stepIcon(name) {
+  return '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (STEP_ICONS[name] || STEP_ICONS.tool) + '</svg>';
 }
 
 const REDACTED_NAMES = { CARD: ['card number', 'card numbers'], IBAN: ['IBAN', 'IBANs'], EMAIL: ['email address', 'email addresses'], PHONE: ['phone number', 'phone numbers'] };
@@ -504,7 +526,7 @@ function redactionSteps(counts) {
     .map(([k, n]) => n + ' ' + (REDACTED_NAMES[k] ? REDACTED_NAMES[k][n === 1 ? 0 : 1] : k));
   if (!parts.length) return [];
   const list = parts.length > 1 ? parts.slice(0, -1).join(', ') + ' and ' + parts[parts.length - 1] : parts[0];
-  return [{ done: 'Redacted personal data', detail: 'Removed ' + list + ' before sending' }];
+  return [{ done: 'Redacted personal data', detail: 'Removed ' + list + ' before sending', icon: 'shield' }];
 }
 
 // Shown while waiting for a reply, until the agent reports a real step.
@@ -810,7 +832,7 @@ class Component extends DCLogic {
           if (event.type === 'start') {
             traceId = event.traceId;
             // What Proxi did before sending goes in the reply's timeline, not a toast.
-            const entries = redactionSteps(event.redactions).concat((event.notices || []).map((n) => ({ done: 'Checked attachments', detail: n })));
+            const entries = redactionSteps(event.redactions).concat((event.notices || []).map((n) => ({ done: 'Checked attachments', detail: n, icon: 'file' })));
             if (entries.length) this.setState((s) => ({ activity: [...s.activity, ...entries] }));
           } else if (event.type === 'activity') {
             // A tool call. Before the reply starts it's shown live; after, it's added to the reply's steps.
@@ -1047,7 +1069,7 @@ class Component extends DCLogic {
         isAssistant: m.role === 'assistant',
         hasSteps: !!(m.steps && m.steps.length),
         steps: [...new Set((m.steps || []).map((st) => st.short))].join(' · '),
-        stepList: [...(m.steps || []).map((st) => st.text), ...(m.model ? ['Answered with ' + modelLabel(m.model)] : [])].map((text, i) => ({ key: i, text })),
+        stepList: [...(m.steps || []), ...(m.model ? [{ text: 'Answered with ' + modelLabel(m.model), icon: 'spark' }] : [])].map((st, i) => ({ key: i, text: st.text, icon: stepIcon(st.icon) })),
         canVote: !conv.temporary,
         html: m.role === 'assistant' ? renderMarkdown(m.text || '') : '',
         copied,
