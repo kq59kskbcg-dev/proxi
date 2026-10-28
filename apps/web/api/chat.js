@@ -7,6 +7,7 @@ import { CONVERSATION_ID, hasDatabase, saveConversation } from '../lib/db.js';
 import { processAttachments, AttachmentError, KINDS, MAX_ATTACHMENTS } from '../lib/attachments.js';
 import { getMcpTools } from '../lib/mcp.js';
 import { makeTitle } from '../lib/title.js';
+import { toolActivity } from '../lib/activity.js';
 
 // Only these models can be requested from the browser.
 const MODELS = {
@@ -157,6 +158,8 @@ export async function POST(request) {
           usage.output += final.usage.output_tokens;
           if (final.stop_reason !== 'tool_use' || !mcp || round + 1 >= MAX_TOOL_ROUNDS) break;
           const calls = final.content.filter((block) => block.type === 'tool_use');
+          // Tell the page what the agent is doing, e.g. "Searching the help center".
+          for (const call of calls) send({ type: 'activity', ...toolActivity(call.name, mcp.titles?.[call.name], call.input) });
           const results = await Promise.all(calls.map(async (call) => {
             const span = trace?.span({ name: `tool ${call.name}`, input: call.input });
             const result = await mcp.call(call);
