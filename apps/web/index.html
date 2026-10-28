@@ -256,6 +256,12 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
           <template v-if="m.isAssistant">
             <article style="display: flex">
               <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 14px; line-height: 1.65">
+                <template v-if="m.hasReasoning">
+                  <details style="font-size: 13px; color: #63636B">
+                    <summary style="cursor: pointer; width: fit-content">Show thinking</summary>
+                    <p style="margin: 8px 0 0; padding-left: 12px; border-left: 2px solid #E7E5EE; white-space: pre-wrap; line-height: 1.55">{{ m.reasoning }}</p>
+                  </details>
+                </template>
                 <template v-if="m.hasSteps">
                   <div style="display: flex; align-items: center; gap: 6px; font-size: 13px; color: #63636B">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"></path></svg>
@@ -288,6 +294,9 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
               <span style="margin-left: 6px; font-size: 14px; color: #52525B">{{ v.workingLabel }}...</span>
             </div>
           </article>
+          <template v-if="v.liveReasoning">
+            <p style="margin: 0; max-width: 640px; font-size: 13px; line-height: 1.5; color: #71717A; font-style: italic; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical">{{ v.liveReasoning }}</p>
+          </template>
         </template>
       </div>
     </section>
@@ -535,6 +544,7 @@ class Component extends DCLogic {
       typingConv: null,
       replyStarted: false,
       activity: [],
+      reasoning: '',
       verbTick: 0,
       pending: [],
       reading: false,
@@ -685,7 +695,7 @@ class Component extends DCLogic {
     }));
     const controller = new AbortController();
     this.abort = controller;
-    this.setState({ typing: true, typingConv: convId, replyStarted: false, activity: [], verbTick: 0 });
+    this.setState({ typing: true, typingConv: convId, replyStarted: false, activity: [], reasoning: '', verbTick: 0 });
     // Rotates the "Thinking...", "Pondering..." label until the reply starts.
     clearInterval(this.verbTimer);
     this.verbTimer = setInterval(() => this.setState((s) => ({ verbTick: s.verbTick + 1 })), 1800);
@@ -694,7 +704,7 @@ class Component extends DCLogic {
     const finish = () => {
       if (this.abort === controller) this.abort = null;
       clearInterval(this.verbTimer);
-      this.setState({ typing: false, typingConv: null, replyStarted: false, activity: [] });
+      this.setState({ typing: false, typingConv: null, replyStarted: false, activity: [], reasoning: '' });
     };
     const fail = (text) => {
       if (msgId) this.patchMessage(convId, msgId, (m) => ({ ...m, text: m.text ? m.text + '\n\n' + text : text, error: true }));
@@ -743,6 +753,10 @@ class Component extends DCLogic {
             }
             notes.push(...(event.notices || []));
             if (notes.length) this.showToast(notes.join(' '));
+          } else if (event.type === 'thinking') {
+            // Reasoning summary. Before the reply starts it's shown live; after, it's added to the reply's "Show thinking".
+            if (msgId) this.patchMessage(convId, msgId, (m) => ({ ...m, reasoning: (m.reasoning || '') + event.text }));
+            else this.setState((s) => ({ reasoning: s.reasoning + event.text }));
           } else if (event.type === 'activity') {
             // A tool call. Before the reply starts it's shown live; after, it's added to the reply's steps.
             if (msgId) this.patchMessage(convId, msgId, (m) => ({ ...m, steps: [...(m.steps || []), event.done] }));
@@ -751,9 +765,10 @@ class Component extends DCLogic {
             if (!msgId) {
               msgId = this.addAssistant(convId, '');
               const steps = this.state.activity.map((a) => a.done);
-              this.patchMessage(convId, msgId, (m) => ({ ...m, traceId, steps }));
+              const reasoning = this.state.reasoning;
+              this.patchMessage(convId, msgId, (m) => ({ ...m, traceId, steps, reasoning }));
               clearInterval(this.verbTimer);
-              this.setState({ replyStarted: true, activity: [] });
+              this.setState({ replyStarted: true, activity: [], reasoning: '' });
             }
             this.patchMessage(convId, msgId, (m) => ({ ...m, text: m.text + event.text }));
           } else if (event.type === 'done') {
@@ -950,6 +965,8 @@ class Component extends DCLogic {
         isUser: m.role === 'user',
         isAssistant: m.role === 'assistant',
         hasSteps: !!(m.steps && m.steps.length),
+        hasReasoning: !!(m.reasoning && m.reasoning.trim()),
+        reasoning: (m.reasoning || '').trim(),
         steps: [...new Set(m.steps || [])].join(' · '),
         canVote: !conv.temporary,
         html: m.role === 'assistant' ? renderMarkdown(m.text || '') : '',
@@ -1058,7 +1075,9 @@ class Component extends DCLogic {
       },
       onMsgScroll: () => this.onMsgScroll(),
       msgs,
-      workingLabel: s.activity.length ? s.activity[s.activity.length - 1].label : WORKING_VERBS[s.verbTick % WORKING_VERBS.length],
+      workingLabel: s.activity.length ? s.activity[s.activity.length - 1].label : s.reasoning ? 'Thinking' : WORKING_VERBS[s.verbTick % WORKING_VERBS.length],
+      // The end of the reasoning so far, so the latest thought stays visible while it grows.
+      liveReasoning: s.reasoning.trim() ? (s.reasoning.trim().length > 280 ? '...' + s.reasoning.trim().slice(-280) : s.reasoning.trim()) : '',
       showTyping: isChat && ((s.typing && !s.replyStarted && s.typingConv === s.activeId) || !!conv.loading),
 
       showComposer: isChat || isNew,
