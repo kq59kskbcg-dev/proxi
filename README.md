@@ -54,12 +54,14 @@ The web tests include an end-to-end check: the chat endpoint discovers `get_stat
 
 - `get_status`: returns `{ "status": "ok", "service", "version", "uptimeSeconds", "time" }`
 - `search_docs`: searches the Mintlify docs through Mintlify's search API and returns matching passages with their title and link. The chat turns them into citations: numbered links in the reply and a **Sources** list.
+- `web_search`: asks Claude (Sonnet 5.5) with Anthropic's web search tool on, and returns a short answer plus the cited pages as citable results.
 
 MCP server environment variables (set in the `proxi-mcp` Vercel project):
 
 | Name | Purpose |
 |---|---|
 | `MINTLIFY_API_KEY` | Mintlify assistant API key (`mint_dsc_...`), used by `search_docs` |
+| `ANTHROPIC_API_KEY` | Claude API key, used by `web_search`. Without it, `web_search` isn't offered to the agent |
 | `MINTLIFY_DOMAIN` | Optional: the docs domain Mintlify's API expects. Defaults to `proxi.mintlify.site` |
 | `MINTLIFY_DOCS_URL` | Optional: base URL for citation links. Defaults to `https://proxi.mintlify.site` |
 | `MINTLIFY_SCORE_THRESHOLD` | Optional: drop results below this relevance score (0 to 1) |

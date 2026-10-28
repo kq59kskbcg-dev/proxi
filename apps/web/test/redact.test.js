@@ -49,3 +49,9 @@ test('dates are not mistaken for phone numbers, real numbers still are', () => {
     assert.equal(redact(phone).counts.PHONE, 1, phone);
   }
 });
+
+test('tool inputs are redacted before they leave Proxi', async () => {
+  const { redactArgs } = await import('../lib/mcp.js');
+  assert.deepEqual(redactArgs({ query: 'invoice for jane@example.com', limit: 5, tags: ['call 06 12345678'] }),
+    { query: 'invoice for [EMAIL]', limit: 5, tags: ['call [PHONE]'] });
+});
