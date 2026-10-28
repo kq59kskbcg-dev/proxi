@@ -3,7 +3,8 @@
 
 const PATTERNS = [
   { type: 'IBAN', regex: /\b[A-Z]{2}\d{2}(?:[ ]?[A-Z0-9]){11,30}\b/g, valid: isIban },
-  { type: 'CARD', regex: /\b\d(?:[ -]?\d){12,18}\b/g, valid: isCard },
+  // Cards keep their last 4 digits, the same way the page shows them.
+  { type: 'CARD', regex: /\b\d(?:[ -]?\d){12,18}\b/g, valid: isCard, mask: (m) => '•••• •••• •••• ' + m.replace(/\D/g, '').slice(-4) },
   { type: 'EMAIL', regex: /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g },
   { type: 'PHONE', regex: /(?<![\w+])\+?\d[\d ()-]{7,17}\d\b/g, valid: isPhone },
 ];
@@ -11,11 +12,11 @@ const PATTERNS = [
 export function redact(text) {
   const counts = {};
   let out = String(text);
-  for (const { type, regex, valid } of PATTERNS) {
+  for (const { type, regex, valid, mask } of PATTERNS) {
     out = out.replace(regex, (match) => {
       if (valid && !valid(match)) return match;
       counts[type] = (counts[type] || 0) + 1;
-      return `[${type}]`;
+      return mask ? mask(match) : `[${type}]`;
     });
   }
   return { text: out, counts };
