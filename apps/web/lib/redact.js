@@ -47,7 +47,11 @@ function isIban(match) {
   return rem === 1;
 }
 
+// Dates and times like 2026-10-27, 27-10-2026 or 2026 10 27 are not phone numbers.
+const DATE_LIKE = /^((19|20)\d{2}[-/. ](0?[1-9]|1[0-2])[-/. ](0?[1-9]|[12]\d|3[01])|(0?[1-9]|[12]\d|3[01])[-/. ](0?[1-9]|1[0-2])[-/. ](19|20)\d{2})(?!\d)/;
+
 function isPhone(match) {
   const digits = match.replace(/\D/g, '');
+  if (DATE_LIKE.test(match.replace(/^\+/, ''))) return false;
   return digits.length >= 8 && digits.length <= 15;
 }

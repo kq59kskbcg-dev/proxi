@@ -70,8 +70,11 @@ export async function POST(request) {
   const redactions = { ...attached.redactions };
   let fileKinds = [...attached.kinds];
   const history = raw.map((m, i) => {
-    const { text, counts } = redact(m.content);
-    for (const [k, v] of Object.entries(counts)) redactions[k] = (redactions[k] || 0) + v;
+    // The user's messages are redacted every time (the page keeps the original text).
+    // Proxi's own replies are left alone: the model only ever saw redacted input.
+    const { text, counts } = m.role === 'user' ? redact(m.content) : { text: m.content, counts: {} };
+    // Only what was removed from the message just sent is reported back to the page.
+    if (i === lastIndex) for (const [k, v] of Object.entries(counts)) redactions[k] = (redactions[k] || 0) + v;
     // Only the kind of each file is kept, for the "removed" label in saved chats.
     const kinds = [];
     const unavailable = [];
