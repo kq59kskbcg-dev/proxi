@@ -96,6 +96,23 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 .md blockquote{border-left:3px solid var(--border);padding-left:14px;color:var(--text-muted)}
 .md table{border-collapse:collapse;display:block;overflow-x:auto}
 .md th,.md td{border:1px solid var(--border);padding:6px 10px;text-align:left}
+.md .cite{display:inline-flex;align-items:center;height:20px;padding:0 8px;margin-left:4px;border-radius:10px;background:var(--sunken);color:var(--text-muted);font-size:12px;font-weight:500;line-height:1;text-decoration:none;vertical-align:1px;white-space:nowrap}
+.md .cite:hover{background:var(--accent-soft);color:var(--link)}
+.md .sources{margin-top:14px}
+.md .sources summary{list-style:none;display:inline-flex;align-items:center;gap:8px;height:32px;box-sizing:border-box;padding:0 12px 0 6px;border:1px solid var(--border);border-radius:16px;font-size:13px;font-weight:500;color:var(--text-2);cursor:pointer}
+.md .sources summary::-webkit-details-marker{display:none}
+.md .sources summary:hover{background:var(--soft);border-color:var(--border-hover)}
+.src-stack{display:flex}
+.src-tile{width:20px;height:20px;box-sizing:border-box;border-radius:50%;border:2px solid var(--surface);margin-left:-6px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#FFFFFF}
+.src-tile:first-child{margin-left:0}
+.src-tile.t0{background:#6D28FF}.src-tile.t1{background:#0F7B5F}.src-tile.t2{background:#F4511E}.src-tile.t3{background:#2563EB}.src-tile.t4{background:#B45309}
+.md .sources ul{list-style:none;margin:10px 0 0;padding:0;border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.md .sources li{margin:0}
+.md .sources li+li{border-top:1px solid var(--border)}
+.md .sources li a{display:flex;flex-direction:column;gap:2px;padding:10px 14px;text-decoration:none;color:var(--text)}
+.md .sources li a:hover{background:var(--soft)}
+.src-title{font-size:14px;font-weight:500}
+.src-host{font-size:12px;color:var(--text-muted)}
 .md hr{border:0;border-top:1px solid var(--border);margin:16px 0}
 #auth{min-height:100vh;min-height:100dvh;box-sizing:border-box;padding:48px 16px;display:flex;flex-direction:column;align-items:center;gap:28px;background:var(--bg);font-family:Inter,system-ui,sans-serif}
 #auth[hidden]{display:none}
@@ -494,6 +511,70 @@ function renderMarkdown(text) {
 }
 
 const DOCS_URL = 'https://proxi.mintlify.site';
+
+// Citations arrive as Markdown: [[1]](url) after a sentence and a "Sources" list at the end.
+// Turn them into source name pills and a collapsible list. Runs on sanitized HTML.
+function renderCitations(html) {
+  if (!html.includes('<strong>Sources</strong>')) return html;
+  const root = document.createElement('template');
+  root.innerHTML = html;
+  const heading = [...root.content.querySelectorAll('p')].find((p) => p.textContent.trim() === 'Sources' && p.querySelector('strong'));
+  const list = heading?.nextElementSibling;
+  if (!list || list.tagName !== 'OL') return html;
+  const host = (url) => { try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return ''; } };
+  const label = (url) => url.startsWith(DOCS_URL) ? 'Help center' : host(url);
+  const sources = [...list.querySelectorAll('a')].map((a) => ({ url: a.getAttribute('href'), title: a.textContent }));
+  const link = (url, cls) => {
+    const a = document.createElement('a');
+    a.href = url; a.className = cls; a.target = '_blank'; a.rel = 'noopener noreferrer';
+    return a;
+  };
+  // Consecutive [n] links become one pill: "Help center +1".
+  const cites = [...root.content.querySelectorAll('a')].filter((a) => /^\[\d+\]$/.test(a.textContent));
+  const groups = [];
+  for (const a of cites) {
+    const last = groups.at(-1);
+    if (last && last.at(-1).nextSibling === a) last.push(a); else groups.push([a]);
+  }
+  for (const group of groups) {
+    const url = group[0].getAttribute('href');
+    const pill = link(url, 'cite');
+    pill.textContent = label(url) + (group.length > 1 ? ' +' + (group.length - 1) : '');
+    pill.title = group.map((a) => sources.find((s) => s.url === a.getAttribute('href'))?.title || label(a.getAttribute('href'))).join('\n');
+    group[0].replaceWith(pill);
+    group.slice(1).forEach((a) => a.remove());
+  }
+  const details = document.createElement('details');
+  details.className = 'sources';
+  const summary = document.createElement('summary');
+  const stack = document.createElement('span');
+  stack.className = 'src-stack';
+  stack.setAttribute('aria-hidden', 'true');
+  // One tile per site, up to three.
+  for (const name of [...new Set(sources.map((src) => label(src.url) || '?'))].slice(0, 3)) {
+    const tile = document.createElement('span');
+    tile.className = 'src-tile t' + ([...name].reduce((n, ch) => n + ch.charCodeAt(0), 0) % 5);
+    tile.textContent = name[0].toUpperCase();
+    stack.append(tile);
+  }
+  summary.append(stack, sources.length === 1 ? '1 source' : sources.length + ' sources');
+  const ul = document.createElement('ul');
+  for (const src of sources) {
+    const a = link(src.url, '');
+    const title = document.createElement('span');
+    title.className = 'src-title'; title.textContent = src.title;
+    const site = document.createElement('span');
+    site.className = 'src-host'; site.textContent = host(src.url);
+    a.append(title, site);
+    const li = document.createElement('li');
+    li.append(a);
+    ul.append(li);
+  }
+  details.append(summary, ul);
+  heading.replaceWith(details);
+  list.remove();
+  return root.innerHTML;
+}
 
 function maskCards(text) {
   return text.replace(/\b\d(?:[ -]?\d){12,18}\b/g, (match) => {
@@ -1107,7 +1188,7 @@ class Component extends DCLogic {
         steps: [...new Set((m.steps || []).map((st) => st.short))].join(' · '),
         stepList: [...(m.steps || []), ...(m.model ? [{ text: 'Answered with ' + modelLabel(m.model), icon: 'spark' }] : [])].map((st, i) => ({ key: i, text: st.text, icon: stepIcon(st.icon) })),
         canVote: !conv.temporary,
-        html: m.role === 'assistant' ? renderMarkdown(m.text || '') : '',
+        html: m.role === 'assistant' ? renderCitations(renderMarkdown(m.text || '')) : '',
         copied,
         notCopied: !copied,
         copyLabel: copied ? 'Copied' : (m.role === 'user' ? 'Copy message' : 'Copy response'),
