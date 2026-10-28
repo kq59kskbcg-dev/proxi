@@ -28,6 +28,7 @@ async function connect(url) {
   } while (cursor);
   return {
     tools: tools.map(toClaudeTool),
+    titles: Object.fromEntries(tools.map((tool) => [tool.name, tool.title || tool.name])),
     call: (block) => callTool(client, block),
   };
 }
