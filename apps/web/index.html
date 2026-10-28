@@ -24,15 +24,13 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 .menu-item:hover{background:#F1F1F4 !important}
 .umsg .uact{opacity:0}
 .umsg:hover .uact,.umsg:focus-within .uact{opacity:1}
-@keyframes pulse{0%,80%,100%{opacity:0.35;transform:scale(0.8)}40%{opacity:1;transform:scale(1)}}
-.dot{animation:pulse 1.2s infinite ease-in-out}
-.dot:nth-child(2){animation-delay:0.15s}
-.dot:nth-child(3){animation-delay:0.3s}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spinner{animation:spin 0.8s linear infinite}
 @keyframes rise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 @keyframes toast-rise{from{opacity:0;transform:translate(-50%,6px)}to{opacity:1;transform:translate(-50%,0)}}
 .toast{animation:toast-rise 0.16s ease-out}
 .pop{animation:rise 0.16s ease-out}
-@media (prefers-reduced-motion: reduce){.dot,.pop,.toast{animation:none}}
+@media (prefers-reduced-motion: reduce){.spinner{animation-duration:2.4s}.pop,.toast{animation:none}}
 .scrim{display:none}
 @media (min-width: 831px){
 .side{transition:margin-left 0.3s cubic-bezier(0.32,0.72,0,1),visibility 0.3s}
@@ -281,11 +279,9 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 
         <template v-if="v.showTyping">
           <article style="display: flex; align-items: center">
-            <div role="status" aria-live="polite" style="display: flex; align-items: center; gap: 6px; padding: 10px 0">
-              <span class="dot" style="width: 8px; height: 8px; border-radius: 50%; background: #71717A"></span>
-              <span class="dot" style="width: 8px; height: 8px; border-radius: 50%; background: #71717A"></span>
-              <span class="dot" style="width: 8px; height: 8px; border-radius: 50%; background: #71717A"></span>
-              <span style="margin-left: 6px; font-size: 14px; color: #52525B">{{ v.workingLabel }}...</span>
+            <div role="status" aria-live="polite" :style="`display: flex; align-items: center; gap: 8px; padding: 10px 0; color: ${v.accent}`">
+              <span class="spinner" aria-hidden="true" style="flex: none; width: 14px; height: 14px; box-sizing: border-box; border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent"></span>
+              <span style="font-size: 14px; font-weight: 500">{{ v.workingLabel }}...</span>
             </div>
           </article>
         </template>
@@ -1058,7 +1054,7 @@ class Component extends DCLogic {
       },
       onMsgScroll: () => this.onMsgScroll(),
       msgs,
-      workingLabel: s.activity.length ? s.activity[s.activity.length - 1].label : WORKING_VERBS[s.verbTick % WORKING_VERBS.length],
+      workingLabel: conv && conv.loading ? 'Loading' : s.activity.length ? s.activity[s.activity.length - 1].label : WORKING_VERBS[s.verbTick % WORKING_VERBS.length],
       showTyping: isChat && ((s.typing && !s.replyStarted && s.typingConv === s.activeId) || !!conv.loading),
 
       showComposer: isChat || isNew,
