@@ -8,6 +8,7 @@ import { customInstructions, withInstructions } from '../lib/instructions.js';
 import { processAttachments, AttachmentError, KINDS, MAX_ATTACHMENTS } from '../lib/attachments.js';
 import { getMcpTools } from '../lib/mcp.js';
 import { makeTitle } from '../lib/title.js';
+import { getEscalation } from '../lib/escalation.js';
 import { toolActivity } from '../lib/activity.js';
 
 // Only these models can be requested from the browser.
@@ -93,15 +94,17 @@ export async function POST(request) {
   // Traces keep the redacted text and the kinds of files, never the files themselves.
   const traced = recent.map((m) => ({ role: m.role, content: m.content + describe(m) }));
 
-  const [prompt, instructions] = await Promise.all([getSystemPrompt(), customInstructions(user.userId)]);
-  const system = { ...prompt, text: withInstructions(prompt.text, instructions) };
+  client ??= new Anthropic();
+  // If the latest message asks for a person, a reply prompt is added; custom instructions come last.
+  const [prompt, instructions, escalation] = await Promise.all([getSystemPrompt(), customInstructions(user.userId), getEscalation(client, latest.content)]);
+  const system = { ...prompt, text: withInstructions([prompt.text, escalation].filter(Boolean).join('\n\n'), instructions) };
   const langfuse = temporary ? null : getLangfuse();
   // No user ID in traces: Langfuse alone can't tell whose chat a trace belongs to.
   const trace = langfuse?.trace({
     name: 'chat',
     sessionId: conversationId ?? undefined,
     input: traced,
-    metadata: { redactions },
+    metadata: { redactions, escalated: Boolean(escalation) },
   });
   const generation = trace?.generation({
     name: 'reply', model, input: [{ role: 'system', content: system.text }, ...traced], prompt: system.prompt,
@@ -115,7 +118,6 @@ export async function POST(request) {
     output_config: { effort: 'low' }, // chat rarely needs deep thinking; keeps replies fast and cheap
     ...(mcp?.tools.length ? { tools: mcp.tools } : {}),
   };
-  client ??= new Anthropic();
   const open = (turns) => FALLBACK_MODELS.has(model)
     ? client.beta.messages.stream({ ...params, messages: turns, betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default' }, { signal: request.signal })
     : client.messages.stream({ ...params, messages: turns }, { signal: request.signal });
