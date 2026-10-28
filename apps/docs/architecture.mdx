@@ -12,6 +12,7 @@ flowchart LR
   W -->|chats| N[(Postgres<br/>Neon)]
   W -->|traces, prompts, feedback| L[Langfuse EU]
   W -->|MCP over HTTP| M[MCP server<br/>Vercel, Frankfurt]
+  M -->|web search| A
   M -->|search| D[Help center<br/>Mintlify]
 ```
 
@@ -22,7 +23,7 @@ flowchart LR
 | Chat app | The interface and its API: chat, saved chats and feedback | Vue 3, Vercel serverless functions |
 | Sign-in | Accounts and sessions, checked on every API request | Clerk |
 | Model | Generates replies and decides when to call tools | Claude (Opus, Sonnet, Haiku) |
-| MCP server | Exposes tools to the agent: `get_status` and `search_docs` | MCP TypeScript SDK, Streamable HTTP |
+| MCP server | Exposes tools to the agent: `web_search`, `search_docs` and `get_status`. Web search runs through Claude with Anthropic's web search tool | MCP TypeScript SDK, Streamable HTTP |
 | Database | Stores each user's chats, already redacted | Postgres on Neon |
 | Observability | Traces, tool call spans, the system prompt and feedback scores | Langfuse |
 | Help center | These docs, also the source the agent searches | Mintlify |
@@ -37,7 +38,7 @@ flowchart LR
     Card numbers, IBANs, emails and phone numbers are redacted. Attachments are checked by their contents, and risky PDFs are refused.
   </Step>
   <Step title="Tool discovery">
-    The chat app connects to the MCP server and turns its tools into Claude tool definitions.
+    The chat app connects to the MCP server and turns its tools into Claude tool definitions. Tool inputs are redacted before they're sent.
   </Step>
   <Step title="Agent loop">
     Claude streams its reply. When it calls a tool, the app runs it through MCP and returns the result, up to five rounds.

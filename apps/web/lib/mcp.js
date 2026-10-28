@@ -1,7 +1,8 @@
 import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client';
+import { redact } from './redact.js';
 
 const DISCOVERY_TIMEOUT_MS = 5000;
-const CALL_TIMEOUT_MS = 20000;
+const CALL_TIMEOUT_MS = 60000; // a web search can take a while
 
 let connection = null;
 
@@ -40,11 +41,20 @@ export function toClaudeTool(tool) {
 
 async function callTool(client, block) {
   try {
-    const result = await client.callTool({ name: block.name, arguments: block.input ?? {} }, { timeout: CALL_TIMEOUT_MS });
+    const result = await client.callTool({ name: block.name, arguments: redactArgs(block.input ?? {}) }, { timeout: CALL_TIMEOUT_MS });
     return { type: 'tool_result', tool_use_id: block.id, content: toClaudeContent(result), is_error: result.isError === true };
   } catch (error) {
     return { type: 'tool_result', tool_use_id: block.id, content: `Tool failed: ${error?.message || 'unknown error'}`, is_error: true };
   }
+}
+
+// Tool inputs leave Proxi (a web search query goes to a search provider), so
+// they're redacted like messages: no card numbers, IBANs, emails or phone numbers.
+export function redactArgs(value) {
+  if (typeof value === 'string') return redact(value).text;
+  if (Array.isArray(value)) return value.map(redactArgs);
+  if (value && typeof value === 'object') return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, redactArgs(v)]));
+  return value;
 }
 
 export function toClaudeContent(result) {

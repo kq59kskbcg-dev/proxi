@@ -16,7 +16,7 @@ Lisandro Vaccaro is the data controller for personal data processed through Prox
 | Data | Examples | Where it comes from |
 |---|---|---|
 | Account data | Email address, name, profile picture | You, when you create an account |
-| Chat content | Your messages and Proxi's replies, after redaction | You, when you use the chat |
+| Chat content | Your messages and Proxi's replies, after redaction, and web search queries Proxi makes for you | You, when you use the chat |
 | Attachments | Files you attach to a message | You. Files are processed for that one request and not stored |
 | Usage and monitoring data | Redacted messages, the model used, token counts, errors. Monitoring traces don't include your account ID | Generated when you use Proxi, except in temporary chats |
 | Feedback | Thumbs up or down on a reply | You |
@@ -42,7 +42,7 @@ We use these service providers (subprocessors) to run Proxi. They process data o
 
 | Provider | Purpose | Location |
 |---|---|---|
-| Anthropic | Generates replies with Claude | United States |
+| Anthropic | Generates replies with Claude, and runs web searches (through its own search provider) | United States |
 | Clerk | Sign-in and account management | United States |
 | Neon | Database for saved chats | Cloud hosted |
 | Langfuse | Monitoring, tracing and feedback | European Union |
