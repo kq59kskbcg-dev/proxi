@@ -41,6 +41,11 @@ description: "How Proxi handles your data. Greyed out items are planned."
   </Card>
 </div>
 
+## Limitations
+
+- **Redaction covers structured data only.** Proxi redacts cards, IBANs, emails and phone numbers before anything leaves its servers, but not names or addresses. Pattern matching runs at no extra cost. A company could add a small self-hosted model to catch the rest.
+- **Observability runs on Langfuse Cloud.** Redacted conversations are stored by Langfuse in the EU. The cloud version is free and needs no maintenance. In a company, Langfuse could be self-hosted so the data never leaves its infrastructure.
+
 ## Subprocessors
 
 These providers process data on Proxi's behalf.
