@@ -48,6 +48,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 .hov:hover{background:var(--hover) !important}
 .chip:hover{background:var(--bg) !important;border-color:var(--border-hover) !important}
 .menu-item:hover{background:var(--sunken) !important}
+.legal-link:hover{color:var(--text) !important;text-decoration:underline !important}
 .umsg .uact{opacity:0}
 .umsg:hover .uact,.umsg:focus-within .uact{opacity:1}
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -118,6 +119,9 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 #auth[hidden]{display:none}
 .auth-mark{font-family:Manrope,Inter,sans-serif;font-weight:800;font-size:40px;letter-spacing:-0.04em;line-height:1;color:var(--text)}
 .auth-text{margin:0;font-size:15px;color:var(--text-muted)}
+.auth-legal{margin:0;max-width:360px;text-align:center;font-size:13px;line-height:1.5;color:var(--text-muted-2)}
+.auth-legal a{white-space:nowrap;color:inherit;text-decoration:underline;text-underline-offset:2px}
+.auth-legal a:hover{color:var(--text)}
 .auth-button{min-width:200px;height:48px;border:0;border-radius:10px;background:var(--inverse);color:var(--on-inverse);font:600 15px Inter,system-ui,sans-serif;cursor:pointer}
 .auth-button:hover{background:var(--inverse-hover)}
 .auth-button:focus-visible{outline:2px solid var(--link);outline-offset:2px}
@@ -128,6 +132,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
   <span class="auth-mark">proxi</span>
   <p class="auth-text">Sign in to start chatting.</p>
   <button type="button" id="sign-in" class="auth-button">Sign in</button>
+  <p class="auth-legal">By signing in, you agree to the <a href="https://proxi.mintlify.site/terms" target="_blank" rel="noopener noreferrer">Terms</a> and <a href="https://proxi.mintlify.site/privacy-policy" target="_blank" rel="noopener noreferrer">Privacy policy</a>.</p>
 </div>
 <div id="app"></div>
 
@@ -232,6 +237,11 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
             Security
             <svg style="margin-left: auto; color: var(--text-muted-2)" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17L17 7"></path><path d="M8 7h9v9"></path></svg>
           </a>
+          <div style="display: flex; align-items: center; gap: 6px; padding: 6px 10px 8px; font-size: 12px; color: var(--text-muted-2)">
+            <a role="menuitem" :href="v.privacyPolicy" target="_blank" rel="noopener noreferrer" class="legal-link" @click="v.closeUserMenu" style="color: inherit; text-decoration: none">Privacy policy</a>
+            <span aria-hidden="true">·</span>
+            <a role="menuitem" :href="v.terms" target="_blank" rel="noopener noreferrer" class="legal-link" @click="v.closeUserMenu" style="color: inherit; text-decoration: none">Terms</a>
+          </div>
           <button class="menu-item" role="menuitem" @click="v.logout" style="width: 100%; height: 40px; border: 0; background: transparent; border-radius: 8px; display: flex; align-items: center; gap: 10px; padding: 0 10px; font-size: 14px; font-weight: 500; color: var(--text); cursor: pointer">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3"></path><path d="M10 17l-5-5 5-5"></path><path d="M5 12h11"></path></svg>
             Logout
@@ -480,7 +490,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
             </template>
           </div>
         </div>
-        <p style="margin: 0; text-align: center; font-size: 12px; color: var(--text-muted-2)">Proxi can make mistakes. Check important info. <a :href="v.privacyPolicy" target="_blank" rel="noopener noreferrer" style="color: inherit; text-decoration: underline">Privacy policy</a></p>
+        <p style="margin: 0; text-align: center; font-size: 12px; color: var(--text-muted-2)">Proxi can make mistakes. Check important info.</p>
       </form>
     </div>
     </template>
@@ -1382,6 +1392,7 @@ class Component extends DCLogic {
       docsHome: DOCS_URL,
       docsPrivacy: DOCS_URL + '/privacy',
       privacyPolicy: DOCS_URL + '/privacy-policy',
+      terms: DOCS_URL + '/terms',
       docsSecurity: DOCS_URL + '/security',
       closeUserMenu: () => this.setState({ userMenu: false }),
       logout: async () => {
