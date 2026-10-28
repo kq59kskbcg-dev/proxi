@@ -4,6 +4,7 @@ import { rateLimit } from '../lib/ratelimit.js';
 import { requireUser } from '../lib/auth.js';
 import { getLangfuse, getSystemPrompt } from '../lib/langfuse.js';
 import { CONVERSATION_ID, hasDatabase, saveConversation } from '../lib/db.js';
+import { customInstructions, withInstructions } from '../lib/instructions.js';
 import { processAttachments, AttachmentError, KINDS, MAX_ATTACHMENTS } from '../lib/attachments.js';
 import { getMcpTools } from '../lib/mcp.js';
 import { makeTitle } from '../lib/title.js';
@@ -92,7 +93,8 @@ export async function POST(request) {
   // Traces keep the redacted text and the kinds of files, never the files themselves.
   const traced = recent.map((m) => ({ role: m.role, content: m.content + describe(m) }));
 
-  const system = await getSystemPrompt();
+  const [prompt, instructions] = await Promise.all([getSystemPrompt(), customInstructions(user.userId)]);
+  const system = { ...prompt, text: withInstructions(prompt.text, instructions) };
   const langfuse = temporary ? null : getLangfuse();
   // No user ID in traces: Langfuse alone can't tell whose chat a trace belongs to.
   const trace = langfuse?.trace({

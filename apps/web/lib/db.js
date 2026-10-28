@@ -11,6 +11,8 @@ export const SHARE_ID = /^[\w-]{22}$/;
 // "Delete chats after": the choices in Settings, and the default for users who never chose.
 export const RETENTION_OPTIONS = [7, 30, 90];
 export const DEFAULT_RETENTION_DAYS = 30;
+// Custom instructions: how long they may be, in characters.
+export const CUSTOM_INSTRUCTIONS_MAX = 1500;
 
 let driver = null;
 let ready = null;
@@ -58,6 +60,7 @@ const SCHEMA = [
      user_id text PRIMARY KEY,
      chat_retention_days int NOT NULL CHECK (chat_retention_days IN (7, 30, 90)),
      updated_at timestamptz NOT NULL DEFAULT now())`,
+  `ALTER TABLE user_settings ADD COLUMN IF NOT EXISTS custom_instructions text NOT NULL DEFAULT ''`,
   // Set while a chat is shared with a public link. Deleting the chat removes the link with it.
   `ALTER TABLE conversations ADD COLUMN IF NOT EXISTS share_id text UNIQUE`,
 ];
@@ -118,16 +121,24 @@ export async function deleteInactiveConversations(defaultDays = DEFAULT_RETENTIO
 
 export async function getSettings(userId) {
   const d = await db();
-  const rows = await d.query('SELECT chat_retention_days FROM user_settings WHERE user_id = $1', [userId]);
-  return { chatRetentionDays: rows[0]?.chat_retention_days ?? DEFAULT_RETENTION_DAYS };
+  const rows = await d.query('SELECT chat_retention_days, custom_instructions FROM user_settings WHERE user_id = $1', [userId]);
+  return {
+    chatRetentionDays: rows[0]?.chat_retention_days ?? DEFAULT_RETENTION_DAYS,
+    customInstructions: rows[0]?.custom_instructions ?? '',
+  };
 }
 
-export async function saveSettings(userId, { chatRetentionDays }) {
+// Saves the settings that are given and keeps the others as they are.
+export async function saveSettings(userId, { chatRetentionDays, customInstructions }) {
   const d = await db();
   await d.query(
-    `INSERT INTO user_settings (user_id, chat_retention_days) VALUES ($1, $2)
-     ON CONFLICT (user_id) DO UPDATE SET chat_retention_days = EXCLUDED.chat_retention_days, updated_at = now()`,
-    [userId, chatRetentionDays]);
+    `INSERT INTO user_settings (user_id, chat_retention_days, custom_instructions)
+     VALUES ($1, COALESCE($2::int, $4::int), COALESCE($3::text, ''))
+     ON CONFLICT (user_id) DO UPDATE SET
+       chat_retention_days = COALESCE($2::int, user_settings.chat_retention_days),
+       custom_instructions = COALESCE($3::text, user_settings.custom_instructions),
+       updated_at = now()`,
+    [userId, chatRetentionDays ?? null, customInstructions ?? null, DEFAULT_RETENTION_DAYS]);
 }
 
 export async function deleteConversation(userId, conversationId) {
