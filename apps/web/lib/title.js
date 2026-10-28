@@ -1,13 +1,27 @@
 // Short chat titles, written by Haiku from the user's first (already redacted) message.
 
 export const TITLE_MODEL = 'claude-haiku-5-5';
+export const PLACEHOLDER = 'New chat';
 const MAX_TITLE = 40;
 const MAX_INPUT = 4000; // the opening of a long message is enough to name it
+const MAX_RETRIES = 3; // user messages after which a chat stays "New chat"
 
-const PROMPT = `Write a title for a chat that starts with the user's message.
-Use at most 5 words, in the same language as the message, in sentence case, with no quotes and no ending punctuation.
-If the message has no clear topic, such as a greeting, reply with exactly: New chat
+const PROMPT = `Write a title for a chat from the user's messages below.
+Name the topic in at most 5 words. Don't repeat the message word for word: "what's the capital of france" becomes "Capital of France".
+Use the same language as the messages, sentence case, no quotes and no ending punctuation.
+If there is no topic yet, such as only a greeting, reply with exactly: ${PLACEHOLDER}
 Reply with the title only.`;
+
+// Which text to title from, or null if this reply shouldn't make a title. A new
+// chat is titled from its first message; a chat still called "New chat" (it
+// opened with a greeting) is titled again from its messages so far.
+export function titleSource(history, retitle) {
+  const asked = history.filter((m) => m.role === 'user');
+  const first = history.length === 1;
+  if (!first && !(retitle && asked.length <= MAX_RETRIES)) return null;
+  const text = asked.map((m) => m.content.trim()).filter(Boolean).join('\n\n');
+  return text || null;
+}
 
 // Returns a title, or null if one couldn't be made (the caller keeps its fallback).
 export async function makeTitle(client, text, trace) {

@@ -6,7 +6,7 @@ import { getLangfuse, getSystemPrompt } from '../lib/langfuse.js';
 import { CONVERSATION_ID, hasDatabase, saveConversation } from '../lib/db.js';
 import { processAttachments, AttachmentError, KINDS, MAX_ATTACHMENTS } from '../lib/attachments.js';
 import { getMcpTools } from '../lib/mcp.js';
-import { makeTitle } from '../lib/title.js';
+import { makeTitle, titleSource } from '../lib/title.js';
 
 // Only these models can be requested from the browser.
 const MODELS = {
@@ -119,8 +119,8 @@ export async function POST(request) {
       const send = (event) => controller.enqueue(encoder.encode(JSON.stringify(event) + '\n'));
       send({ type: 'start', traceId: trace?.id ?? null, redactions, notices: attached.notices });
       // A new chat gets a short AI title, made alongside the reply so nobody waits for it.
-      const firstMessage = history.length === 1 ? history[0] : null;
-      const titled = conversationId && firstMessage ? makeTitle(client, firstMessage.content, trace) : null;
+      const source = conversationId ? titleSource(history, body.retitle === true) : null;
+      const titled = source ? makeTitle(client, source, trace) : null;
       let text = '';
       let servedBy = model;
       try {
