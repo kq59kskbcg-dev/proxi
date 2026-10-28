@@ -265,8 +265,10 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
                     <template v-if="m.copied"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"></path></svg></template>
                     <template v-if="m.notCopied"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"></rect><path d="M5 15V5a2 2 0 0 1 2-2h10"></path></svg></template>
                   </button>
+                  <template v-if="m.canVote">
                   <button class="hov" aria-label="Good response" :aria-pressed="m.upPressed" @click="m.onUp" :style="`width: 44px; height: 44px; border: 0; background: transparent; border-radius: 8px; color: ${m.upColor}; display: flex; align-items: center; justify-content: center; cursor: pointer`"><svg width="16" height="16" viewBox="0 0 24 24" :fill="m.upFill" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 10v11H4V10z"></path><path d="M7 10l4-8a3 3 0 0 1 3 3v4h5.5a2 2 0 0 1 2 2.3l-1.4 8A2 2 0 0 1 18 21H7"></path></svg></button>
                   <button class="hov" aria-label="Bad response" :aria-pressed="m.downPressed" @click="m.onDown" :style="`width: 44px; height: 44px; border: 0; background: transparent; border-radius: 8px; color: ${m.downColor}; display: flex; align-items: center; justify-content: center; cursor: pointer`"><svg width="16" height="16" viewBox="0 0 24 24" :fill="m.downFill" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 14V3h3v11z"></path><path d="M17 14l-4 8a3 3 0 0 1-3-3v-4H4.5a2 2 0 0 1-2-2.3l1.4-8A2 2 0 0 1 6 3h11"></path></svg></button>
+                  </template>
                   <button class="hov" aria-label="Regenerate" @click="m.onRegen" style="width: 44px; height: 44px; border: 0; background: transparent; border-radius: 8px; color: #63636B; display: flex; align-items: center; justify-content: center; cursor: pointer"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.6-6.4"></path><path d="M21 3v6h-6"></path></svg></button>
                 </div>
               </div>
@@ -289,7 +291,16 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 
     <template v-if="v.isNew">
       <section style="flex: 1 1 0; display: flex; flex-direction: column; justify-content: flex-end; padding: 24px 24px 0">
-        <h1 style="margin: 0 0 28px; text-align: center; font-size: 32px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.2">What can I help with?</h1>
+        <div style="display: flex; justify-content: center; margin-bottom: 16px">
+          <button class="hov" type="button" :aria-pressed="v.temporaryPressed" @click="v.toggleTemporary" :style="`height: 36px; border: 1px solid ${v.temporaryBorder}; background: ${v.temporaryBg}; border-radius: 18px; padding: 0 14px; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: #111111; cursor: pointer`">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke-dasharray="3 3"></circle><path d="M12 7v5l3 2"></path></svg>
+            Temporary chat
+          </button>
+        </div>
+        <h1 style="margin: 0 0 28px; text-align: center; font-size: 32px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.2">{{ v.newHeading }}</h1>
+        <template v-if="v.temporary">
+          <p style="margin: -16px auto 28px; max-width: 460px; text-align: center; font-size: 14px; color: #52525B; line-height: 1.5">This chat won't be saved or shown in your history, and it isn't used for monitoring.</p>
+        </template>
       </section>
     </template>
 
@@ -549,6 +560,7 @@ class Component extends DCLogic {
       toast: '',
       settings: null,
       settingsBusy: false,
+      temporary: false,
       votes: {}
     };
   }
@@ -695,7 +707,7 @@ class Component extends DCLogic {
       else { const id = this.addAssistant(convId, text); this.patchMessage(convId, id, (m) => ({ ...m, error: true })); }
     };
     try {
-      const payload = JSON.stringify({ model: this.state.model, messages, conversationId: convId });
+      const payload = JSON.stringify({ model: this.state.model, messages, conversationId: convId, temporary: !!conv.temporary });
       // The host rejects request bodies over 4.5 MB, so say so before sending.
       if (payload.length > 4400000) {
         fail('That message is too large to send. Try fewer or smaller attachments.');
@@ -816,7 +828,7 @@ class Component extends DCLogic {
     if (!convId) {
       convId = crypto.randomUUID();
       const title = maskCards(text);
-      fresh = { id: convId, title: title ? (title.length > 40 ? title.slice(0, 40).trim() + '...' : title) : 'Attachment', group: 'Today', messages: [], loaded: true };
+      fresh = { id: convId, title: title ? (title.length > 40 ? title.slice(0, 40).trim() + '...' : title) : 'Attachment', group: 'Today', messages: [], loaded: true, temporary: this.state.temporary };
     }
     this.setState((s) => {
       // The active chat moves to the top of Today.
@@ -937,7 +949,8 @@ class Component extends DCLogic {
         open: () => this.openConversation(c.id)
       };
     };
-    const list = s.convs.filter((c) => !q || c.title.toLowerCase().includes(q));
+    // Temporary chats are never listed: they exist only until the page reloads.
+    const list = s.convs.filter((c) => !c.temporary && (!q || c.title.toLowerCase().includes(q)));
     const today = list.filter((c) => c.group === 'Today').map(item);
     const older = list.filter((c) => c.group !== 'Today').map(item);
 
@@ -963,6 +976,7 @@ class Component extends DCLogic {
         })),
         isUser: m.role === 'user',
         isAssistant: m.role === 'assistant',
+        canVote: !conv.temporary,
         html: m.role === 'assistant' ? renderMarkdown(m.text || '') : '',
         copied,
         notCopied: !copied,
@@ -1039,7 +1053,13 @@ class Component extends DCLogic {
       isChat, isNew, isPage, page,
       pageAction: () => this.showToast(page.action + ' is not part of this prototype'),
       headerBorder: isNew ? '#FFFFFF' : '#EDEDF0',
-      chatTitle: conv ? conv.title : '',
+      chatTitle: conv ? (conv.temporary ? 'Temporary chat' : conv.title) : '',
+      temporary: s.temporary,
+      temporaryPressed: s.temporary ? 'true' : 'false',
+      temporaryBg: s.temporary ? '#EFE8FF' : '#FFFFFF',
+      temporaryBorder: s.temporary ? '#6D28FF' : '#E7E5EE',
+      toggleTemporary: () => this.setState({ temporary: !s.temporary }),
+      newHeading: s.temporary ? 'Temporary chat' : 'What can I help with?',
       chatMenu: s.chatMenu,
       chatMenuExpanded: s.chatMenu ? 'true' : 'false',
       toggleChatMenu: () => this.setState({ chatMenu: !s.chatMenu, modelMenu: false, userMenu: false }),

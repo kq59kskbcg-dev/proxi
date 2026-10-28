@@ -71,13 +71,13 @@ after(() => {
 const PRIVACY_TEXT = 'Card numbers, IBANs, emails and phone numbers are masked before anything reaches the model or the logs.';
 const skip = !ready && 'run npm install in apps/mcp first';
 
-async function chat(question) {
+async function chat(question, extra = {}) {
   requests.length = 0;
   const { POST } = await import('../api/chat.js');
   const response = await POST(new Request('http://localhost/api/chat', {
     method: 'POST',
     headers: { authorization: `Bearer ${token}`, host: 'localhost', 'content-type': 'application/json' },
-    body: JSON.stringify({ model: 'Haiku 5.5', messages: [{ role: 'user', content: question }] }),
+    body: JSON.stringify({ model: 'Haiku 5.5', messages: [{ role: 'user', content: question }], ...extra }),
   }));
   assert.equal(response.status, 200);
   return (await response.text()).trim().split('\n').map((line) => JSON.parse(line));
@@ -127,6 +127,16 @@ test('search_docs results come back citable and the reply cites them', { skip },
   const text = events.filter((e) => e.type === 'text').map((e) => e.text).join('');
   assert.match(text, /Proxi masks card numbers\. \[\[1\]\]\(https:\/\/proxi\.mintlify\.site\/privacy\)/);
   assert.match(text, /\*\*Sources\*\*\n1\. \[Privacy\]\(https:\/\/proxi\.mintlify\.site\/privacy\)$/);
+});
+
+test('a temporary chat is not titled, saved or traced', { skip }, async () => {
+  script = [() => textTurn('Sure.')];
+  const events = await chat('Help me plan a trip', { conversationId: 'temp-chat-1', temporary: true });
+  assert.equal(requests.length, 1, 'only the reply was requested, no title');
+  assert.equal(events[0].type, 'start');
+  assert.equal(events[0].traceId, null);
+  assert.ok(!events.some((e) => e.type === 'title'));
+  assert.equal(events.at(-1).type, 'done');
 });
 
 function toolUseTurn(name, input) {
