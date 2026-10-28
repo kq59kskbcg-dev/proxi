@@ -32,6 +32,8 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 .pop{animation:rise 0.16s ease-out}
 @media (prefers-reduced-motion: reduce){.spinner{animation-duration:2.4s}.pop,.toast{animation:none}}
 .temp-toggle[aria-pressed="false"]:hover{background:#F4F4F6 !important}
+@media (max-width: 480px){.model-ver{display:none}}
+#composer::placeholder{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .scrim{display:none}
 @media (min-width: 831px){
 .side{transition:margin-left 0.3s cubic-bezier(0.32,0.72,0,1),visibility 0.3s}
@@ -312,11 +314,6 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
             <p style="margin: 0; font-size: 14px; color: #52525B">Not saved or shown in your history.</p>
           </div>
         </template>
-        <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 8px">
-          <template v-for="(ch, i_ch) in v.chips" :key="i_ch">
-            <button class="chip" type="button" @click="ch.pick" style="border: 1px solid #E7E5EE; background: #FFFFFF; border-radius: 999px; padding: 0 14px; height: 36px; font-size: 13px; font-weight: 500; color: #3F3F46; cursor: pointer">{{ ch.label }}</button>
-          </template>
-        </div>
       </section>
     </template>
 
@@ -358,11 +355,18 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
       <template v-if="v.isChat">
         <div aria-hidden="true" style="position: absolute; left: 0; right: 0; top: -40px; height: 40px; background: linear-gradient(to bottom, rgba(255,255,255,0), #FFFFFF); pointer-events: none"></div>
       </template>
+      <template v-if="v.showChips">
+        <div :style="`max-width: ${v.composerMax}; margin: 0 auto 10px; display: flex; flex-direction: column; align-items: flex-start; gap: 8px`">
+          <template v-for="(ch, i_ch) in v.chips" :key="i_ch">
+            <button class="chip" type="button" @click="ch.pick" style="border: 1px solid #E7E5EE; background: #FFFFFF; border-radius: 999px; padding: 0 14px; height: 34px; font-size: 13px; font-weight: 500; color: #3F3F46; cursor: pointer">{{ ch.label }}</button>
+          </template>
+        </div>
+      </template>
       <form @submit="v.onSubmit" :style="`max-width: ${v.composerMax}; margin: 0 auto; display: flex; flex-direction: column; gap: 10px`">
-        <div class="composer" :class="{ drop: v.dragging }" :style="`border: 1px solid ${v.composerBorder}`" style="border-radius: 20px; background: #FFFFFF; box-shadow: 0 4px 18px rgba(24,24,27,0.06); padding: 14px 14px 10px 18px; display: flex; flex-direction: column; gap: 8px">
+        <div class="composer" :class="{ drop: v.dragging }" :style="`border: 1px solid ${v.composerBorder}; border-radius: ${v.composerRadius}; padding: ${v.composerPadding}`" style="background: #FFFFFF; box-shadow: 0 4px 18px rgba(24,24,27,0.06); display: flex; flex-wrap: wrap; align-items: flex-end; gap: 4px 4px">
           <input type="file" multiple hidden tabindex="-1" aria-hidden="true" :accept="v.accept" :ref="v.fileRef" @change="v.onFiles">
           <template v-if="v.pending.length">
-            <div style="display: flex; flex-wrap: wrap; gap: 8px">
+            <div style="flex: 1 0 100%; display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 4px">
               <template v-for="a in v.pending" :key="a.id">
                 <div style="display: flex; align-items: center; gap: 10px; min-width: 0; max-width: 100%; height: 52px; padding: 0 4px 0 8px; border: 1px solid #E7E5EE; border-radius: 12px; background: #FAFAFB">
                   <img v-if="a.thumb" :src="a.thumb" alt="" style="flex: none; width: 36px; height: 36px; border-radius: 8px; object-fit: cover">
@@ -376,14 +380,14 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
               </template>
             </div>
             <template v-if="v.imageHint">
-              <p style="margin: 0; font-size: 12px; color: #5C5C66">Images aren't checked for card numbers or IDs. Only attach what you're comfortable sharing.</p>
+              <p style="flex: 1 0 100%; margin: 0 0 4px; font-size: 12px; color: #5C5C66">Images aren't checked for card numbers or IDs. Only attach what you're comfortable sharing.</p>
             </template>
           </template>
           <label for="composer" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Message Proxi</label>
-          <textarea id="composer" :ref="v.taRef" :rows="v.rows" placeholder="Message Proxi" :value="v.draft" @input="v.onDraft" @keydown="v.onKey" @paste="v.onPaste" style="border: 0; resize: none; outline: none; font-size: 16px; line-height: 1.5; color: #111111; background: transparent"></textarea>
-          <div style="position: relative; display: flex; align-items: center; gap: 4px">
-            <button class="hov" type="button" aria-label="Attach file" @click="v.attach" style="flex: none; width: 44px; height: 44px; border: 0; background: transparent; border-radius: 50%; color: #3F3F46; display: flex; align-items: center; justify-content: center; cursor: pointer"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5l-8.6 8.6a5 5 0 0 1-7-7l8.6-8.6a3.3 3.3 0 0 1 4.7 4.7l-8.6 8.6a1.7 1.7 0 0 1-2.4-2.4l8-8"></path></svg></button>
-            <button class="hov" type="button" :aria-label="`Model: ${v.model}, change model`" :aria-expanded="v.modelMenuExpanded" @click="v.toggleModelMenu" style="margin-left: auto; height: 44px; border: 0; background: transparent; border-radius: 22px; padding: 0 4px; display: flex; align-items: center; cursor: pointer"><span style="height: 34px; padding: 0 10px 0 12px; border-radius: 17px; background: #EFE8FF; display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: #111111"><span :style="`width: 8px; height: 8px; border-radius: 50%; background: ${v.accent}`"></span>{{ v.model }}<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg></span></button>
+          <button class="hov" type="button" aria-label="Attach file" @click="v.attach" :style="`order: ${v.attachOrder}`" style="flex: none; width: 44px; height: 44px; border: 0; background: transparent; border-radius: 50%; color: #3F3F46; display: flex; align-items: center; justify-content: center; cursor: pointer"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5l-8.6 8.6a5 5 0 0 1-7-7l8.6-8.6a3.3 3.3 0 0 1 4.7 4.7l-8.6 8.6a1.7 1.7 0 0 1-2.4-2.4l8-8"></path></svg></button>
+          <textarea id="composer" :ref="v.taRef" rows="1" placeholder="Message Proxi" :value="v.draft" @input="v.onDraft" @keydown="v.onKey" @paste="v.onPaste" :style="`order: ${v.textOrder}; flex: ${v.textFlex}; padding: ${v.textPadding}`" style="min-width: 0; box-sizing: border-box; height: 44px; border: 0; resize: none; outline: none; font-size: 16px; line-height: 24px; color: #111111; background: transparent; overflow-y: hidden"></textarea>
+          <div style="order: 3; margin-left: auto; position: relative; display: flex; align-items: center; gap: 4px">
+            <button class="hov" type="button" :aria-label="`Model: ${v.model}, change model`" :aria-expanded="v.modelMenuExpanded" @click="v.toggleModelMenu" style="margin-left: auto; height: 44px; border: 0; background: transparent; border-radius: 22px; padding: 0 4px; display: flex; align-items: center; cursor: pointer"><span style="height: 34px; padding: 0 10px 0 12px; border-radius: 17px; background: #EFE8FF; display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: #111111"><span :style="`width: 8px; height: 8px; border-radius: 50%; background: ${v.accent}`"></span><span>{{ v.modelName }}<span class="model-ver">&nbsp;{{ v.modelVersion }}</span></span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg></span></button>
             <template v-if="v.modelMenu">
               <div class="pop" role="menu" style="position: absolute; bottom: 52px; right: 44px; z-index: 31; width: 220px; background: #FFFFFF; border: 1px solid #E7E5EE; border-radius: 12px; box-shadow: 0 8px 24px rgba(24,24,27,0.12); padding: 6px">
                 <template v-for="(o, i_o) in v.models" :key="i_o">
@@ -547,6 +551,7 @@ class Component extends DCLogic {
       activeId: null,
       view: 'new',
       draft: '',
+      composerTall: false,
       typing: false,
       typingConv: null,
       replyStarted: false,
@@ -597,7 +602,28 @@ class Component extends DCLogic {
   // Follow new content only while the reader is at the bottom. Opening a chat or
   // sending a message always jumps to the bottom; a reply that arrives while
   // someone is reading older messages does not pull them away.
+  // The message box starts as one line next to its buttons. Once the text wraps
+  // it takes the full width (buttons move below) and grows up to 8 lines.
+  sizeComposer() {
+    const ta = this.taEl;
+    if (!ta) return;
+    const line = 24, max = line * 8 + 20;
+    if (!this.state.draft) {
+      ta.style.height = '44px';
+      ta.style.overflowY = 'hidden';
+      if (this.state.composerTall) this.setState({ composerTall: false });
+      return;
+    }
+    ta.style.height = 'auto';
+    const h = ta.scrollHeight;
+    ta.style.height = Math.min(Math.max(h, 44), max) + 'px';
+    ta.style.overflowY = h > max ? 'auto' : 'hidden';
+    const tall = this.state.draft.includes('\n') || h > 44 + 4;
+    if (tall && !this.state.composerTall) this.setState({ composerTall: true });
+  }
+
   componentDidUpdate() {
+    this.sizeComposer();
     const el = this.msgEl;
     if (!el) return;
     const conv = this.state.convs.find((c) => c.id === this.state.activeId);
@@ -1032,6 +1058,7 @@ class Component extends DCLogic {
     } }));
 
     const canSend = (!!s.draft.trim() || s.pending.length > 0) && !s.reading;
+    const tall = s.composerTall || s.pending.length > 0;
     const showNav = true;
 
     return {
@@ -1121,7 +1148,15 @@ class Component extends DCLogic {
       showComposer: isChat || isNew,
       composerPad: '8px 24px 20px',
       composerMax: isNew ? '720px' : '760px',
-      rows: isNew ? 3 : 2,
+      composerRadius: tall ? '22px' : '28px',
+      composerPadding: tall ? '10px 8px 6px 8px' : '6px 6px 6px 6px',
+      attachOrder: tall ? 2 : 1,
+      textOrder: tall ? 1 : 2,
+      textFlex: tall ? '1 0 100%' : '1 1 0',
+      textPadding: tall ? '6px 10px 4px' : '10px 6px',
+      modelName: s.model.split(' ')[0],
+      modelVersion: s.model.split(' ').slice(1).join(' '),
+      showChips: isNew && !s.draft.trim() && !s.pending.length,
       taRef: (el) => { this.taEl = el; },
       draft: s.draft,
       onDraft: (e) => this.setState({ draft: e.target.value }),
