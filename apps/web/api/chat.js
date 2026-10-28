@@ -49,7 +49,9 @@ export async function POST(request) {
     && validAttachments(m, i === lastIndex) && (m.content.length > 0 || m.attachments?.length > 0));
   if (!model || !valid) return json({ error: 'Invalid request.' }, 400);
   if (raw.length > MAX_HISTORY) return json({ error: 'This chat is too long. Please start a new one.' }, 400);
-  const conversationId = typeof body.conversationId === 'string' && CONVERSATION_ID.test(body.conversationId) ? body.conversationId : null;
+  // A temporary chat is never saved, titled or traced.
+  const temporary = body.temporary === true;
+  const conversationId = !temporary && typeof body.conversationId === 'string' && CONVERSATION_ID.test(body.conversationId) ? body.conversationId : null;
 
   // Files attached to the latest message are checked, redacted where possible and
   // turned into content blocks. They are used for this request only, never stored.
@@ -87,10 +89,10 @@ export async function POST(request) {
   const traced = recent.map((m) => ({ role: m.role, content: m.content + describe(m) }));
 
   const system = await getSystemPrompt();
-  const langfuse = getLangfuse();
+  const langfuse = temporary ? null : getLangfuse();
+  // No user ID in traces: Langfuse alone can't tell whose chat a trace belongs to.
   const trace = langfuse?.trace({
     name: 'chat',
-    userId: user.userId,
     sessionId: conversationId ?? undefined,
     input: traced,
     metadata: { redactions },
