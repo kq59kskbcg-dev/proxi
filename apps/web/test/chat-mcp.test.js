@@ -106,7 +106,7 @@ test('the agent discovers get_status over MCP and calls it', { skip }, async () 
   assert.equal(events.at(-1).type, 'done');
   assert.equal(events.at(-1).stopReason, 'end_turn');
   const activity = events.find((e) => e.type === 'activity');
-  assert.deepEqual(activity, { type: 'activity', label: "Checking Proxi's status", done: "Checked Proxi's status", detail: "Checked Proxi's status" });
+  assert.deepEqual(activity, { type: 'activity', tool: 'get_status', label: "Checking Proxi's status", done: "Checked Proxi's status", detail: "Checked Proxi's status" });
   assert.ok(events.indexOf(activity) < events.findIndex((e) => e.type === 'text'), 'activity is sent before the reply text');
 });
 
