@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, interactive-widget=resizes-content">
 <title>Proxi</title>
-<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Manrope:wght@800&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
 <script>
@@ -120,6 +120,22 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 #auth[hidden]{display:none}
 .auth-mark{font-family:Manrope,Inter,sans-serif;font-weight:800;font-size:40px;letter-spacing:-0.04em;line-height:1;color:var(--text)}
 .auth-text{margin:0;font-size:15px;color:var(--text-muted)}
+.shared{min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;background:var(--surface);color:var(--text);font-family:Inter,system-ui,sans-serif;font-size:15px}
+.shared-head{position:sticky;top:0;z-index:5;height:64px;box-sizing:border-box;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 20px;background:var(--surface);border-bottom:1px solid var(--divider)}
+.shared-mark{font-family:Manrope,Inter,sans-serif;font-weight:800;font-size:24px;letter-spacing:-0.04em;color:var(--text);text-decoration:none}
+.shared-mark:hover{color:var(--text)}
+.shared-cta{height:40px;border-radius:10px;padding:0 16px;display:flex;align-items:center;background:var(--inverse);color:var(--on-inverse);font-size:14px;font-weight:600;text-decoration:none}
+.shared-cta:hover{background:var(--inverse-hover);color:var(--on-inverse)}
+.shared-body{flex:1;width:100%;max-width:760px;box-sizing:border-box;margin:0 auto;padding:32px 24px 40px;display:flex;flex-direction:column;gap:28px}
+.shared-title{margin:0;font-size:26px;font-weight:600;letter-spacing:-0.02em;overflow-wrap:anywhere}
+.shared-meta{margin:6px 0 0;font-size:13px;color:var(--text-muted-2)}
+.shared-user{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+.shared-bubble{max-width:80%;background:var(--sunken);border-radius:18px 18px 6px 18px;padding:12px 16px;line-height:1.55;white-space:pre-wrap;overflow-wrap:anywhere}
+.shared-file{height:32px;padding:0 12px;border:1px solid var(--border);border-radius:10px;display:flex;align-items:center;font-size:13px;color:var(--text-muted-2)}
+.shared-reply{line-height:1.65}
+.shared-foot{margin:0;padding:16px 20px 24px;text-align:center;font-size:12px;line-height:1.5;color:var(--text-muted-2);border-top:1px solid var(--divider)}
+.shared-empty{margin:auto;padding:48px 24px;text-align:center;color:var(--text-muted)}
+.shared-empty h1{margin:0 0 8px;font-size:22px;font-weight:600;color:var(--text)}
 .auth-legal{margin:0;max-width:360px;text-align:center;font-size:13px;line-height:1.5;color:var(--text-muted-2)}
 .auth-legal a{white-space:nowrap;color:inherit;text-decoration:underline;text-underline-offset:2px}
 .auth-legal a:hover{color:var(--text)}
@@ -282,10 +298,27 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
         </template>
       </div>
       <template v-if="v.isChat">
-        <button class="hov" @click="v.share" style="flex: none; height: 40px; border: 1px solid var(--border); background: var(--surface); border-radius: 10px; padding: 0 14px; display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 500; color: var(--text); cursor: pointer">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7"></path><path d="M16 6l-4-4-4 4"></path><path d="M12 2v13"></path></svg>
-          Share
-        </button>
+        <template v-if="v.canShare">
+          <div style="position: relative; flex: none">
+            <button class="hov" @click="v.share" :aria-haspopup="v.shareHasPopup" :aria-expanded="v.shareMenuExpanded" :style="`height: 40px; border: 1px solid ${v.shareBorder}; background: ${v.shareBg}; border-radius: 10px; padding: 0 14px; display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 500; color: ${v.shareColor}; cursor: pointer`">
+              <template v-if="v.isShared"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"></path><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"></path></svg>Shared</template>
+              <template v-if="v.notShared"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7"></path><path d="M16 6l-4-4-4 4"></path><path d="M12 2v13"></path></svg>Share</template>
+            </button>
+            <template v-if="v.shareMenu">
+              <div class="pop" role="menu" style="position: absolute; top: 46px; right: 0; z-index: 31; width: 230px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 8px 24px rgba(24,24,27,0.12); padding: 6px">
+                <button class="menu-item" role="menuitem" @click="v.copyShareLink" style="width: 100%; height: 40px; border: 0; background: transparent; border-radius: 8px; display: flex; align-items: center; gap: 10px; padding: 0 10px; font-size: 14px; font-weight: 500; color: var(--text); cursor: pointer">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"></rect><path d="M5 15V5a1 1 0 0 1 1-1h10"></path></svg>
+                  Copy link
+                </button>
+                <button class="menu-item" role="menuitem" @click="v.stopSharing" style="width: 100%; height: 40px; border: 0; background: transparent; border-radius: 8px; display: flex; align-items: center; gap: 10px; padding: 0 10px; font-size: 14px; font-weight: 500; color: var(--danger); cursor: pointer">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"></path></svg>
+                  Stop sharing
+                </button>
+                <p style="margin: 4px 10px 6px; font-size: 12px; line-height: 1.45; color: var(--text-muted-2)">New messages in this chat also become visible.</p>
+              </div>
+            </template>
+          </div>
+        </template>
       </template>
       <template v-if="v.isNew">
         <button class="temp-toggle" type="button" aria-label="Temporary chat" :aria-pressed="v.temporaryPressed" :title="v.temporaryHint" @click="v.toggleTemporary" :style="`flex: none; width: 40px; height: 40px; border: 1px solid ${v.temporaryBorder}; background: ${v.temporaryBg}; color: ${v.temporaryColor}; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer`">
@@ -530,6 +563,10 @@ function renderMarkdown(text) {
 
 const DOCS_URL = 'https://proxi.mintlify.site';
 
+function shareUrl(shareId) {
+  return location.origin + '/s/' + shareId;
+}
+
 // Citations arrive as Markdown: [[1]](url) after a sentence and a "Sources" list at the end.
 // Turn them into source name pills and a collapsible list. Runs on sanitized HTML.
 function renderCitations(html) {
@@ -750,6 +787,7 @@ class Component extends DCLogic {
       model: 'Haiku 5.5',
       modelMenu: false,
       chatMenu: false,
+      shareMenu: false,
       userMenu: false,
       searchOpen: false,
       query: '',
@@ -1015,7 +1053,7 @@ class Component extends DCLogic {
       this.setState((s) => {
         const known = new Set(s.convs.map((c) => c.id));
         const saved = conversations.filter((c) => !known.has(c.id)).map((c) => ({
-          id: c.id, title: c.title, group: new Date(c.updatedAt).toDateString() === today ? 'Today' : 'Earlier', messages: [], loaded: false
+          id: c.id, title: c.title, group: new Date(c.updatedAt).toDateString() === today ? 'Today' : 'Earlier', messages: [], loaded: false, shareId: c.shareId || null
         }));
         return { convs: [...s.convs, ...saved], history: 'ok' };
       });
@@ -1094,6 +1132,35 @@ class Component extends DCLogic {
     this.focusComposer();
   }
 
+  async shareChat(id) {
+    try {
+      const res = await fetch('/api/share', { method: 'POST', headers: { ...(await authHeaders()), 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) });
+      if (!res.ok) throw new Error(res.status);
+      const { shareId } = await res.json();
+      this.setState((s) => ({ convs: s.convs.map((c) => (c.id === id ? { ...c, shareId } : c)) }));
+      this.copyText(shareUrl(shareId));
+      this.showToast('Link copied. Anyone with the link can view this chat.');
+    } catch (e) {
+      this.showToast("Couldn't share this chat. Try again.");
+    }
+  }
+
+  async stopSharing(id) {
+    this.setState({ shareMenu: false });
+    try {
+      const res = await fetch('/api/share?id=' + encodeURIComponent(id), { method: 'DELETE', headers: await authHeaders() });
+      if (!res.ok) throw new Error(res.status);
+      this.setState((s) => ({ convs: s.convs.map((c) => (c.id === id ? { ...c, shareId: null } : c)) }));
+      this.showToast('Stopped sharing. The link no longer works.');
+    } catch (e) {
+      this.showToast("Couldn't stop sharing. Try again.");
+    }
+  }
+
+  copyText(text) {
+    try { if (navigator.clipboard) navigator.clipboard.writeText(text).catch(() => {}); } catch (e) {}
+  }
+
   regen(msg) {
     if (this.state.typing) return;
     this.truncateAt(msg.id);
@@ -1101,7 +1168,7 @@ class Component extends DCLogic {
   }
 
   copy(key, text) {
-    try { if (navigator.clipboard) navigator.clipboard.writeText(text).catch(() => {}); } catch (e) {}
+    this.copyText(text);
     this.setState({ copied: key });
     this.later(() => this.setState((s) => (s.copied === key ? { copied: null } : null)), 1500);
   }
@@ -1165,7 +1232,7 @@ class Component extends DCLogic {
   }
 
   go(patch) {
-    this.setState({ chatMenu: false, modelMenu: false, userMenu: false, narrowNav: false, ...patch });
+    this.setState({ chatMenu: false, shareMenu: false, modelMenu: false, userMenu: false, narrowNav: false, ...patch });
   }
 
   renderVals() {
@@ -1266,8 +1333,8 @@ class Component extends DCLogic {
 
     return {
       accent,
-      anyMenu: s.modelMenu || s.chatMenu || s.userMenu,
-      closeMenus: () => this.setState({ modelMenu: false, chatMenu: false, userMenu: false }),
+      anyMenu: s.modelMenu || s.chatMenu || s.shareMenu || s.userMenu,
+      closeMenus: () => this.setState({ modelMenu: false, chatMenu: false, shareMenu: false, userMenu: false }),
       showNav,
       navClass: s.narrowNav ? 'side open' : (s.collapsed ? 'side collapsed' : 'side'),
       narrowNav: s.narrowNav,
@@ -1330,7 +1397,7 @@ class Component extends DCLogic {
       toggleTemporary: () => this.setState({ temporary: !s.temporary }),
       chatMenu: s.chatMenu,
       chatMenuExpanded: s.chatMenu ? 'true' : 'false',
-      toggleChatMenu: () => this.setState({ chatMenu: !s.chatMenu, modelMenu: false, userMenu: false }),
+      toggleChatMenu: () => this.setState({ chatMenu: !s.chatMenu, shareMenu: false, modelMenu: false, userMenu: false }),
       deleteChat: async () => {
         const id = s.activeId;
         this.stop();
@@ -1342,7 +1409,18 @@ class Component extends DCLogic {
           this.showToast("Couldn't delete the chat");
         }
       },
-      share: () => this.showToast('Link copied to clipboard'),
+      canShare: isChat && !conv?.temporary,
+      isShared: !!conv?.shareId,
+      notShared: !conv?.shareId,
+      shareBg: conv?.shareId ? 'var(--accent-soft)' : 'var(--surface)',
+      shareBorder: conv?.shareId ? 'var(--accent-line)' : 'var(--border)',
+      shareColor: conv?.shareId ? 'var(--link)' : 'var(--text)',
+      shareHasPopup: conv?.shareId ? 'menu' : null,
+      shareMenu: s.shareMenu,
+      shareMenuExpanded: conv?.shareId ? (s.shareMenu ? 'true' : 'false') : null,
+      share: () => (conv?.shareId ? this.setState({ shareMenu: !s.shareMenu, chatMenu: false, modelMenu: false, userMenu: false }) : this.shareChat(s.activeId)),
+      copyShareLink: () => { this.copyText(shareUrl(conv.shareId)); this.setState({ shareMenu: false }); this.showToast('Link copied'); },
+      stopSharing: () => this.stopSharing(s.activeId),
 
       msgRef: (el) => {
         if (el === this.msgEl) return;
@@ -1407,7 +1485,7 @@ class Component extends DCLogic {
       models,
       modelMenu: s.modelMenu,
       modelMenuExpanded: s.modelMenu ? 'true' : 'false',
-      toggleModelMenu: () => this.setState({ modelMenu: !s.modelMenu, chatMenu: false, userMenu: false }),
+      toggleModelMenu: () => this.setState({ modelMenu: !s.modelMenu, chatMenu: false, shareMenu: false, userMenu: false }),
       typing: s.typing,
       notTyping: !s.typing,
       stop: () => this.stop(),
@@ -1422,7 +1500,7 @@ class Component extends DCLogic {
       userInitial: (this.props.userName || '?').trim().charAt(0).toUpperCase(),
       userMenu: s.userMenu,
       userMenuExpanded: s.userMenu ? 'true' : 'false',
-      toggleUserMenu: () => this.setState({ userMenu: !s.userMenu, chatMenu: false, modelMenu: false }),
+      toggleUserMenu: () => this.setState({ userMenu: !s.userMenu, chatMenu: false, shareMenu: false, modelMenu: false }),
       docsHome: DOCS_URL,
       docsPrivacy: DOCS_URL + '/privacy',
       privacyPolicy: DOCS_URL + '/privacy-policy',
@@ -1459,7 +1537,56 @@ function clearSharedClerkToken() {
   }
 }
 
+// A shared chat (/s/<id>) is public: rendered without signing in and read-only.
+async function startShared(shareId) {
+  document.title = 'Shared chat · Proxi';
+  const root = document.getElementById('app');
+  const el = (tag, cls, text) => { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; };
+  const page = el('div', 'shared');
+  const head = el('header', 'shared-head');
+  const mark = el('a', 'shared-mark', 'proxi');
+  mark.href = '/';
+  const cta = el('a', 'shared-cta', 'Try Proxi');
+  cta.href = '/';
+  head.append(mark, cta);
+  const body = el('main', 'shared-body');
+  page.append(head, body);
+  root.append(page);
+
+  let chat = null;
+  try {
+    const res = await fetch('/api/shared?id=' + encodeURIComponent(shareId));
+    if (res.ok) chat = await res.json();
+  } catch (e) {}
+  if (!chat || !Array.isArray(chat.messages)) {
+    const empty = el('div', 'shared-empty');
+    empty.append(el('h1', '', 'This link isn\u2019t available'), el('p', '', 'The chat was deleted, or its owner stopped sharing it.'));
+    body.replaceWith(empty);
+    return;
+  }
+
+  const top = el('div');
+  top.append(el('h1', 'shared-title', chat.title),
+    el('p', 'shared-meta', 'Shared chat · ' + new Date(chat.updatedAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })));
+  body.append(top);
+  for (const m of chat.messages) {
+    if (m.role === 'user') {
+      const wrap = el('div', 'shared-user');
+      for (const a of m.attachments || []) wrap.append(el('div', 'shared-file', (KIND_LABELS[a.kind] || 'File') + ' attached'));
+      if (m.content) wrap.append(el('div', 'shared-bubble', maskCards(m.content)));
+      body.append(wrap);
+    } else {
+      const reply = el('article', 'shared-reply md');
+      reply.innerHTML = renderCitations(renderMarkdown(m.content || ''));
+      body.append(reply);
+    }
+  }
+  page.append(el('p', 'shared-foot', 'Shared from Proxi. Messages appear as Proxi saw them, with sensitive data redacted.'));
+}
+
 async function start() {
+  const shared = location.pathname.match(/^\/s\/([\w-]{22})\/?$/);
+  if (shared) return startShared(shared[1]);
   const clerk = window.Clerk;
   clearSharedClerkToken();
   await clerk.load({
