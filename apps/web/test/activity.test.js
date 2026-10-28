@@ -9,12 +9,16 @@ test('known tools get friendly wording, with the search query', () => {
     { label: "Checking Proxi's status", done: "Checked Proxi's status", detail: "Checked Proxi's status" });
 });
 
+test('web searches are described with their query', () => {
+  assert.deepEqual(toolActivity('web_search', 'Search the web', { query: 'mintlify pricing' }),
+    { label: 'Searching the web for "mintlify pricing"', done: 'Searched the web', detail: 'Searched the web for "mintlify pricing"' });
+});
+
 test('long queries are shortened and missing ones are left out', () => {
   assert.match(toolActivity('search_docs', null, { query: 'x'.repeat(80) }).label, /for "x{50}\.\.\."$/);
   assert.equal(toolActivity('search_docs', null, {}).label, 'Searching the help center');
 });
 
 test('other tools fall back to their MCP title', () => {
-  assert.deepEqual(toolActivity('web_search', 'Search the web', {}), { label: 'Using Search the web', done: 'Used Search the web', detail: 'Used Search the web' });
   assert.deepEqual(toolActivity('mystery', undefined, {}), { label: 'Using mystery', done: 'Used mystery', detail: 'Used mystery' });
 });

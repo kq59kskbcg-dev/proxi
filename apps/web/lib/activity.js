@@ -8,6 +8,11 @@ const KNOWN = {
     done: 'Searched the help center',
     detail: quoted('Searched the help center', input?.query),
   }),
+  web_search: (input) => ({
+    label: quoted('Searching the web', input?.query),
+    done: 'Searched the web',
+    detail: quoted('Searched the web', input?.query),
+  }),
   get_status: () => ({ label: "Checking Proxi's status", done: "Checked Proxi's status", detail: "Checked Proxi's status" }),
 };
 
