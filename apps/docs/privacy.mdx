@@ -1,6 +1,6 @@
 ---
 title: "Privacy"
-description: "How Proxi handles your data. Greyed out items are planned."
+description: "How Proxi handles your data."
 ---
 
 <Card title="Your identity never leaves Proxi" icon="user-secret">
@@ -19,19 +19,9 @@ description: "How Proxi handles your data. Greyed out items are planned."
   Chats are deleted after 30 days without activity. You can choose 7, 30 or 90 days in Settings.
 </Card>
 
-<div style={{opacity: 0.5}}>
-  <Card title="Attachment scanning" icon="file-magnifying-glass">
-    <Badge color="gray" shape="pill">Planned</Badge>
-    <br />
-    Images and scanned documents are checked and rejected if they contain sensitive data.
-  </Card>
-
-  <Card title="EU data residency" icon="earth-europe">
-    <Badge color="gray" shape="pill">Planned</Badge>
-    <br />
-    All customer data is stored and processed in the EU.
-  </Card>
-</div>
+<Card title="EU data residency" icon="earth-europe">
+  All customer data is stored and processed in the EU.
+</Card>
 
 ## Subprocessors
 
@@ -51,3 +41,4 @@ Proxi is a personal project. These are known tradeoffs made to keep it free to r
 
 - **Redaction covers structured data only.** Proxi uses pattern matching to redact cards, IBANs, emails and phone numbers, but can't catch names or addresses. A company could add a small self-hosted model for those.
 - **Observability runs on Langfuse Cloud.** Redacted conversations are stored by Langfuse in the EU. A company could self-host it to keep that data in its own infrastructure.
+- **Images and scanned documents aren't checked.** Proxi checks the text in PDFs and blocks files with card numbers or IBANs, but can't read text inside images or scans. A company could add OCR to check them before sending.
