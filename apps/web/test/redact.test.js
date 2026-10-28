@@ -5,7 +5,8 @@ import { redact } from '../lib/redact.js';
 test('masks valid card numbers in common formats', () => {
   for (const card of ['4111111111111111', '4111 1111 1111 1111', '5500-0000-0000-0004', '378282246310005']) {
     const { text, counts } = redact(`my card is ${card} thanks`);
-    assert.equal(text, 'my card is [CARD] thanks');
+    assert.equal(text, `my card is •••• •••• •••• ${card.replace(/\D/g, '').slice(-4)} thanks`);
+    assert.ok(!text.includes(card.replace(/\D/g, '').slice(0, 6)), 'the leading digits are gone');
     assert.equal(counts.CARD, 1);
   }
 });
