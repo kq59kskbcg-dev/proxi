@@ -227,6 +227,9 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
         <template v-if="v.isPage">
           <h1 style="margin: 0; padding: 0 10px; font-size: 15px; font-weight: 600">{{ v.page.title }}</h1>
         </template>
+        <template v-if="v.isSettings">
+          <h1 style="margin: 0; padding: 0 10px; font-size: 15px; font-weight: 600">Settings</h1>
+        </template>
       </div>
       <template v-if="v.isChat">
         <button class="hov" @click="v.share" style="flex: none; height: 40px; border: 1px solid #E7E5EE; background: #FFFFFF; border-radius: 10px; padding: 0 14px; display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 500; color: #111111; cursor: pointer">
@@ -344,6 +347,23 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
             <p style="margin: 0; font-weight: 600">{{ v.page.empty }}</p>
             <p style="margin: 0; font-size: 14px; color: #52525B; max-width: 420px; line-height: 1.5">{{ v.page.hint }}</p>
             <button @click="v.pageAction" style="margin-top: 4px; height: 44px; border: 0; background: #111111; border-radius: 10px; padding: 0 18px; font-size: 14px; font-weight: 600; color: #FFFFFF; cursor: pointer">{{ v.page.action }}</button>
+          </div>
+        </div>
+      </section>
+    </template>
+
+    <template v-if="v.isSettings">
+      <section style="flex: 1; min-height: 0; overflow-y: auto; padding: 40px 24px">
+        <div style="max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px">
+          <h2 style="margin: 0; font-size: 28px; font-weight: 600; letter-spacing: -0.02em">Settings</h2>
+          <div style="border: 1px solid #E7E5EE; border-radius: 16px; padding: 20px; background: #FFFFFF; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px">
+            <div style="flex: 1 1 260px; min-width: 0; display: flex; flex-direction: column; gap: 4px">
+              <label for="retention" style="font-weight: 600">Delete chats after</label>
+              <p style="margin: 0; font-size: 14px; color: #52525B; line-height: 1.5">Chats are deleted after this many days without activity. A shorter period applies at the next daily cleanup.</p>
+            </div>
+            <select id="retention" :disabled="v.settingsBusy" :value="v.retentionValue" @change="v.changeRetention" style="height: 44px; min-width: 140px; border: 1px solid #E7E5EE; border-radius: 10px; padding: 0 12px; font-size: 15px; background: #FFFFFF; color: #111111; cursor: pointer">
+              <template v-for="(o, i_o) in v.retentionChoices" :key="i_o"><option :value="o.value">{{ o.label }}</option></template>
+            </select>
           </div>
         </div>
       </section>
@@ -603,6 +623,8 @@ class Component extends DCLogic {
       narrowNav: false,
       copied: null,
       toast: '',
+      settings: null,
+      settingsBusy: false,
       temporary: false,
       votes: {}
     };
@@ -960,6 +982,33 @@ class Component extends DCLogic {
     }
   }
 
+  // ---- Settings: "Delete chats after" (7, 30 or 90 days) ----
+  async loadSettings() {
+    try {
+      const res = await fetch('/api/settings', { headers: await authHeaders() });
+      if (!res.ok) throw new Error('settings ' + res.status);
+      const data = await res.json();
+      this.setState({ settings: { chatRetentionDays: data.chatRetentionDays, options: data.retentionOptions } });
+    } catch {
+      this.showToast("Couldn't load your settings. Please try again.");
+    }
+  }
+
+  async saveRetention(days) {
+    const before = this.state.settings;
+    if (!before || before.chatRetentionDays === days) return;
+    this.setState({ settings: { ...before, chatRetentionDays: days }, settingsBusy: true });
+    try {
+      const res = await fetch('/api/settings', { method: 'PUT', headers: await authHeaders(), body: JSON.stringify({ chatRetentionDays: days }) });
+      if (!res.ok) throw new Error('settings ' + res.status);
+      this.showToast(`Chats will be deleted after ${days} days without activity.`);
+    } catch {
+      this.setState({ settings: before });
+      this.showToast("Couldn't save your settings. Please try again.");
+    }
+    this.setState({ settingsBusy: false });
+  }
+
   go(patch) {
     this.setState({ chatMenu: false, modelMenu: false, userMenu: false, narrowNav: false, ...patch });
   }
@@ -1075,7 +1124,12 @@ class Component extends DCLogic {
       newChat: () => { this.go({ view: 'new', activeId: null, draft: '' }); this.focusComposer(); },
       openSkills: () => this.showToast('Skills is not part of this prototype'),
       openBehavior: () => this.showToast('Behavior is not part of this prototype'),
-      openSettings: () => this.showToast('Settings are not part of this prototype'),
+      openSettings: () => { this.go({ view: 'settings' }); this.loadSettings(); },
+      isSettings: s.view === 'settings',
+      settingsBusy: !s.settings || s.settingsBusy,
+      retentionValue: String(s.settings?.chatRetentionDays ?? 30),
+      retentionChoices: (s.settings?.options || [7, 30, 90]).map((d) => ({ value: String(d), label: d + ' days' })),
+      changeRetention: (e) => this.saveRetention(Number(e.target.value)),
       searchOpen: s.searchOpen,
       searchExpanded: s.searchOpen ? 'true' : 'false',
       toggleSearch: () => {

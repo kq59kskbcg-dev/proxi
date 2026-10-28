@@ -1,10 +1,11 @@
 import { test, before } from 'node:test';
 import assert from 'node:assert/strict';
 import { PGlite } from '@electric-sql/pglite';
-import { setDriver, saveConversation, listConversations, getMessages, deleteConversation } from '../lib/db.js';
+import { setDriver, saveConversation, listConversations, getMessages, deleteConversation, deleteInactiveConversations, getSettings, saveSettings } from '../lib/db.js';
 
+let pg;
 before(() => {
-  const pg = new PGlite();
+  pg = new PGlite();
   setDriver({
     query: async (text, params) => (await pg.query(text, params)).rows,
     transaction: (steps) => pg.transaction(async (tx) => {
@@ -74,4 +75,33 @@ test('a saved chat keeps its title unless a new title is asked for', async () =>
   assert.equal((await listConversations('user_t'))[0].title, 'Plan a trip to Lisbon');
   await saveConversation('user_t', 't1', 'Lisbon trip plan', chat, { replaceTitle: true });
   assert.equal((await listConversations('user_t'))[0].title, 'Lisbon trip plan');
+});
+
+test('chats inactive for longer than the retention period are deleted with their messages', async () => {
+  await saveConversation('user_r', 'old', 'Old chat', chat);
+  await saveConversation('user_r', 'new', 'New chat', chat);
+  await pg.query(`UPDATE conversations SET updated_at = now() - interval '91 days' WHERE user_id = 'user_r' AND id = 'old'`);
+  assert.equal(await deleteInactiveConversations(90), 1);
+  assert.deepEqual((await listConversations('user_r')).map((c) => c.id), ['new']);
+  assert.deepEqual(await getMessages('user_r', 'old'), []);
+  assert.equal((await getMessages('user_r', 'new')).length, 2);
+});
+
+test('settings default to 30 days and can be changed per user', async () => {
+  assert.deepEqual(await getSettings('user_s'), { chatRetentionDays: 30 });
+  await saveSettings('user_s', { chatRetentionDays: 7 });
+  assert.deepEqual(await getSettings('user_s'), { chatRetentionDays: 7 });
+  assert.deepEqual(await getSettings('user_other'), { chatRetentionDays: 30 });
+});
+
+test('cleanup follows each user\'s own retention, or the 30 day default', async () => {
+  await saveSettings('user_short', { chatRetentionDays: 7 });
+  await saveConversation('user_short', 'x', 'Eight days old', chat);
+  await saveConversation('user_default', 'x', 'Eight days old', chat);
+  await saveConversation('user_default', 'y', 'Forty days old', chat);
+  await pg.query(`UPDATE conversations SET updated_at = now() - interval '8 days' WHERE id = 'x' AND user_id IN ('user_short', 'user_default')`);
+  await pg.query(`UPDATE conversations SET updated_at = now() - interval '40 days' WHERE id = 'y' AND user_id = 'user_default'`);
+  await deleteInactiveConversations();
+  assert.deepEqual((await listConversations('user_short')).map((c) => c.id), []);
+  assert.deepEqual((await listConversations('user_default')).map((c) => c.id), ['x']);
 });

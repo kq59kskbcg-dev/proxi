@@ -33,6 +33,7 @@ AI chat assistant built on Claude, deployed on Vercel, with a Mintlify help cent
 | `CLERK_AUTHORIZED_PARTIES` | Optional: comma-separated site URLs allowed to use sign-in tokens. Defaults to the site's own URL. |
 | `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY` | Optional: tracing, prompts and feedback in Langfuse |
 | `LANGFUSE_BASE_URL` | `https://cloud.langfuse.com` (EU) |
+| `CRON_SECRET` | Random secret that lets Vercel's daily cron run `/api/cleanup`, which deletes chats inactive for longer than each user's "Delete chats after" setting (7, 30 or 90 days, default 30). Without it, cleanup refuses to run. |
 | `MCP_URL` | Optional: the MCP server's address, e.g. `https://<mcp-project>.vercel.app/mcp` |
 
 The system prompt can be edited in Langfuse as a text prompt named `proxi-system` with the label `production`. Without it, the built-in prompt in `apps/web/lib/langfuse.js` is used.
