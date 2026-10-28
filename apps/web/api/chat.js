@@ -108,6 +108,8 @@ export async function POST(request) {
     max_tokens: MAX_TOKENS,
     system: system.text,
     output_config: { effort: 'low' }, // chat rarely needs deep thinking; keeps replies fast and cheap
+    // Readable summaries of Claude's reasoning, streamed to the page's "Show thinking".
+    thinking: { type: 'adaptive', display: 'summarized' },
     ...(mcp?.tools.length ? { tools: mcp.tools } : {}),
   };
   client ??= new Anthropic();
@@ -145,6 +147,8 @@ export async function POST(request) {
           for await (const event of stream) {
             if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
               emit(event.delta.text);
+            } else if (event.type === 'content_block_delta' && event.delta.type === 'thinking_delta' && event.delta.thinking) {
+              send({ type: 'thinking', text: event.delta.thinking });
             } else if (event.type === 'content_block_delta' && event.delta.type === 'citations_delta') {
               const n = sourceNumber(sources, event.delta.citation);
               if (n) cited.add(n);
