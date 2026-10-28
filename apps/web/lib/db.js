@@ -6,6 +6,10 @@ import { neon } from '@neondatabase/serverless';
 
 export const CONVERSATION_ID = /^[\w-]{1,64}$/;
 
+// "Delete chats after": the choices in Settings, and the default for users who never chose.
+export const RETENTION_OPTIONS = [7, 30, 90];
+export const DEFAULT_RETENTION_DAYS = 30;
+
 let driver = null;
 let ready = null;
 
@@ -48,6 +52,10 @@ const SCHEMA = [
      FOREIGN KEY (user_id, conversation_id) REFERENCES conversations (user_id, id) ON DELETE CASCADE)`,
   // Only the kinds of files that were attached, e.g. [{"kind":"image"}]. The files and their names are never stored.
   `ALTER TABLE messages ADD COLUMN IF NOT EXISTS attachments jsonb`,
+  `CREATE TABLE IF NOT EXISTS user_settings (
+     user_id text PRIMARY KEY,
+     chat_retention_days int NOT NULL CHECK (chat_retention_days IN (7, 30, 90)),
+     updated_at timestamptz NOT NULL DEFAULT now())`,
 ];
 
 async function db() {
@@ -91,13 +99,31 @@ export async function saveConversation(userId, conversationId, title, messages, 
   ]);
 }
 
-// Retention: removes every chat with no activity for the given number of days.
-// Their messages go with them (ON DELETE CASCADE). Returns how many were removed.
-export async function deleteInactiveConversations(days) {
+// Retention: removes every chat with no activity for longer than its owner's
+// "Delete chats after" setting (or the default). Their messages go with them
+// (ON DELETE CASCADE). Returns how many were removed.
+export async function deleteInactiveConversations(defaultDays = DEFAULT_RETENTION_DAYS) {
   const d = await db();
   const rows = await d.query(
-    `DELETE FROM conversations WHERE updated_at < now() - make_interval(days => $1) RETURNING id`, [days]);
+    `DELETE FROM conversations c
+     WHERE c.updated_at < now() - make_interval(days => COALESCE(
+       (SELECT s.chat_retention_days FROM user_settings s WHERE s.user_id = c.user_id), $1))
+     RETURNING c.id`, [defaultDays]);
   return rows.length;
+}
+
+export async function getSettings(userId) {
+  const d = await db();
+  const rows = await d.query('SELECT chat_retention_days FROM user_settings WHERE user_id = $1', [userId]);
+  return { chatRetentionDays: rows[0]?.chat_retention_days ?? DEFAULT_RETENTION_DAYS };
+}
+
+export async function saveSettings(userId, { chatRetentionDays }) {
+  const d = await db();
+  await d.query(
+    `INSERT INTO user_settings (user_id, chat_retention_days) VALUES ($1, $2)
+     ON CONFLICT (user_id) DO UPDATE SET chat_retention_days = EXCLUDED.chat_retention_days, updated_at = now()`,
+    [userId, chatRetentionDays]);
 }
 
 export async function deleteConversation(userId, conversationId) {
