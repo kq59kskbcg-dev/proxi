@@ -153,31 +153,6 @@ function toolUseTurn(name, input) {
   ];
 }
 
-test('reasoning summaries are streamed to the page before the reply', { skip }, async () => {
-  script = [() => thinkingTurn('Checking what the user asked.', 'Here you go.')];
-  const events = await chat('Explain something');
-  assert.deepEqual(requests[0].thinking, { type: 'adaptive', display: 'summarized' });
-  const thinking = events.filter((e) => e.type === 'thinking').map((e) => e.text).join('');
-  assert.equal(thinking, 'Checking what the user asked.');
-  assert.ok(events.findIndex((e) => e.type === 'thinking') < events.findIndex((e) => e.type === 'text'));
-  assert.equal(events.filter((e) => e.type === 'text').map((e) => e.text).join(''), 'Here you go.');
-});
-
-function thinkingTurn(summary, reply) {
-  return [
-    ['message_start', { type: 'message_start', message: message() }],
-    ['content_block_start', { type: 'content_block_start', index: 0, content_block: { type: 'thinking', thinking: '', signature: '' } }],
-    ['content_block_delta', { type: 'content_block_delta', index: 0, delta: { type: 'thinking_delta', thinking: summary } }],
-    ['content_block_delta', { type: 'content_block_delta', index: 0, delta: { type: 'signature_delta', signature: 'sig' } }],
-    ['content_block_stop', { type: 'content_block_stop', index: 0 }],
-    ['content_block_start', { type: 'content_block_start', index: 1, content_block: { type: 'text', text: '' } }],
-    ['content_block_delta', { type: 'content_block_delta', index: 1, delta: { type: 'text_delta', text: reply } }],
-    ['content_block_stop', { type: 'content_block_stop', index: 1 }],
-    ['message_delta', { type: 'message_delta', delta: { stop_reason: 'end_turn', stop_sequence: null }, usage: { output_tokens: 12 } }],
-    ['message_stop', { type: 'message_stop' }],
-  ];
-}
-
 function textTurn(reply) {
   return [
     ['message_start', { type: 'message_start', message: message() }],

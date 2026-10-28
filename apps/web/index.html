@@ -256,12 +256,6 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
           <template v-if="m.isAssistant">
             <article style="display: flex">
               <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 14px; line-height: 1.65">
-                <template v-if="m.hasReasoning">
-                  <details style="font-size: 13px; color: #63636B">
-                    <summary style="cursor: pointer; width: fit-content">Show thinking</summary>
-                    <p style="margin: 8px 0 0; padding-left: 12px; border-left: 2px solid #E7E5EE; white-space: pre-wrap; line-height: 1.55">{{ m.reasoning }}</p>
-                  </details>
-                </template>
                 <template v-if="m.hasSteps">
                   <div style="display: flex; align-items: center; gap: 6px; font-size: 13px; color: #63636B">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"></path></svg>
@@ -294,9 +288,6 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
               <span style="margin-left: 6px; font-size: 14px; color: #52525B">{{ v.workingLabel }}...</span>
             </div>
           </article>
-          <template v-if="v.liveReasoning">
-            <p style="margin: 0; max-width: 640px; font-size: 13px; line-height: 1.5; color: #71717A; font-style: italic; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical">{{ v.liveReasoning }}</p>
-          </template>
         </template>
       </div>
     </section>
@@ -305,15 +296,13 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
     <template v-if="v.isNew">
       <section style="flex: 1 1 0; display: flex; flex-direction: column; justify-content: flex-end; padding: 24px 24px 0">
         <div style="display: flex; justify-content: center; margin-bottom: 16px">
-          <button class="hov" type="button" :aria-pressed="v.temporaryPressed" @click="v.toggleTemporary" :style="`height: 36px; border: 1px solid ${v.temporaryBorder}; background: ${v.temporaryBg}; border-radius: 18px; padding: 0 14px; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: #111111; cursor: pointer`">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke-dasharray="3 3"></circle><path d="M12 7v5l3 2"></path></svg>
+          <button class="hov" type="button" :aria-pressed="v.temporaryPressed" :title="v.temporaryHint" @click="v.toggleTemporary" :style="`height: 36px; border: 1px solid ${v.temporaryBorder}; background: ${v.temporaryBg}; color: ${v.temporaryColor}; border-radius: 18px; padding: 0 14px; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; cursor: pointer`">
+            <template v-if="v.temporary"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"></path></svg></template>
+            <template v-if="v.notTemporary"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke-dasharray="3 3"></circle><path d="M12 7v5l3 2"></path></svg></template>
             Temporary chat
           </button>
         </div>
-        <h1 style="margin: 0 0 28px; text-align: center; font-size: 32px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.2">{{ v.newHeading }}</h1>
-        <template v-if="v.temporary">
-          <p style="margin: -16px auto 28px; max-width: 460px; text-align: center; font-size: 14px; color: #52525B; line-height: 1.5">This chat won't be saved or shown in your history, and it isn't used for monitoring.</p>
-        </template>
+        <h1 style="margin: 0 0 28px; text-align: center; font-size: 32px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.2">What can I help with?</h1>
       </section>
     </template>
 
@@ -544,7 +533,6 @@ class Component extends DCLogic {
       typingConv: null,
       replyStarted: false,
       activity: [],
-      reasoning: '',
       verbTick: 0,
       pending: [],
       reading: false,
@@ -695,7 +683,7 @@ class Component extends DCLogic {
     }));
     const controller = new AbortController();
     this.abort = controller;
-    this.setState({ typing: true, typingConv: convId, replyStarted: false, activity: [], reasoning: '', verbTick: 0 });
+    this.setState({ typing: true, typingConv: convId, replyStarted: false, activity: [], verbTick: 0 });
     // Rotates the "Thinking...", "Pondering..." label until the reply starts.
     clearInterval(this.verbTimer);
     this.verbTimer = setInterval(() => this.setState((s) => ({ verbTick: s.verbTick + 1 })), 1800);
@@ -704,7 +692,7 @@ class Component extends DCLogic {
     const finish = () => {
       if (this.abort === controller) this.abort = null;
       clearInterval(this.verbTimer);
-      this.setState({ typing: false, typingConv: null, replyStarted: false, activity: [], reasoning: '' });
+      this.setState({ typing: false, typingConv: null, replyStarted: false, activity: [] });
     };
     const fail = (text) => {
       if (msgId) this.patchMessage(convId, msgId, (m) => ({ ...m, text: m.text ? m.text + '\n\n' + text : text, error: true }));
@@ -753,10 +741,6 @@ class Component extends DCLogic {
             }
             notes.push(...(event.notices || []));
             if (notes.length) this.showToast(notes.join(' '));
-          } else if (event.type === 'thinking') {
-            // Reasoning summary. Before the reply starts it's shown live; after, it's added to the reply's "Show thinking".
-            if (msgId) this.patchMessage(convId, msgId, (m) => ({ ...m, reasoning: (m.reasoning || '') + event.text }));
-            else this.setState((s) => ({ reasoning: s.reasoning + event.text }));
           } else if (event.type === 'activity') {
             // A tool call. Before the reply starts it's shown live; after, it's added to the reply's steps.
             if (msgId) this.patchMessage(convId, msgId, (m) => ({ ...m, steps: [...(m.steps || []), event.done] }));
@@ -765,10 +749,9 @@ class Component extends DCLogic {
             if (!msgId) {
               msgId = this.addAssistant(convId, '');
               const steps = this.state.activity.map((a) => a.done);
-              const reasoning = this.state.reasoning;
-              this.patchMessage(convId, msgId, (m) => ({ ...m, traceId, steps, reasoning }));
+              this.patchMessage(convId, msgId, (m) => ({ ...m, traceId, steps }));
               clearInterval(this.verbTimer);
-              this.setState({ replyStarted: true, activity: [], reasoning: '' });
+              this.setState({ replyStarted: true, activity: [] });
             }
             this.patchMessage(convId, msgId, (m) => ({ ...m, text: m.text + event.text }));
           } else if (event.type === 'done') {
@@ -965,8 +948,6 @@ class Component extends DCLogic {
         isUser: m.role === 'user',
         isAssistant: m.role === 'assistant',
         hasSteps: !!(m.steps && m.steps.length),
-        hasReasoning: !!(m.reasoning && m.reasoning.trim()),
-        reasoning: (m.reasoning || '').trim(),
         steps: [...new Set(m.steps || [])].join(' · '),
         canVote: !conv.temporary,
         html: m.role === 'assistant' ? renderMarkdown(m.text || '') : '',
@@ -1043,10 +1024,12 @@ class Component extends DCLogic {
       chatTitle: conv ? (conv.temporary ? 'Temporary chat' : conv.title) : '',
       temporary: s.temporary,
       temporaryPressed: s.temporary ? 'true' : 'false',
-      temporaryBg: s.temporary ? '#EFE8FF' : '#FFFFFF',
-      temporaryBorder: s.temporary ? '#6D28FF' : '#E7E5EE',
+      notTemporary: !s.temporary,
+      temporaryBg: s.temporary ? '#111111' : '#FFFFFF',
+      temporaryBorder: s.temporary ? '#111111' : '#E7E5EE',
+      temporaryColor: s.temporary ? '#FFFFFF' : '#111111',
+      temporaryHint: "Temporary chats aren't saved or shown in your history",
       toggleTemporary: () => this.setState({ temporary: !s.temporary }),
-      newHeading: s.temporary ? 'Temporary chat' : 'What can I help with?',
       chatMenu: s.chatMenu,
       chatMenuExpanded: s.chatMenu ? 'true' : 'false',
       toggleChatMenu: () => this.setState({ chatMenu: !s.chatMenu, modelMenu: false, userMenu: false }),
@@ -1075,9 +1058,7 @@ class Component extends DCLogic {
       },
       onMsgScroll: () => this.onMsgScroll(),
       msgs,
-      workingLabel: s.activity.length ? s.activity[s.activity.length - 1].label : s.reasoning ? 'Thinking' : WORKING_VERBS[s.verbTick % WORKING_VERBS.length],
-      // The end of the reasoning so far, so the latest thought stays visible while it grows.
-      liveReasoning: s.reasoning.trim() ? (s.reasoning.trim().length > 280 ? '...' + s.reasoning.trim().slice(-280) : s.reasoning.trim()) : '',
+      workingLabel: s.activity.length ? s.activity[s.activity.length - 1].label : WORKING_VERBS[s.verbTick % WORKING_VERBS.length],
       showTyping: isChat && ((s.typing && !s.replyStarted && s.typingConv === s.activeId) || !!conv.loading),
 
       showComposer: isChat || isNew,
