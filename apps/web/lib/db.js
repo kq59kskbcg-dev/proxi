@@ -35,6 +35,7 @@ const SCHEMA = [
      updated_at timestamptz NOT NULL DEFAULT now(),
      PRIMARY KEY (user_id, id))`,
   `CREATE INDEX IF NOT EXISTS conversations_recent ON conversations (user_id, updated_at DESC)`,
+  `CREATE INDEX IF NOT EXISTS conversations_inactive ON conversations (updated_at)`,
   `CREATE TABLE IF NOT EXISTS messages (
      user_id text NOT NULL,
      conversation_id text NOT NULL,
@@ -88,6 +89,15 @@ export async function saveConversation(userId, conversationId, title, messages, 
       messages.map((m) => m.model ?? null), messages.map((m) => m.traceId ?? null),
       messages.map((m) => (m.attachments?.length ? JSON.stringify(m.attachments) : null))]],
   ]);
+}
+
+// Retention: removes every chat with no activity for the given number of days.
+// Their messages go with them (ON DELETE CASCADE). Returns how many were removed.
+export async function deleteInactiveConversations(days) {
+  const d = await db();
+  const rows = await d.query(
+    `DELETE FROM conversations WHERE updated_at < now() - make_interval(days => $1) RETURNING id`, [days]);
+  return rows.length;
 }
 
 export async function deleteConversation(userId, conversationId) {

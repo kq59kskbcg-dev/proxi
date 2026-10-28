@@ -1,6 +1,7 @@
 {
   "ignoreCommand": "git diff HEAD^ HEAD --quiet -- .",
   "regions": ["fra1"],
+  "crons": [{ "path": "/api/cleanup", "schedule": "17 3 * * *" }],
   "headers": [
     {
       "source": "/(.*)",
