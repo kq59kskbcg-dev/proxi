@@ -5,6 +5,8 @@ import { neon } from '@neondatabase/serverless';
 // never read or overwrite another user's chats.
 
 export const CONVERSATION_ID = /^[\w-]{1,64}$/;
+// Public link IDs: 16 random bytes in base64url, unrelated to the chat's own ID.
+export const SHARE_ID = /^[\w-]{22}$/;
 
 // "Delete chats after": the choices in Settings, and the default for users who never chose.
 export const RETENTION_OPTIONS = [7, 30, 90];
@@ -56,6 +58,8 @@ const SCHEMA = [
      user_id text PRIMARY KEY,
      chat_retention_days int NOT NULL CHECK (chat_retention_days IN (7, 30, 90)),
      updated_at timestamptz NOT NULL DEFAULT now())`,
+  // Set while a chat is shared with a public link. Deleting the chat removes the link with it.
+  `ALTER TABLE conversations ADD COLUMN IF NOT EXISTS share_id text UNIQUE`,
 ];
 
 async function db() {
@@ -69,8 +73,8 @@ async function db() {
 export async function listConversations(userId) {
   const d = await db();
   const rows = await d.query(
-    'SELECT id, title, updated_at FROM conversations WHERE user_id = $1 ORDER BY updated_at DESC LIMIT 200', [userId]);
-  return rows.map((r) => ({ id: r.id, title: r.title, updatedAt: new Date(r.updated_at).toISOString() }));
+    'SELECT id, title, updated_at, share_id FROM conversations WHERE user_id = $1 ORDER BY updated_at DESC LIMIT 200', [userId]);
+  return rows.map((r) => ({ id: r.id, title: r.title, updatedAt: new Date(r.updated_at).toISOString(), shareId: r.share_id ?? null }));
 }
 
 export async function getMessages(userId, conversationId) {
@@ -129,4 +133,36 @@ export async function saveSettings(userId, { chatRetentionDays }) {
 export async function deleteConversation(userId, conversationId) {
   const d = await db();
   await d.query('DELETE FROM conversations WHERE user_id = $1 AND id = $2', [userId, conversationId]);
+}
+
+// Shares one of the user's chats. Sharing again keeps the existing link. Returns
+// the link ID, or null when the chat doesn't exist (yet).
+export async function shareConversation(userId, conversationId, newShareId) {
+  const d = await db();
+  const rows = await d.query(
+    `UPDATE conversations SET share_id = COALESCE(share_id, $3) WHERE user_id = $1 AND id = $2 RETURNING share_id`,
+    [userId, conversationId, newShareId]);
+  return rows[0]?.share_id ?? null;
+}
+
+export async function unshareConversation(userId, conversationId) {
+  const d = await db();
+  await d.query('UPDATE conversations SET share_id = NULL WHERE user_id = $1 AND id = $2', [userId, conversationId]);
+}
+
+// A shared chat as anyone with the link sees it: title, last activity and messages.
+// Never includes who it belongs to. Returns null when the link doesn't exist.
+export async function getSharedConversation(shareId) {
+  const d = await db();
+  const chats = await d.query('SELECT user_id, id, title, updated_at FROM conversations WHERE share_id = $1', [shareId]);
+  if (!chats.length) return null;
+  const { user_id: userId, id, title, updated_at: updatedAt } = chats[0];
+  const rows = await d.query(
+    `SELECT role, content, attachments FROM messages
+     WHERE user_id = $1 AND conversation_id = $2 ORDER BY position`, [userId, id]);
+  return {
+    title,
+    updatedAt: new Date(updatedAt).toISOString(),
+    messages: rows.map((r) => ({ role: r.role, content: r.content, attachments: r.attachments ?? null })),
+  };
 }
