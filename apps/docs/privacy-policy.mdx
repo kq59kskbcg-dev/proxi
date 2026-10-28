@@ -18,7 +18,7 @@ Lisandro Vaccaro is the data controller for personal data processed through Prox
 | Account data | Email address, name, profile picture | You, when you create an account |
 | Chat content | Your messages and Proxi's replies, after redaction | You, when you use the chat |
 | Attachments | Files you attach to a message | You. Files are processed for that one request and not stored |
-| Usage and monitoring data | Your account ID, the model used, token counts, errors | Generated when you use Proxi |
+| Usage and monitoring data | Redacted messages, the model used, token counts, errors. Monitoring traces don't include your account ID | Generated when you use Proxi, except in temporary chats |
 | Feedback | Thumbs up or down on a reply | You |
 | Technical data | IP address, browser details, request logs | Your device, when you visit |
 
@@ -62,6 +62,7 @@ Some providers are based in the United States, so your data may be transferred o
 | Chats | Until you delete the chat or your account |
 | Attachments | Not stored. Used for one request only |
 | Monitoring traces and feedback | As long as needed to operate and debug Proxi, and deleted on request |
+| Temporary chats | Not stored and not traced |
 | Technical logs | According to our hosting provider's standard log retention |
 
 ## Your rights
