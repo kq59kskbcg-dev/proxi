@@ -296,15 +296,13 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
     <template v-if="v.isNew">
       <section style="flex: 1 1 0; display: flex; flex-direction: column; justify-content: flex-end; padding: 24px 24px 0">
         <div style="display: flex; justify-content: center; margin-bottom: 16px">
-          <button class="hov" type="button" :aria-pressed="v.temporaryPressed" @click="v.toggleTemporary" :style="`height: 36px; border: 1px solid ${v.temporaryBorder}; background: ${v.temporaryBg}; border-radius: 18px; padding: 0 14px; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: #111111; cursor: pointer`">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke-dasharray="3 3"></circle><path d="M12 7v5l3 2"></path></svg>
+          <button class="hov" type="button" :aria-pressed="v.temporaryPressed" :title="v.temporaryHint" @click="v.toggleTemporary" :style="`height: 36px; border: 1px solid ${v.temporaryBorder}; background: ${v.temporaryBg}; color: ${v.temporaryColor}; border-radius: 18px; padding: 0 14px; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; cursor: pointer`">
+            <template v-if="v.temporary"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"></path></svg></template>
+            <template v-if="v.notTemporary"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke-dasharray="3 3"></circle><path d="M12 7v5l3 2"></path></svg></template>
             Temporary chat
           </button>
         </div>
-        <h1 style="margin: 0 0 28px; text-align: center; font-size: 32px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.2">{{ v.newHeading }}</h1>
-        <template v-if="v.temporary">
-          <p style="margin: -16px auto 28px; max-width: 460px; text-align: center; font-size: 14px; color: #52525B; line-height: 1.5">This chat won't be saved or shown in your history, and it isn't used for monitoring.</p>
-        </template>
+        <h1 style="margin: 0 0 28px; text-align: center; font-size: 32px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.2">What can I help with?</h1>
       </section>
     </template>
 
@@ -1026,10 +1024,12 @@ class Component extends DCLogic {
       chatTitle: conv ? (conv.temporary ? 'Temporary chat' : conv.title) : '',
       temporary: s.temporary,
       temporaryPressed: s.temporary ? 'true' : 'false',
-      temporaryBg: s.temporary ? '#EFE8FF' : '#FFFFFF',
-      temporaryBorder: s.temporary ? '#6D28FF' : '#E7E5EE',
+      notTemporary: !s.temporary,
+      temporaryBg: s.temporary ? '#111111' : '#FFFFFF',
+      temporaryBorder: s.temporary ? '#111111' : '#E7E5EE',
+      temporaryColor: s.temporary ? '#FFFFFF' : '#111111',
+      temporaryHint: "Temporary chats aren't saved or shown in your history",
       toggleTemporary: () => this.setState({ temporary: !s.temporary }),
-      newHeading: s.temporary ? 'Temporary chat' : 'What can I help with?',
       chatMenu: s.chatMenu,
       chatMenuExpanded: s.chatMenu ? 'true' : 'false',
       toggleChatMenu: () => this.setState({ chatMenu: !s.chatMenu, modelMenu: false, userMenu: false }),
