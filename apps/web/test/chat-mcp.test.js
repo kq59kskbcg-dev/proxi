@@ -105,6 +105,9 @@ test('the agent discovers get_status over MCP and calls it', { skip }, async () 
   assert.match(text, /Proxi is up \(status: ok\)/);
   assert.equal(events.at(-1).type, 'done');
   assert.equal(events.at(-1).stopReason, 'end_turn');
+  const activity = events.find((e) => e.type === 'activity');
+  assert.deepEqual(activity, { type: 'activity', label: "Checking Proxi's status", done: "Checked Proxi's status" });
+  assert.ok(events.indexOf(activity) < events.findIndex((e) => e.type === 'text'), 'activity is sent before the reply text');
 });
 
 test('search_docs results come back citable and the reply cites them', { skip }, async () => {

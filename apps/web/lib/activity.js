@@ -1,0 +1,24 @@
+// Short, friendly descriptions of what the agent is doing, shown while a reply
+// is being prepared. Known tools get hand-written wording; any other MCP tool
+// falls back to its title.
+
+const KNOWN = {
+  search_docs: (input) => ({
+    label: quoted('Searching the help center', input?.query),
+    done: 'Searched the help center',
+  }),
+  get_status: () => ({ label: "Checking Proxi's status", done: "Checked Proxi's status" }),
+};
+
+export function toolActivity(name, title, input) {
+  const known = KNOWN[name];
+  if (known) return known(input);
+  const what = title || name;
+  return { label: `Using ${what}`, done: `Used ${what}` };
+}
+
+function quoted(text, query) {
+  if (typeof query !== 'string' || !query.trim()) return text;
+  const q = query.trim().replace(/\s+/g, ' ');
+  return `${text} for "${q.length > 50 ? q.slice(0, 50).trim() + '...' : q}"`;
+}
