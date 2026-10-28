@@ -317,12 +317,12 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
           <h1 style="margin: 0; text-align: center; font-size: 32px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.2">What can I help with?</h1>
         </template>
         <template v-if="v.temporary">
-          <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center">
+          <div style="position: relative; display: flex; flex-direction: column; align-items: center; text-align: center">
             <div style="display: flex; align-items: center; gap: 10px">
               <svg :style="`flex: none; color: ${v.accent}`" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke-dasharray="3 3"></circle><path d="M12 7v5l3 2"></path></svg>
               <h1 style="margin: 0; font-size: 32px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.2">Temporary chat</h1>
             </div>
-            <p style="margin: 0; font-size: 14px; color: #52525B">Not saved or shown in your history.</p>
+            <p style="position: absolute; top: 100%; left: 50%; transform: translateX(-50%); width: max-content; max-width: calc(100vw - 48px); margin: 6px 0 0; font-size: 14px; color: #52525B">Not saved or shown in your history.</p>
           </div>
         </template>
       </section>
@@ -374,7 +374,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
         </div>
       </template>
       <form @submit="v.onSubmit" :style="`max-width: ${v.composerMax}; margin: 0 auto; display: flex; flex-direction: column; gap: 10px`">
-        <div class="composer" :class="{ drop: v.dragging }" :style="`border: 1px solid ${v.composerBorder}; border-radius: ${v.composerRadius}; padding: ${v.composerPadding}`" style="background: #FFFFFF; box-shadow: 0 4px 18px rgba(24,24,27,0.06); display: flex; flex-wrap: wrap; align-items: flex-end; gap: 4px 4px">
+        <div class="composer" :class="{ drop: v.dragging }" :style="`border: 1px ${v.composerBorderStyle} ${v.composerBorder}; border-radius: ${v.composerRadius}; padding: ${v.composerPadding}`" style="background: #FFFFFF; box-shadow: 0 4px 18px rgba(24,24,27,0.06); display: flex; flex-wrap: wrap; align-items: flex-end; gap: 4px 4px">
           <input type="file" multiple hidden tabindex="-1" aria-hidden="true" :accept="v.accept" :ref="v.fileRef" @change="v.onFiles">
           <template v-if="v.pending.length">
             <div style="flex: 1 0 100%; display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 4px">
@@ -1139,7 +1139,8 @@ class Component extends DCLogic {
       temporaryBorder: s.temporary ? accent : '#E7E5EE',
       temporaryColor: s.temporary ? '#FFFFFF' : '#52525B',
       temporaryHint: "Temporary chats aren't saved or shown in your history",
-      composerBorder: (isNew && s.temporary) || (isChat && conv.temporary) ? '#CDB8FF' : '#D4D4DA',
+      composerBorder: (isNew && s.temporary) || (isChat && conv.temporary) ? '#A78BFA' : '#D4D4DA',
+      composerBorderStyle: (isNew && s.temporary) || (isChat && conv.temporary) ? 'dashed' : 'solid',
       toggleTemporary: () => this.setState({ temporary: !s.temporary }),
       chatMenu: s.chatMenu,
       chatMenuExpanded: s.chatMenu ? 'true' : 'false',
