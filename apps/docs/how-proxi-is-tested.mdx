@@ -1,0 +1,99 @@
+---
+title: "How Proxi is tested"
+description: "The layers of testing that keep Proxi's answers correct, safe and consistent."
+---
+
+No single test catches every problem. Each one has gaps, like slices of Swiss cheese, and a problem that slips through one layer is caught by another. Proxi uses four layers, from before a change ships to after real people use it. The approach follows [Anthropic's guidance on evaluating AI agents](https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents).
+
+| Layer | When | Needs a known answer? |
+|---|---|---|
+| Offline evals | Before every release | Yes, for most checks |
+| Online evals | On live traffic | No |
+| User feedback | Always | No |
+| Human calibration | Regularly | Uses human ratings as the reference |
+
+## 1. Offline evals
+
+Offline evals run before a change goes live. They use datasets in Langfuse: test cases with an input and, where it makes sense, a known good answer. Any change to a prompt, the agent's code, a tool or the docs is tested this way, and a change that fails is blocked. Failures found later are added to these datasets, as described in section 5.
+
+<Card title="Classifiers" icon="tags">
+  The small helpers that detect the language and detect a request to speak with a person are tested on messages with one correct answer. A Spanish question must be classified `es`, and "Who is Lisandro?" must not trigger an escalation. The output must match exactly, and every case must pass.
+</Card>
+
+<Card title="Snippets" icon="puzzle-piece">
+  The shared instruction snippets for tone, privacy and each language are tested by their effect on replies. The Spanish snippet must produce a Spanish reply in the right form of address. The privacy snippet must stop Proxi from asking again for details that were redacted, such as an email or a card number.
+</Card>
+
+<Card title="Tool selection" icon="plug">
+  A judge checks whether Proxi picked the right tool: the docs search for questions about Proxi itself, the web search only for current facts, and no tool for simple questions.
+</Card>
+
+<Card title="Dataset items for specific tools" icon="book-open">
+  Some dataset items exist to test one tool end to end. The docs search items ask a common question for each help center page and run it through the real tools. They check that the right page was found and that the reply is grounded in it, using a reference answer.
+</Card>
+
+Ten AI judges score every offline reply from 1 to 5: correctness, groundedness, privacy, tool use, resolution, completeness, clarification, tone, context relevance and context recall. Correctness, groundedness, privacy and tool use are strict, and every item must score at least 4. The others are judged on the average. How the judges themselves are tested is covered in section 4.
+
+## 2. Online evals
+
+Online evals score a sample of real replies after release. Live traffic has no known good answer, so only judges that work without one are used:
+
+- **Groundedness:** is every claim supported by the retrieved docs?
+- **Privacy:** does the reply ask for redacted details again or repeat personal data?
+- **Tool use:** was the right tool used for this question?
+- **Context relevance:** were the retrieved docs relevant to the question?
+- **Resolution:** did the reply solve the user's problem?
+- **Completeness:** did the reply cover every part of the question?
+- **Clarification:** did it ask a question only when needed?
+- **Tone:** is the reply warm, plain and concise?
+
+Correctness and context recall need a reference answer, so they stay offline. Every live reply is traced in Langfuse with its messages (already redacted), tool calls, prompt version, detected language and whether the user asked for a person, and the online scores are saved on those traces. A drop in any score shows up before anyone has to report it.
+
+## 3. User feedback
+
+A thumbs up or down on a reply is saved as a score on its trace. Low-rated replies, and replies the online judges flagged, go to the review queue described below. Nothing is added to the datasets automatically: a reviewer decides whether each one is a real issue.
+
+## 4. Human calibration
+
+AI judges can be wrong, so they are checked against people. This is the only layer that tells us whether a judge can be trusted.
+
+<Steps>
+  <Step title="Queue">
+    Langfuse has an annotation queue. Replies land in it when a person gives a thumbs down, an online judge gives a low score, or a reply is picked at random.
+  </Step>
+  <Step title="Review">
+    A subject matter expert, such as someone who knows the privacy and security details, opens the queue and goes through the items one at a time. For each one they give the same scores the judges give and add a short comment. If it is a real issue, they write the answer the reply should have given and add the question to the offline datasets, so the same mistake is tested from then on. If it isn't, they dismiss it. A review session takes a few minutes.
+  </Step>
+  <Step title="Compare">
+    Langfuse shows the expert's score next to the judge's score on every reply. A judge is trusted only when it agrees with the expert on nearly every reply, and it never rates a reply the expert marked bad as good.
+  </Step>
+  <Step title="Fix">
+    If a judge disagrees, its prompt is corrected and tested again before its scores are used. The expert's corrected answers are added to the offline datasets.
+  </Step>
+</Steps>
+
+Each expert reviews a small, regular batch, so the work stays light while the judges are kept honest.
+
+## 5. Real failures and regression evals
+
+Offline evals come in two kinds. **Capability evals** ask what Proxi can do well, and they start with a low pass rate that the team works to raise. **Regression evals** ask whether Proxi still handles what it handled before, and they are expected to pass every time. Every real failure ends up as a regression eval.
+
+<Steps>
+  <Step title="Find">
+    A failure surfaces from user feedback, an online judge or a reviewer looking through the queue.
+  </Step>
+  <Step title="Confirm">
+    A reviewer decides whether it is a real issue. Nothing is added automatically, because a thumbs down or a low judge score does not always mean a failure.
+  </Step>
+  <Step title="Capture">
+    The reviewer writes the correct answer and adds the question to the dataset for the part of Proxi that failed: the classifiers, the docs search or the general question set. It starts as a failing test.
+  </Step>
+  <Step title="Fix">
+    The prompt, the code, the tool or the docs is changed until the new test passes, and the full suite still passes.
+  </Step>
+  <Step title="Protect">
+    From then on the case is part of the regression set. It runs on every change, and any change that breaks it is blocked.
+  </Step>
+</Steps>
+
+A capability eval whose pass rate reaches 100% moves into the regression set the same way. The regression set grows only with confirmed issues and proven wins, so a failing result always means something got worse.
