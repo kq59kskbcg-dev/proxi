@@ -27,33 +27,28 @@ description: "How Proxi handles your data."
 
 How Proxi handles chats next to the ChatGPT and Claude apps, based on their published help pages in October 2026. Policies change, so check theirs for the latest. Proxi uses Claude through Anthropic's API, which has its own terms: Anthropic does not train on customer content sent that way.
 
-**Incognito chats**
-
-| | Proxi | ChatGPT app | Claude app |
-|---|---|---|---|
-| Kept out of your history and search | ✓ | ✓ | ✓ |
-| Kept out of memory | ✓ | ✓ | ✓ |
-| Never used to train AI models | ✓ | ✓ | ✓ |
-| No copy kept by the app itself | ✓ | ✗ | ✗ |
-
-Proxi has no memory feature, so there is nothing for an incognito chat to leave out. The ChatGPT and Claude apps keep a copy of an incognito chat for up to 30 days for safety, even though it stays out of your history, memory and training. Proxi keeps none. The reply is written by Claude, so Anthropic's own terms still apply to that request, and Anthropic may keep API requests for a short time.
-
 **Normal chats**
 
 | | Proxi | ChatGPT app | Claude app |
 |---|---|---|---|
 | Not used to train AI models by default | ✓ | ✗ | ✗ |
+| The model provider never receives your name, email, account or IP address | ✓ | ✗ | ✗ |
+| Card numbers, IBANs, emails and phone numbers removed before the model | ✓ | ✗ | ✗ |
 
-The ChatGPT and Claude apps use consumer chats for training unless you turn that off in your settings.
+The ChatGPT and Claude apps use consumer chats for training unless you turn that off in your settings. They also tie your chats to your account. In Proxi, Anthropic only sees the redacted messages, so it can't tell who is writing. Names and addresses you type into a chat are not removed, so a chat can still identify you if you include them.
 
-**What Proxi adds to every chat**
+**Incognito chats**
 
 | | Proxi | ChatGPT app | Claude app |
 |---|---|---|---|
-| Card numbers, IBANs, emails and phone numbers removed before the model | ✓ | ✗ | ✗ |
+| Never used to train AI models | ✓ | ✓ | ✓ |
+| No copy kept by the app itself | ✓ | ✗ | ✗ |
 | The model provider never receives your name, email, account or IP address | ✓ | ✗ | ✗ |
+| Card numbers, IBANs, emails and phone numbers removed before the model | ✓ | ✗ | ✗ |
+| Kept out of your history and search | ✓ | ✓ | ✓ |
+| Kept out of memory | ✓ | ✓ | ✓ |
 
-In the ChatGPT and Claude apps, your chats are tied to your account. In Proxi, Anthropic only sees the redacted messages, so it can't tell who is writing. Names and addresses you type into a chat are not removed, so a chat can still identify you if you include them.
+The ChatGPT and Claude apps keep a copy of an incognito chat for up to 30 days for safety, even though it stays out of your history, memory and training. Proxi keeps none. The reply is written by Claude, so Anthropic's own terms still apply to that request, and Anthropic may keep API requests for a short time. Proxi has no memory feature, so there is nothing for an incognito chat to leave out.
 
 Sources: OpenAI's [Temporary Chat](https://help.openai.com/en/articles/8914046-temporary-chat-in-chatgpt) and [data usage for consumers](https://help.openai.com/en/articles/7730893-data-usage-for-consumers) pages, and Anthropic's [incognito chats](https://support.claude.com/en/articles/12260368-use-incognito-chats) page.
 
