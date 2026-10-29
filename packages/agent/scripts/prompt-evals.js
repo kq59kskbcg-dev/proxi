@@ -1,7 +1,7 @@
 // Runs a prompt version over its eval dataset in Langfuse. Used by `npm run eval` and
 // `npm run promote`, so a prompt only reaches production after it passes.
 
-import { TITLE_MODEL } from '../lib/title.js';
+import { TITLE_MODEL } from '../src/title.js';
 
 // Prompts that have an eval. Each dataset item has the prompt's variables as its input and
 // the exact expected reply as its expected output.

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { cleanTitle, makeTitle } from '../lib/title.js';
+import { cleanTitle, makeTitle } from '../src/title.js';
 
 test('titles are cleaned of quotes, labels and ending punctuation', () => {
   assert.equal(cleanTitle('"Planning a trip to Rome."'), 'Planning a trip to Rome');

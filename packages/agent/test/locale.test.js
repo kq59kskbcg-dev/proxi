@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { detectLanguage, getLocale } from '../lib/locale.js';
+import { detectLanguage, getLocale } from '../src/locale.js';
 
 const langfuse = { getPrompt: async () => ({ compile: ({ message }) => `Language of: ${message}` }) };
 const reply = (text) => ({ messages: { create: async (params) => {

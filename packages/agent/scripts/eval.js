@@ -2,7 +2,7 @@
 // Needs LANGFUSE_PUBLIC_KEY, LANGFUSE_SECRET_KEY (and LANGFUSE_BASE_URL if not the EU cloud) and ANTHROPIC_API_KEY.
 
 import Anthropic from '@anthropic-ai/sdk';
-import { getLangfuse } from '../lib/langfuse.js';
+import { getLangfuse } from '../src/langfuse.js';
 import { evalPrompt, report } from './prompt-evals.js';
 
 const [name, versionArg] = process.argv.slice(2);

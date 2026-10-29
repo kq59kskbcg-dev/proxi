@@ -1,15 +1,15 @@
 import Anthropic from '@anthropic-ai/sdk';
-import { redact } from '../lib/redact.js';
+import { redact } from '@proxi/agent/redact';
 import { rateLimit } from '../lib/ratelimit.js';
 import { requireUser } from '../lib/auth.js';
-import { getLangfuse, getSystemPrompt } from '../lib/langfuse.js';
+import { getLangfuse, getSystemPrompt } from '@proxi/agent/langfuse';
 import { CONVERSATION_ID, hasDatabase, saveConversation, conversationAttributes } from '../lib/db.js';
 import { customInstructions, withInstructions } from '../lib/instructions.js';
 import { processAttachments, AttachmentError, KINDS, MAX_ATTACHMENTS } from '../lib/attachments.js';
-import { getMcpTools } from '../lib/mcp.js';
-import { makeTitle } from '../lib/title.js';
-import { getLocale } from '../lib/locale.js';
-import { getEscalation } from '../lib/escalation.js';
+import { getMcpTools } from '@proxi/agent/mcp';
+import { makeTitle } from '@proxi/agent/title';
+import { getLocale } from '@proxi/agent/locale';
+import { getEscalation } from '@proxi/agent/escalation';
 import { toolActivity } from '../lib/activity.js';
 
 // Only these models can be requested from the browser.

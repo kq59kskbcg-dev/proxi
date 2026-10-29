@@ -3,7 +3,7 @@
 // is refused unless --skip-eval is given on purpose.
 
 import Anthropic from '@anthropic-ai/sdk';
-import { getLangfuse } from '../lib/langfuse.js';
+import { getLangfuse } from '../src/langfuse.js';
 import { DATASETS, evalPrompt, report } from './prompt-evals.js';
 
 const args = process.argv.slice(2);

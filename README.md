@@ -9,7 +9,8 @@ AI chat assistant built on Claude, deployed on Vercel, with a Mintlify help cent
 | `apps/web` | The chat app: page, API functions, tests and Vercel config | Vercel (Root Directory: `apps/web`) |
 | `apps/web/index.html` | The app itself (Vue 3 from a CDN, no build step) | |
 | `apps/web/api/` | Serverless functions: `chat.js` (streams replies from Claude), `conversations.js` (saved chats), `feedback.js` (thumbs up / down) | |
-| `apps/web/lib/` | Sign-in checks, redaction, attachment checks, rate limiting, chat storage and Langfuse setup | |
+| `apps/web/lib/` | Sign-in checks, attachment checks, rate limiting and chat storage | |
+| `packages/agent` | The agent: Langfuse prompts, language and escalation checks, titles, redaction, tool access, and the prompt evals (`npm run eval`, `npm run promote`). Shared by every channel | Imported by `apps/web` |
 | `apps/web/test/` | Unit tests (`node --test`) | |
 | `apps/web/testing/` | Helpers shared by the tests | |
 | `apps/web/vercel.json` | Region and security headers, including the Content Security Policy | |
@@ -36,7 +37,7 @@ AI chat assistant built on Claude, deployed on Vercel, with a Mintlify help cent
 | `CRON_SECRET` | Random secret that lets Vercel's daily cron run `/api/cleanup`, which deletes chats inactive for longer than each user's "Delete chats after" setting (7, 30 or 90 days, default 30). Without it, cleanup refuses to run. |
 | `MCP_URL` | Optional: the MCP server's address, e.g. `https://<mcp-project>.vercel.app/mcp` |
 
-The system prompt can be edited in Langfuse as a text prompt named `main-system` with the label `production`. Without it, the built-in prompt in `apps/web/lib/langfuse.js` is used.
+The system prompt can be edited in Langfuse as a text prompt named `main-system` with the label `production`. Without it, the built-in prompt in `packages/agent/src/langfuse.js` is used.
 
 ## Tests
 

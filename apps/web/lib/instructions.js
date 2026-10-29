@@ -1,4 +1,4 @@
-import { redact } from './redact.js';
+import { redact } from '@proxi/agent/redact';
 import { hasDatabase, getSettings } from './db.js';
 
 // The user's custom instructions from Settings, redacted like their messages. If

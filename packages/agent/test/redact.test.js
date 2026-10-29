@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { redact } from '../lib/redact.js';
+import { redact } from '../src/redact.js';
 
 test('masks valid card numbers in common formats', () => {
   for (const card of ['4111111111111111', '4111 1111 1111 1111', '5500-0000-0000-0004', '378282246310005']) {
@@ -52,7 +52,7 @@ test('dates are not mistaken for phone numbers, real numbers still are', () => {
 });
 
 test('tool inputs are redacted before they leave Proxi', async () => {
-  const { redactArgs } = await import('../lib/mcp.js');
+  const { redactArgs } = await import('../src/mcp.js');
   assert.deepEqual(redactArgs({ query: 'invoice for jane@example.com', limit: 5, tags: ['call 06 12345678'] }),
     { query: 'invoice for [EMAIL]', limit: 5, tags: ['call [PHONE]'] });
 });

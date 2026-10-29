@@ -1,4 +1,4 @@
-import { getLangfuse } from '../lib/langfuse.js';
+import { getLangfuse } from '@proxi/agent/langfuse';
 import { rateLimit } from '../lib/ratelimit.js';
 import { requireUser } from '../lib/auth.js';
 

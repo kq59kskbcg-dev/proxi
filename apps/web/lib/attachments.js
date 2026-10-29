@@ -1,4 +1,4 @@
-import { redact } from './redact.js';
+import { redact } from '@proxi/agent/redact';
 
 // Turns the files attached to a message into Claude content blocks.
 // Files are checked by their actual bytes, never by the name or type the browser
