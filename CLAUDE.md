@@ -25,7 +25,7 @@ The help center (`apps/docs`) is public. Write it for people who use Proxi, or w
 Belongs in the docs:
 - What users can do and how: features, settings, limits they will notice (like the 50 memory limit).
 - What happens to their data: what is stored, for how long, who processes it, and how to delete it.
-- Known limitations that affect privacy or trust, stated plainly.
+- Limitations that affect privacy or trust, in one plain sentence each. Skip minor ones.
 - How Proxi is built and tested, at the level of the architecture and testing pages.
 
 Never in the docs:
@@ -37,5 +37,6 @@ Never in the docs:
 How to make claims:
 - Describe only what the code does today. When unsure, check the code or leave it out.
 - Claims about other products need a source link and a date, and must be checked against the provider's own pages.
-- Avoid absolute words like "anonymous", "never" or "fully private" unless they are true without exceptions. If there's an exception, state it next to the claim.
+- Keep claims short and true. Don't use absolute words like "anonymous" or "fully private" when they would mislead, and add at most one short qualifier when needed. Don't list every exception.
+- Don't add caveats, disclaimers or limitations the reader doesn't need. One clear sentence beats a hedged paragraph.
 - When a change removes or renames a feature, update or remove every mention of it.
