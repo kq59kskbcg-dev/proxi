@@ -1,0 +1,42 @@
+name: Docs evals
+
+# Asks the agent the help center questions in Langfuse and scores the answers. Make this a
+# required check in the branch protection rules to block changes that make answers worse.
+on:
+  pull_request:
+    paths:
+      - 'packages/agent/**'
+      - 'apps/mcp/**'
+      - 'apps/web/api/chat.js'
+      - 'evals/**'
+      - 'package-lock.json'
+      - '.github/workflows/docs-evals.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  search-docs:
+    # Secrets are not available to pull requests from forks.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm ci --prefix apps/mcp
+      - run: npm test -w @proxi/evals
+      - name: Search docs evals
+        run: npm run search-docs -w @proxi/evals
+        env:
+          LANGFUSE_PUBLIC_KEY: ${{ secrets.LANGFUSE_PUBLIC_KEY }}
+          LANGFUSE_SECRET_KEY: ${{ secrets.LANGFUSE_SECRET_KEY }}
+          LANGFUSE_BASE_URL: ${{ vars.LANGFUSE_BASE_URL }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          MINTLIFY_API_KEY: ${{ secrets.MINTLIFY_API_KEY }}
+          EVAL_RUN_NAME: pr-${{ github.event.pull_request.number || github.run_id }}-${{ github.sha }}

@@ -1,0 +1,13 @@
+{
+  "name": "@proxi/evals",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test",
+    "search-docs": "node search-docs.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "1.3.0",
+    "@proxi/agent": "*"
+  }
+}
