@@ -26,13 +26,13 @@
 :root{--app-h:100vh;color-scheme:light;
 --bg:#FAFAFB;--surface:#FFFFFF;--side:#F6F5F9;--sunken:#F1F1F4;--soft:#FBFBFC;--hover-solid:#F4F4F6;--hover:rgba(24,24,27,0.06);
 --divider:#EDEDF0;--disabled:#E4E4E8;--border:#E7E5EE;--border-strong:#D4D4DA;--border-hover:#C4C4CC;
---accent-line:#DDD6FE;--accent-soft:#EFE8FF;--temp-border:#A78BFA;--link:#6D28FF;--link-hover:#5214E0;
+--accent-line:#DDD6FE;--accent-soft:#EFE8FF;--temp-border:#A1A1AA;--link:#6D28FF;--link-hover:#5214E0;
 --text:#111111;--text-code:#27272A;--text-2:#3F3F46;--text-muted:#52525B;--text-muted-2:#5C5C66;--text-muted-3:#63636B;--placeholder:#6B6B74;--text-disabled:#71717A;
 --danger:#B42318;--inverse:#111111;--inverse-hover:#2A2A2E;--on-inverse:#FFFFFF}
 :root[data-theme="dark"]{color-scheme:dark;
 --bg:#121116;--surface:#18171D;--side:#141318;--sunken:#26242D;--soft:#1E1D24;--hover-solid:#24222B;--hover:rgba(255,255,255,0.07);
 --divider:#26242D;--disabled:#2E2C36;--border:#2C2A34;--border-strong:#3A3843;--border-hover:#4A4754;
---accent-line:#4A3B82;--accent-soft:#2A2340;--temp-border:#8B76D9;--link:#A78BFA;--link-hover:#C4B5FD;
+--accent-line:#4A3B82;--accent-soft:#2A2340;--temp-border:#6B6A75;--link:#A78BFA;--link-hover:#C4B5FD;
 --text:#ECEBF1;--text-code:#DAD9E0;--text-2:#C9C8D1;--text-muted:#A9A8B3;--text-muted-2:#A1A0AB;--text-muted-3:#9A99A4;--placeholder:#8A8994;--text-disabled:#7D7C87;
 --danger:#F97066;--inverse:#ECEBF1;--inverse-hover:#D6D5DD;--on-inverse:#111111}
 @supports (height:100dvh){:root{--app-h:100dvh}}
@@ -436,10 +436,10 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
         <template v-if="v.temporary">
           <div style="position: relative; display: flex; flex-direction: column; align-items: center; text-align: center">
             <div style="display: flex; align-items: center; gap: 10px">
-              <svg :style="`flex: none; color: ${v.accent}`" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 8.5 8.5 0 0 1-3.8-.9L3 21l1.9-5.7A8.4 8.4 0 0 1 3 11.5 8.5 8.5 0 0 1 12 3a8.5 8.5 0 0 1 9 8.5z" stroke-dasharray="3 3"></path></svg>
+              <svg style="flex: none; color: var(--text-muted)" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 8.5 8.5 0 0 1-3.8-.9L3 21l1.9-5.7A8.4 8.4 0 0 1 3 11.5 8.5 8.5 0 0 1 12 3a8.5 8.5 0 0 1 9 8.5z" stroke-dasharray="3 3"></path></svg>
               <h1 style="margin: 0; font-size: 32px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.2">Incognito chat</h1>
             </div>
-            <p style="position: absolute; top: 100%; left: 50%; transform: translateX(-50%); width: max-content; max-width: min(480px, calc(100vw - 48px)); margin: 6px 0 0; font-size: 14px; color: var(--text-muted)">Incognito chats stay out of our records, and aren't used to train AI models. <a :href="v.docsIncognito" target="_blank" rel="noopener noreferrer" style="color: var(--link); text-decoration: underline">Learn more</a></p>
+            <p style="position: absolute; top: 100%; left: 50%; transform: translateX(-50%); width: max-content; max-width: min(600px, calc(100vw - 48px)); margin: 6px 0 0; font-size: 14px; color: var(--text-muted)">Incognito chats stay out of our records, and aren't used to train AI models. <a :href="v.docsIncognito" target="_blank" rel="noopener noreferrer" style="color: var(--text); text-decoration: underline; text-underline-offset: 2px">Learn more</a></p>
           </div>
         </template>
       </section>
@@ -526,7 +526,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
         <div aria-hidden="true" style="position: absolute; left: 0; right: 0; top: -40px; height: 40px; background: linear-gradient(to bottom, transparent, var(--surface)); pointer-events: none"></div>
       </template>
       <template v-if="v.showChips">
-        <div :style="`max-width: ${v.composerMax}; margin: 0 auto 10px; display: flex; flex-direction: column; align-items: flex-start; gap: 8px`">
+        <div :style="`max-width: ${v.composerMax}; margin: 0 auto 10px; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px`">
           <template v-for="(ch, i_ch) in v.chips" :key="i_ch">
             <button class="chip" type="button" @click="ch.pick" style="border: 1px solid var(--border); background: var(--surface); border-radius: 999px; padding: 0 14px; height: 34px; font-size: 13px; font-weight: 500; color: var(--text-2); cursor: pointer">{{ ch.label }}</button>
           </template>
@@ -557,7 +557,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
           <button class="hov" type="button" aria-label="Attach file" @click="v.attach" :style="`order: ${v.attachOrder}`" style="flex: none; width: 44px; height: 44px; border: 0; background: transparent; border-radius: 50%; color: var(--text-2); display: flex; align-items: center; justify-content: center; cursor: pointer"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5l-8.6 8.6a5 5 0 0 1-7-7l8.6-8.6a3.3 3.3 0 0 1 4.7 4.7l-8.6 8.6a1.7 1.7 0 0 1-2.4-2.4l8-8"></path></svg></button>
           <textarea id="composer" :ref="v.taRef" rows="1" placeholder="Message Proxi" :value="v.draft" @input="v.onDraft" @keydown="v.onKey" @paste="v.onPaste" :style="`order: ${v.textOrder}; flex: ${v.textFlex}; padding: ${v.textPadding}`" style="min-width: 0; box-sizing: border-box; height: 44px; border: 0; resize: none; outline: none; font-size: 16px; line-height: 24px; color: var(--text); background: transparent; overflow-y: hidden"></textarea>
           <div style="order: 3; margin-left: auto; position: relative; display: flex; align-items: center; gap: 4px">
-            <button class="hov" type="button" :aria-label="`Model: ${v.model}, change model`" :aria-expanded="v.modelMenuExpanded" @click="v.toggleModelMenu" style="margin-left: auto; height: 44px; border: 0; background: transparent; border-radius: 22px; padding: 0 4px; display: flex; align-items: center; cursor: pointer"><span style="height: 34px; padding: 0 10px 0 12px; border-radius: 17px; background: var(--accent-soft); display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: var(--text)"><span :style="`width: 8px; height: 8px; border-radius: 50%; background: ${v.accent}`"></span><span>{{ v.modelName }}<span class="model-ver">&nbsp;{{ v.modelVersion }}</span></span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg></span></button>
+            <button class="hov" type="button" :aria-label="`Model: ${v.model}, change model`" :aria-expanded="v.modelMenuExpanded" @click="v.toggleModelMenu" style="margin-left: auto; height: 44px; border: 0; background: transparent; border-radius: 22px; padding: 0 4px; display: flex; align-items: center; cursor: pointer"><span style="height: 34px; padding: 0 6px 0 8px; display: flex; align-items: center; gap: 4px; font-size: 13px; font-weight: 500; color: var(--text-muted)"><span>{{ v.modelName }}<span class="model-ver">&nbsp;{{ v.modelVersion }}</span></span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg></span></button>
             <template v-if="v.modelMenu">
               <div class="pop" role="menu" style="position: absolute; bottom: 52px; right: 44px; z-index: 31; width: 220px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 8px 24px rgba(24,24,27,0.12); padding: 6px">
                 <template v-for="(o, i_o) in v.models" :key="i_o">
@@ -1402,7 +1402,7 @@ class Component extends DCLogic {
         title: c.title,
         cls: on ? '' : 'hov',
         current: on ? 'page' : 'false',
-        bg: on ? 'var(--accent-soft)' : 'transparent',
+        bg: on ? 'var(--sunken)' : 'transparent',
         shadow: 'none',
         color: on ? 'var(--text)' : 'var(--text-2)',
         weight: on ? '500' : '400',
@@ -1420,7 +1420,7 @@ class Component extends DCLogic {
       const on = k === 'new' ? isNew : s.view === k;
       nav[k + 'Cls'] = on ? '' : 'hov';
       nav[k + 'Cur'] = on ? 'page' : 'false';
-      nav[k + 'Bg'] = on ? 'var(--accent-soft)' : 'transparent';
+      nav[k + 'Bg'] = on ? 'var(--sunken)' : 'transparent';
       nav[k + 'Shadow'] = 'none';
     });
 
@@ -1546,9 +1546,9 @@ class Component extends DCLogic {
       temporary: s.temporary,
       temporaryPressed: s.temporary ? 'true' : 'false',
       notTemporary: !s.temporary,
-      temporaryBg: s.temporary ? accent : 'var(--surface)',
-      temporaryBorder: s.temporary ? accent : 'var(--border)',
-      temporaryColor: s.temporary ? '#FFFFFF' : 'var(--text-muted)',
+      temporaryBg: s.temporary ? 'var(--inverse)' : 'var(--surface)',
+      temporaryBorder: s.temporary ? 'var(--inverse)' : 'var(--border)',
+      temporaryColor: s.temporary ? 'var(--on-inverse)' : 'var(--text-muted)',
       temporaryHint: s.temporary ? 'Incognito chat is on. Click to turn it off.' : 'Start an incognito chat',
       composerBorder: (isNew && s.temporary) || (isChat && conv.temporary) ? 'var(--temp-border)' : 'var(--border-strong)',
       composerBorderStyle: (isNew && s.temporary) || (isChat && conv.temporary) ? 'dashed' : 'solid',
