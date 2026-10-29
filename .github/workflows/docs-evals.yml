@@ -39,4 +39,5 @@ jobs:
           LANGFUSE_BASE_URL: ${{ vars.LANGFUSE_BASE_URL }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           MINTLIFY_API_KEY: ${{ secrets.MINTLIFY_API_KEY }}
+          MINTLIFY_DOMAIN: proxi # the docs site id Mintlify's search API expects, as in production
           EVAL_RUN_NAME: pr-${{ github.event.pull_request.number || github.run_id }}-${{ github.sha }}
