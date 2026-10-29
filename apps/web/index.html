@@ -450,6 +450,23 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
               <button type="button" :disabled="v.noSaveInstructions" @click="v.saveInstructions" :style="`height: 40px; border: 0; border-radius: 10px; padding: 0 18px; font-size: 14px; font-weight: 600; background: ${v.saveInstructionsBg}; color: ${v.saveInstructionsColor}; cursor: ${v.noSaveInstructions ? 'default' : 'pointer'}`">Save</button>
             </div>
           </div>
+          <div style="border: 1px solid var(--border); border-radius: 16px; padding: 20px; background: var(--surface); display: flex; flex-direction: column; gap: 12px">
+            <div style="display: flex; flex-direction: column; gap: 4px">
+              <h3 style="margin: 0; font-size: 16px; font-weight: 600">Memory</h3>
+              <p style="margin: 0; font-size: 14px; color: var(--text-muted); line-height: 1.5">Things Proxi saved to remember about you across chats. Incognito chats never save to memory.</p>
+            </div>
+            <template v-if="v.noMemories">
+              <p style="margin: 0; font-size: 14px; color: var(--text-muted-2); line-height: 1.5">Nothing saved yet. Ask Proxi to remember something, like "remember that I use metric units".</p>
+            </template>
+            <ul style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px">
+              <template v-for="mem in v.memoryItems" :key="mem.key">
+                <li style="display: flex; align-items: center; gap: 12px; border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px">
+                  <span style="flex: 1; min-width: 0; font-size: 14px; line-height: 1.5; overflow-wrap: anywhere">{{ mem.text }}</span>
+                  <button type="button" @click="mem.remove" aria-label="Delete memory" style="flex: none; height: 32px; border: 1px solid var(--border); border-radius: 8px; padding: 0 12px; font-size: 13px; font-weight: 500; background: var(--surface); color: var(--text-2); cursor: pointer">Delete</button>
+                </li>
+              </template>
+            </ul>
+          </div>
           <div style="border: 1px solid var(--border); border-radius: 16px; padding: 20px; background: var(--surface); display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px">
             <div style="flex: 1 1 260px; min-width: 0; display: flex; flex-direction: column; gap: 4px">
               <label for="theme" style="font-weight: 600">Theme</label>
@@ -798,6 +815,7 @@ class Component extends DCLogic {
       settings: null,
       settingsBusy: false,
       instructionsDraft: '',
+      memories: null,
       theme: window.proxiTheme?.get() || 'system',
       temporary: false,
       votes: {}
@@ -1187,6 +1205,7 @@ class Component extends DCLogic {
 
   // ---- Settings: custom instructions and "Delete chats after" (7, 30 or 90 days) ----
   async loadSettings() {
+    this.loadMemories();
     try {
       const res = await fetch('/api/settings', { headers: await authHeaders() });
       if (!res.ok) throw new Error('settings ' + res.status);
@@ -1197,6 +1216,31 @@ class Component extends DCLogic {
       });
     } catch {
       this.showToast("Couldn't load your settings. Please try again.");
+    }
+  }
+
+  // ---- Memory: facts Proxi saved to remember. Shown in Settings, where each one can be deleted ----
+  async loadMemories() {
+    try {
+      const res = await fetch('/api/memories', { headers: await authHeaders() });
+      if (!res.ok) throw new Error('memories ' + res.status);
+      this.setState({ memories: (await res.json()).memories || [] });
+    } catch {
+      this.setState({ memories: [] });
+      this.showToast("Couldn't load your memories. Please try again.");
+    }
+  }
+
+  async deleteMemory(id) {
+    const before = this.state.memories || [];
+    this.setState({ memories: before.filter((m) => m.id !== id) });
+    try {
+      const res = await fetch('/api/memories?id=' + encodeURIComponent(id), { method: 'DELETE', headers: await authHeaders() });
+      if (!res.ok) throw new Error('memories ' + res.status);
+      this.showToast('Memory deleted');
+    } catch {
+      this.setState({ memories: before });
+      this.showToast("Couldn't delete the memory. Please try again.");
     }
   }
 
@@ -1348,6 +1392,8 @@ class Component extends DCLogic {
       isSettings: s.view === 'settings',
       settingsBusy: !s.settings || s.settingsBusy,
       retentionValue: String(s.settings?.chatRetentionDays ?? 30),
+      memoryItems: (s.memories || []).map((m) => ({ key: m.id, text: m.content, remove: () => this.deleteMemory(m.id) })),
+      noMemories: Array.isArray(s.memories) && s.memories.length === 0,
       retentionChoices: (s.settings?.options || [7, 30, 90]).map((d) => ({ value: String(d), label: d + ' days' })),
       changeRetention: (e) => this.saveRetention(Number(e.target.value)),
       instructionsMax: s.settings?.instructionsMax || 1500,

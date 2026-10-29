@@ -14,6 +14,7 @@ const KNOWN = {
     detail: quoted('Searched the web', input?.query),
   }),
   get_status: () => ({ label: "Checking Proxi's status", done: "Checked Proxi's status", detail: "Checked Proxi's status" }),
+  save_memory: () => ({ label: 'Saving to memory', done: 'Saved to memory', detail: 'Saved to memory' }),
 };
 
 export function toolActivity(name, title, input) {

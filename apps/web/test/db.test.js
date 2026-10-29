@@ -1,7 +1,7 @@
 import { test, before } from 'node:test';
 import assert from 'node:assert/strict';
 import { PGlite } from '@electric-sql/pglite';
-import { setDriver, saveConversation, listConversations, getMessages, deleteConversation, deleteInactiveConversations, getSettings, saveSettings, conversationAttributes } from '../lib/db.js';
+import { setDriver, saveConversation, listConversations, getMessages, deleteConversation, deleteInactiveConversations, getSettings, saveSettings, conversationAttributes, listMemories, addMemory, deleteMemory, MEMORY_LIMIT } from '../lib/db.js';
 
 let pg;
 before(() => {
@@ -115,4 +115,18 @@ test('a chat keeps its first language and stays escalated once it has been', asy
   await saveConversation('user_a', 'attrs', 'Hola', chat, { language: null, escalated: false });
   assert.deepEqual(await conversationAttributes('user_a', 'attrs'), { language: 'es', escalated: true });
   assert.deepEqual(await conversationAttributes('user_b', 'attrs'), { language: null, escalated: false });
+});
+
+test('memories are saved once per user, listed oldest first, capped and deletable', async () => {
+  assert.equal(await addMemory('mem_a', 'm1', 'Prefers metric units'), 'saved');
+  assert.equal(await addMemory('mem_a', 'm2', 'Works as a designer'), 'saved');
+  assert.equal(await addMemory('mem_a', 'm3', 'Prefers metric units'), 'duplicate');
+  assert.deepEqual((await listMemories('mem_a')).map((m) => m.content), ['Prefers metric units', 'Works as a designer']);
+  assert.deepEqual(await listMemories('mem_b'), []);
+  await deleteMemory('mem_b', 'm1');
+  assert.equal((await listMemories('mem_a')).length, 2, 'another user cannot delete them');
+  await deleteMemory('mem_a', 'm1');
+  assert.deepEqual((await listMemories('mem_a')).map((m) => m.id), ['m2']);
+  for (let i = 0; i < MEMORY_LIMIT; i++) await addMemory('mem_c', 'c' + i, 'Fact ' + i);
+  assert.equal(await addMemory('mem_c', 'over', 'One too many'), 'full');
 });

@@ -1,15 +1,17 @@
+import { randomUUID } from 'node:crypto';
 import Anthropic from '@anthropic-ai/sdk';
 import { redact } from '@proxi/agent/redact';
 import { rateLimit } from '../lib/ratelimit.js';
 import { requireUser } from '../lib/auth.js';
 import { getLangfuse, getSystemPrompt } from '@proxi/agent/langfuse';
-import { CONVERSATION_ID, hasDatabase, saveConversation, conversationAttributes } from '../lib/db.js';
+import { CONVERSATION_ID, hasDatabase, saveConversation, conversationAttributes, listMemories, addMemory } from '../lib/db.js';
 import { customInstructions, withInstructions } from '../lib/instructions.js';
 import { processAttachments, AttachmentError, KINDS, MAX_ATTACHMENTS } from '../lib/attachments.js';
 import { getMcpTools } from '@proxi/agent/mcp';
 import { makeTitle } from '@proxi/agent/title';
 import { getLocale } from '@proxi/agent/locale';
 import { getEscalation } from '@proxi/agent/escalation';
+import { MEMORY_TOOL, getMemoryTool, memoryText, withMemories } from '@proxi/agent/memory';
 import { toolActivity } from '../lib/activity.js';
 
 // Only these models can be requested from the browser.
@@ -99,10 +101,14 @@ export async function POST(request) {
   // Language comes from the chat's first message and is kept with the chat; if the latest message
   // asks for a person, a reply prompt is added. Custom instructions come last.
   const localeFor = async () => getLocale(client, history[0].content, conversationId ? (await conversationAttributes(user.userId, conversationId)).language : null);
-  const [prompt, instructions, locale, escalation] = await Promise.all([
+  // Memory is off in incognito chats: nothing is saved and saved memories aren't used.
+  const memoryOn = !temporary && hasDatabase();
+  const [prompt, instructions, locale, escalation, memories, memoryTool] = await Promise.all([
     getSystemPrompt(), customInstructions(user.userId), localeFor(), getEscalation(client, latest.content),
+    memoryOn ? savedMemories(user.userId) : [], memoryOn ? getMemoryTool() : null,
   ]);
-  const system = { ...prompt, text: withInstructions([prompt.text, locale.text, escalation.text].filter(Boolean).join('\n\n'), instructions) };
+  const base = withMemories([prompt.text, locale.text, escalation.text].filter(Boolean).join('\n\n'), memories);
+  const system = { ...prompt, text: withInstructions(base, instructions) };
   const langfuse = temporary ? null : getLangfuse();
   // No user ID in traces: Langfuse alone can't tell whose chat a trace belongs to.
   const trace = langfuse?.trace({
@@ -116,12 +122,13 @@ export async function POST(request) {
   });
 
   const mcp = await getMcpTools();
+  const tools = [...(mcp?.tools ?? []), ...(memoryTool ? [memoryTool] : [])];
   const params = {
     model,
     max_tokens: MAX_TOKENS,
     system: system.text,
     output_config: { effort: 'low' }, // chat rarely needs deep thinking; keeps replies fast and cheap
-    ...(mcp?.tools.length ? { tools: mcp.tools } : {}),
+    ...(tools.length ? { tools } : {}),
   };
   const open = (turns) => FALLBACK_MODELS.has(model)
     ? client.beta.messages.stream({ ...params, messages: turns, betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default' }, { signal: request.signal })
@@ -168,13 +175,15 @@ export async function POST(request) {
           final = await stream.finalMessage();
           usage.input += final.usage.input_tokens;
           usage.output += final.usage.output_tokens;
-          if (final.stop_reason !== 'tool_use' || !mcp || round + 1 >= MAX_TOOL_ROUNDS) break;
+          if (final.stop_reason !== 'tool_use' || !tools.length || round + 1 >= MAX_TOOL_ROUNDS) break;
           const calls = final.content.filter((block) => block.type === 'tool_use');
           // Tell the page what the agent is doing, e.g. "Searching the help center".
-          for (const call of calls) send({ type: 'activity', tool: call.name, ...toolActivity(call.name, mcp.titles?.[call.name], call.input) });
+          for (const call of calls) send({ type: 'activity', tool: call.name, ...toolActivity(call.name, mcp?.titles?.[call.name], call.input) });
           const results = await Promise.all(calls.map(async (call) => {
             const span = trace?.span({ name: `tool ${call.name}`, input: call.input });
-            const result = await mcp.call(call);
+            const result = call.name === MEMORY_TOOL && memoryTool ? await remember(user.userId, call)
+              : mcp ? await mcp.call(call)
+              : { type: 'tool_result', tool_use_id: call.id, content: 'This tool is not available.', is_error: true };
             span?.end({ output: result.content, level: result.is_error ? 'ERROR' : 'DEFAULT' });
             return result;
           }));
@@ -283,4 +292,30 @@ function errorName(error) {
 
 function json(data, status, headers = {}) {
   return new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json', ...headers } });
+}
+
+// The user's saved memories as plain text. A failed lookup means no memories, not a failed reply.
+async function savedMemories(userId) {
+  try {
+    return (await listMemories(userId)).map((m) => m.content);
+  } catch (error) {
+    console.error('memory lookup failed', error?.code ?? error?.name);
+    return [];
+  }
+}
+
+// Runs the save_memory tool for the signed-in user.
+async function remember(userId, call) {
+  const reply = (content, isError = false) => ({ type: 'tool_result', tool_use_id: call.id, content, is_error: isError });
+  const text = memoryText(call.input);
+  if (!text) return reply('Not saved: the memory was empty or longer than one short sentence.', true);
+  try {
+    const outcome = await addMemory(userId, randomUUID(), text);
+    if (outcome === 'duplicate') return reply('This is already saved.');
+    if (outcome === 'full') return reply('Not saved: memory is full. The user can delete memories in Settings.', true);
+    return reply('Saved to memory.');
+  } catch (error) {
+    console.error('saving memory failed', error?.code ?? error?.name);
+    return reply('Saving to memory failed.', true);
+  }
 }
