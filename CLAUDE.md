@@ -15,7 +15,7 @@ The app reads its prompts from Langfuse, using the `production` label.
 Every pull request follows `.github/pull_request_template.md`, with these required:
 
 - **Release notes:** 1 to 5 short bullets, written for the people who use Proxi. Say what changes for them, not which files changed. Write "No user-facing changes" when there are none.
-- **Release notes page:** add the same notes to `apps/docs/release-notes.mdx`, in the `<Update>` entry for the current month (create one at the top if it doesn't exist). Skip this when there are no user-facing changes.
+- **Release notes page:** add the same notes to `apps/docs/release-notes.mdx`, as a new `<Update>` entry at the top, labelled with the release date (or added to that date's entry if it already exists). Skip this when there are no user-facing changes.
 - **Docs:** before opening the pull request, check the help center (`apps/docs`, published by Mintlify from `main`) for anything the change makes missing or outdated. Search the docs for the feature's names, labels and terms, including old names that were replaced. Update or add pages in the same pull request, and add new pages to `docs.json`. List what changed, or say why nothing needed to.
 
 ## Help center content
