@@ -73,6 +73,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 .scrim{display:none}
 .search-layer{position:absolute;inset:0;z-index:50;display:flex;justify-content:center;align-items:flex-start;padding-top:72px;background:rgba(24,24,27,0.25)}
 .search-panel{width:min(560px,calc(100% - 32px));max-height:min(520px,calc(100% - 120px));background:var(--surface);border:1px solid var(--border);border-radius:14px;box-shadow:0 18px 50px rgba(24,24,27,0.22);display:flex;flex-direction:column;overflow:hidden}
+.foot-link{display:inline-flex;align-items:center;min-height:44px;color:var(--text-muted-2);text-decoration:none}.foot-link:hover{color:var(--text);text-decoration:underline;text-underline-offset:2px}
 .search-hit{background:var(--accent-soft);color:inherit;border-radius:3px;padding:0 1px}
 .search-row[aria-selected="true"]{background:var(--hover-solid) !important}
 @media (min-width: 831px){.phone-only{display:none !important}}
@@ -223,26 +224,17 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
         New chat
       </button>
-      <button :class="v.nav.skillsCls" :aria-current="v.nav.skillsCur" @click="v.openSkills" :style="`height: 44px; border: 0; background: ${v.nav.skillsBg}; box-shadow: ${v.nav.skillsShadow}; border-radius: 8px; display: flex; align-items: center; gap: 10px; padding: 0 10px; font-size: 14px; font-weight: 500; color: var(--text); cursor: pointer`">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2L4 14h7l-1 8 9-12h-7z"></path></svg>
-        Skills
-      </button>
     </div>
 
     <div style="display: flex; flex-direction: column; gap: 2px">
       <div style="display: flex; align-items: center; min-height: 34px; padding: 4px 4px 2px 10px; box-sizing: border-box">
         <span style="font-size: 12px; font-weight: 600; color: var(--text-muted-2); letter-spacing: 0.02em">Recents</span>
       </div>
-      <template v-if="v.hasToday">
-        <template v-for="(c, i_c) in v.today" :key="i_c">
+      <template v-for="(c, i_c) in v.recents" :key="i_c">
           <button :class="c.cls" :aria-current="c.current" @click="c.open" :style="`border: 0; text-align: left; cursor: pointer; color: ${c.color}; background: ${c.bg}; box-shadow: ${c.shadow}; border-radius: 8px; padding: 10px 10px; font-size: 14px; font-weight: ${c.weight}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis`">{{ c.title }}</button>
-        </template>
       </template>
-      <template v-if="v.hasOlder">
-        <div style="font-size: 12px; font-weight: 600; color: var(--text-muted-2); padding: 16px 10px 6px; letter-spacing: 0.02em">Earlier</div>
-        <template v-for="(c, i_c) in v.older" :key="i_c">
-          <button :class="c.cls" :aria-current="c.current" @click="c.open" :style="`border: 0; text-align: left; cursor: pointer; color: ${c.color}; background: ${c.bg}; box-shadow: ${c.shadow}; border-radius: 8px; padding: 10px 10px; font-size: 14px; font-weight: ${c.weight}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis`">{{ c.title }}</button>
-        </template>
+      <template v-if="v.hasMore">
+        <button class="hov" type="button" @click="v.openSearch" aria-haspopup="dialog" style="border: 0; background: transparent; text-align: left; cursor: pointer; border-radius: 8px; padding: 10px 10px; font-size: 14px; color: var(--text-muted-2)">View all</button>
       </template>
       <template v-if="v.historyNote">
         <p style="margin: 0; padding: 6px 10px; font-size: 13px; line-height: 1.45; color: var(--text-muted-2)">{{ v.historyNote }}
@@ -315,9 +307,6 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
               </div>
             </template>
           </div>
-        </template>
-        <template v-if="v.isPage">
-          <h1 style="margin: 0; padding: 0 10px; font-size: 15px; font-weight: 600">{{ v.page.title }}</h1>
         </template>
         <template v-if="v.isSettings">
           <h1 style="margin: 0; padding: 0 10px; font-size: 15px; font-weight: 600">Settings</h1>
@@ -445,22 +434,6 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
       </section>
     </template>
 
-    <template v-if="v.isPage">
-      <section style="flex: 1; min-height: 0; overflow-y: auto; padding: 40px 24px">
-        <div style="max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px">
-          <div style="display: flex; flex-direction: column; gap: 6px">
-            <h2 style="margin: 0; font-size: 28px; font-weight: 600; letter-spacing: -0.02em">{{ v.page.title }}</h2>
-            <p style="margin: 0; color: var(--text-muted); line-height: 1.55">{{ v.page.desc }}</p>
-          </div>
-          <div style="border: 1px dashed var(--border-hover); border-radius: 16px; padding: 40px 24px; display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center">
-            <p style="margin: 0; font-weight: 600">{{ v.page.empty }}</p>
-            <p style="margin: 0; font-size: 14px; color: var(--text-muted); max-width: 420px; line-height: 1.5">{{ v.page.hint }}</p>
-            <button @click="v.pageAction" style="margin-top: 4px; height: 44px; border: 0; background: var(--inverse); border-radius: 10px; padding: 0 18px; font-size: 14px; font-weight: 600; color: var(--on-inverse); cursor: pointer">{{ v.page.action }}</button>
-          </div>
-        </div>
-      </section>
-    </template>
-
     <template v-if="v.isSettings">
       <section style="flex: 1; min-height: 0; overflow-y: auto; padding: 40px 24px">
         <div style="max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px">
@@ -507,11 +480,10 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
               <template v-for="(o, i_o) in v.retentionChoices" :key="i_o"><option :value="o.value">{{ o.label }}</option></template>
             </select>
           </div>
-          <div style="border: 1px solid var(--border); border-radius: 16px; padding: 20px 20px 8px; background: var(--surface); display: flex; flex-direction: column">
-            <h3 style="margin: 0 0 8px; font-size: 16px; font-weight: 600">Legal</h3>
-            <a class="hov" :href="v.privacyPolicy" target="_blank" rel="noopener noreferrer" style="height: 44px; display: flex; align-items: center; border-top: 1px solid var(--border); font-size: 14px; font-weight: 500; color: var(--text); text-decoration: none">Privacy policy<svg style="margin-left: auto; color: var(--text-muted-2)" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17L17 7"></path><path d="M8 7h9v9"></path></svg></a>
-            <a class="hov" :href="v.terms" target="_blank" rel="noopener noreferrer" style="height: 44px; display: flex; align-items: center; border-top: 1px solid var(--border); font-size: 14px; font-weight: 500; color: var(--text); text-decoration: none">Terms of service<svg style="margin-left: auto; color: var(--text-muted-2)" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17L17 7"></path><path d="M8 7h9v9"></path></svg></a>
-          </div>
+          <nav aria-label="Legal" style="display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 20px; padding: 8px 0 16px; font-size: 13px">
+            <a class="foot-link" :href="v.privacyPolicy" target="_blank" rel="noopener noreferrer">Privacy policy</a>
+            <a class="foot-link" :href="v.terms" target="_blank" rel="noopener noreferrer">Terms of service</a>
+          </nav>
         </div>
       </section>
     </template>
@@ -605,6 +577,7 @@ function renderMarkdown(text) {
   return DOMPurify.sanitize(marked.parse(text, { gfm: true, breaks: true }), { FORBID_TAGS: ['img', 'style'], FORBID_ATTR: ['style'] });
 }
 
+const RECENTS_SHOWN = 10; // chats listed in the sidebar; "View all" opens search
 const DOCS_URL = 'https://proxi.mintlify.site';
 
 // Splits a chat title into parts, marking where the search text appears.
@@ -1160,7 +1133,7 @@ class Component extends DCLogic {
 
   searchMatches() {
     const q = this.state.query.trim().toLowerCase();
-    return this.state.convs.filter((c) => !c.temporary && (!q || c.title.toLowerCase().includes(q))).slice(0, 50);
+    return this.state.convs.filter((c) => !c.temporary && (!q || c.title.toLowerCase().includes(q))).slice(0, 200);
   }
 
   pickSearchResult(id) {
@@ -1385,11 +1358,6 @@ class Component extends DCLogic {
     const conv = s.convs.find((c) => c.id === s.activeId);
     const isChat = s.view === 'chat' && !!conv;
     const isNew = s.view === 'new' || (s.view === 'chat' && !conv);
-    const pages = {
-      skills: { title: 'Skills', desc: 'Reusable instructions Proxi can apply when a task calls for them.', empty: 'No skills yet', hint: 'Create a skill for a task you repeat, like a weekly report format or a code review checklist.', action: 'Create a skill' },
-    };
-    const page = pages[s.view] || pages.skills;
-    const isPage = !!pages[s.view];
 
     const q = s.query.trim().toLowerCase();
     const item = (c) => {
@@ -1408,12 +1376,11 @@ class Component extends DCLogic {
     // Incognito (temporary) chats are never listed: they exist only until the page reloads.
     const list = s.convs.filter((c) => !c.temporary);
     const searchList = s.searchOpen ? this.searchMatches() : [];
-    const today = list.filter((c) => c.group === 'Today').map(item);
-    const older = list.filter((c) => c.group !== 'Today').map(item);
+    const recents = list.slice(0, RECENTS_SHOWN).map(item);
 
     const nav = {};
-    ['new', 'skills'].forEach((k) => {
-      const on = k === 'new' ? isNew : s.view === k;
+    ['new'].forEach((k) => {
+      const on = isNew;
       nav[k + 'Cls'] = on ? '' : 'hov';
       nav[k + 'Cur'] = on ? 'page' : 'false';
       nav[k + 'Bg'] = on ? 'var(--sunken)' : 'transparent';
@@ -1489,7 +1456,6 @@ class Component extends DCLogic {
       openNav: () => (this.isNarrow() ? this.setState({ narrowNav: true, collapsed: false }) : this.setState({ collapsed: false })),
       nav,
       newChat: () => { this.go({ view: 'new', activeId: null, draft: '' }); this.focusComposer(); },
-      openSkills: () => this.showToast('Skills is not part of this prototype'),
       openSettings: () => { this.go({ view: 'settings' }); this.loadSettings(); },
       isSettings: s.view === 'settings',
       settingsBusy: !s.settings || s.settingsBusy,
@@ -1528,16 +1494,14 @@ class Component extends DCLogic {
         open: () => this.pickSearchResult(c.id),
         hover: () => { if (s.searchSel !== i) this.setState({ searchSel: i }); }
       })),
-      today, older,
-      hasToday: today.length > 0,
-      hasOlder: older.length > 0,
+      recents,
+      hasMore: list.length > RECENTS_SHOWN,
       historyNote: q ? '' : s.history === 'loading' && !list.length ? 'Loading your chats...'
         : s.history === 'off' ? "Chat history isn't set up yet, so chats aren't saved."
         : s.history === 'error' ? "Couldn't load your previous chats" + (s.historyRef ? ' (error ' + s.historyRef + ').' : '.') : '',
       historyRetry: s.history === 'error' ? () => this.loadConversations() : null,
 
-      isChat, isNew, isPage, page,
-      pageAction: () => this.showToast(page.action + ' is not part of this prototype'),
+      isChat, isNew,
       headerBorder: isNew ? 'var(--surface)' : 'var(--divider)',
       chatTitle: conv ? (conv.temporary ? 'Incognito chat' : conv.title) : '',
       temporary: s.temporary,
