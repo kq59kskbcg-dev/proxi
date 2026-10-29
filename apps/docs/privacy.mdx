@@ -51,6 +51,9 @@ The ChatGPT and Claude apps use consumer chats for training unless you turn that
 | | Proxi | ChatGPT app | Claude app |
 |---|---|---|---|
 | Card numbers, IBANs, emails and phone numbers removed before the model | ✓ | ✗ | ✗ |
+| The model provider never receives your name, email, account or IP address | ✓ | ✗ | ✗ |
+
+In the ChatGPT and Claude apps, your chats are tied to your account. In Proxi, Anthropic only sees the redacted messages, so it can't tell who is writing. Names and addresses you type into a chat are not removed, so a chat can still identify you if you include them.
 
 Sources: OpenAI's [Temporary Chat](https://help.openai.com/en/articles/8914046-temporary-chat-in-chatgpt) and [data usage for consumers](https://help.openai.com/en/articles/7730893-data-usage-for-consumers) pages, and Anthropic's [incognito chats](https://support.claude.com/en/articles/12260368-use-incognito-chats) page.
 
