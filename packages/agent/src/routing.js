@@ -57,7 +57,7 @@ export function routingVariables(history) {
 
 async function compileRoutingPrompt(variables) {
   const langfuse = getLangfuse();
-  if (langfuse) return (await langfuse.getPrompt('classifiers/model-routing', undefined, options)).compile(variables);
+  if (langfuse) return (await langfuse.prompt.get('classifiers/model-routing', options)).compile(variables);
   return DEFAULT_ROUTING_PROMPT.replace('{{context}}', variables.context).replace('{{message}}', variables.message);
 }
 
