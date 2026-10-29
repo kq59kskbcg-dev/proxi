@@ -577,7 +577,7 @@ function renderMarkdown(text) {
   return DOMPurify.sanitize(marked.parse(text, { gfm: true, breaks: true }), { FORBID_TAGS: ['img', 'style'], FORBID_ATTR: ['style'] });
 }
 
-const RECENTS_SHOWN = 20; // chats listed in the sidebar; "View all" opens search
+const RECENTS_SHOWN = 10; // chats listed in the sidebar; "View all" opens search
 const DOCS_URL = 'https://proxi.mintlify.site';
 
 // Splits a chat title into parts, marking where the search text appears.
