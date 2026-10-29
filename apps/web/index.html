@@ -468,7 +468,6 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
           <div style="border: 1px solid var(--border); border-radius: 16px; padding: 20px; background: var(--surface); display: flex; flex-direction: column; gap: 12px">
             <div style="display: flex; flex-direction: column; gap: 4px">
               <label for="instructions" style="font-weight: 600">Custom instructions</label>
-              <p style="margin: 0; font-size: 14px; color: var(--text-muted); line-height: 1.5">Tell Proxi about yourself and how you'd like it to respond.</p>
             </div>
             <textarea id="instructions" rows="5" :maxlength="v.instructionsMax" :disabled="v.settingsBusy" :value="v.instructionsDraft" @input="v.onInstructions" placeholder="For example: I'm a product designer. Keep answers short and use bullet points." style="width: 100%; box-sizing: border-box; min-height: 132px; resize: vertical; border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; font: inherit; font-size: 15px; line-height: 1.55; background: var(--surface); color: var(--text)"></textarea>
             <div style="display: flex; align-items: center; justify-content: flex-end; gap: 12px">
@@ -479,10 +478,9 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
           <div style="border: 1px solid var(--border); border-radius: 16px; padding: 20px; background: var(--surface); display: flex; flex-direction: column; gap: 12px">
             <div style="display: flex; flex-direction: column; gap: 4px">
               <h3 style="margin: 0; font-size: 16px; font-weight: 600">Memory</h3>
-              <p style="margin: 0; font-size: 14px; color: var(--text-muted); line-height: 1.5">Things Proxi saved to remember about you across chats. Incognito chats never save to memory.</p>
             </div>
             <template v-if="v.noMemories">
-              <p style="margin: 0; font-size: 14px; color: var(--text-muted-2); line-height: 1.5">Nothing saved yet. Ask Proxi to remember something, like "remember that I use metric units".</p>
+              <p style="margin: 0; font-size: 14px; color: var(--text-muted-2); line-height: 1.5">Nothing saved yet.</p>
             </template>
             <ul style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px">
               <template v-for="mem in v.memoryItems" :key="mem.key">
@@ -505,7 +503,6 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
           <div style="border: 1px solid var(--border); border-radius: 16px; padding: 20px; background: var(--surface); display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px">
             <div style="flex: 1 1 260px; min-width: 0; display: flex; flex-direction: column; gap: 4px">
               <label for="retention" style="font-weight: 600">Delete chats after</label>
-              <p style="margin: 0; font-size: 14px; color: var(--text-muted); line-height: 1.5">Chats are deleted after this many days without activity.</p>
             </div>
             <select id="retention" :disabled="v.settingsBusy" :value="v.retentionValue" @change="v.changeRetention" style="height: 44px; min-width: 140px; border: 1px solid var(--border); border-radius: 10px; padding: 0 12px; font-size: 15px; background: var(--surface); color: var(--text); cursor: pointer">
               <template v-for="(o, i_o) in v.retentionChoices" :key="i_o"><option :value="o.value">{{ o.label }}</option></template>
@@ -526,7 +523,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
         <div aria-hidden="true" style="position: absolute; left: 0; right: 0; top: -40px; height: 40px; background: linear-gradient(to bottom, transparent, var(--surface)); pointer-events: none"></div>
       </template>
       <template v-if="v.showChips">
-        <div :style="`max-width: ${v.composerMax}; margin: 0 auto 10px; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px`">
+        <div :style="`max-width: ${v.composerMax}; margin: 0 auto 10px; display: flex; flex-direction: column; align-items: flex-start; gap: 8px`">
           <template v-for="(ch, i_ch) in v.chips" :key="i_ch">
             <button class="chip" type="button" @click="ch.pick" style="border: 1px solid var(--border); background: var(--surface); border-radius: 999px; padding: 0 14px; height: 34px; font-size: 13px; font-weight: 500; color: var(--text-2); cursor: pointer">{{ ch.label }}</button>
           </template>
