@@ -3,12 +3,13 @@ import { redact } from '../lib/redact.js';
 import { rateLimit } from '../lib/ratelimit.js';
 import { requireUser } from '../lib/auth.js';
 import { getLangfuse, getSystemPrompt } from '../lib/langfuse.js';
-import { CONVERSATION_ID, hasDatabase, saveConversation } from '../lib/db.js';
+import { CONVERSATION_ID, hasDatabase, saveConversation, conversationAttributes } from '../lib/db.js';
 import { customInstructions, withInstructions } from '../lib/instructions.js';
 import { processAttachments, AttachmentError, KINDS, MAX_ATTACHMENTS } from '../lib/attachments.js';
 import { getMcpTools } from '../lib/mcp.js';
 import { makeTitle } from '../lib/title.js';
 import { getLocale } from '../lib/locale.js';
+import { getEscalation } from '../lib/escalation.js';
 import { toolActivity } from '../lib/activity.js';
 
 // Only these models can be requested from the browser.
@@ -95,16 +96,20 @@ export async function POST(request) {
   const traced = recent.map((m) => ({ role: m.role, content: m.content + describe(m) }));
 
   client ??= new Anthropic();
-  // Language prompts follow the chat's first message; custom instructions come last.
-  const [prompt, instructions, locale] = await Promise.all([getSystemPrompt(), customInstructions(user.userId), getLocale(client, history[0].content)]);
-  const system = { ...prompt, text: withInstructions([prompt.text, locale.text].filter(Boolean).join('\n\n'), instructions) };
+  // Language comes from the chat's first message and is kept with the chat; if the latest message
+  // asks for a person, a reply prompt is added. Custom instructions come last.
+  const localeFor = async () => getLocale(client, history[0].content, conversationId ? (await conversationAttributes(user.userId, conversationId)).language : null);
+  const [prompt, instructions, locale, escalation] = await Promise.all([
+    getSystemPrompt(), customInstructions(user.userId), localeFor(), getEscalation(client, latest.content),
+  ]);
+  const system = { ...prompt, text: withInstructions([prompt.text, locale.text, escalation.text].filter(Boolean).join('\n\n'), instructions) };
   const langfuse = temporary ? null : getLangfuse();
   // No user ID in traces: Langfuse alone can't tell whose chat a trace belongs to.
   const trace = langfuse?.trace({
     name: 'chat',
     sessionId: conversationId ?? undefined,
     input: traced,
-    metadata: { redactions, language: locale.code },
+    metadata: { redactions, language: locale.code, escalated: escalation.escalated },
   });
   const generation = trace?.generation({
     name: 'reply', model, input: [{ role: 'system', content: system.text }, ...traced], prompt: system.prompt,
@@ -204,7 +209,7 @@ export async function POST(request) {
         }
         if (conversationId && hasDatabase()) {
           const reply = text ? [{ role: 'assistant', content: text, model: servedBy, traceId: trace?.id ?? null }] : [];
-          await saveConversation(user.userId, conversationId, aiTitle || titleFrom(history), [...history, ...reply], { replaceTitle: Boolean(aiTitle) })
+          await saveConversation(user.userId, conversationId, aiTitle || titleFrom(history), [...history, ...reply], { replaceTitle: Boolean(aiTitle), language: locale.code, escalated: escalation.escalated })
             .catch((e) => console.error('saving chat failed', e));
         }
         await langfuse?.flushAsync().catch(() => {});

@@ -1,7 +1,7 @@
 import { test, before } from 'node:test';
 import assert from 'node:assert/strict';
 import { PGlite } from '@electric-sql/pglite';
-import { setDriver, saveConversation, listConversations, getMessages, deleteConversation, deleteInactiveConversations, getSettings, saveSettings } from '../lib/db.js';
+import { setDriver, saveConversation, listConversations, getMessages, deleteConversation, deleteInactiveConversations, getSettings, saveSettings, conversationAttributes } from '../lib/db.js';
 
 let pg;
 before(() => {
@@ -104,4 +104,15 @@ test('cleanup follows each user\'s own retention, or the 30 day default', async 
   await deleteInactiveConversations();
   assert.deepEqual((await listConversations('user_short')).map((c) => c.id), []);
   assert.deepEqual((await listConversations('user_default')).map((c) => c.id), ['x']);
+});
+
+test('a chat keeps its first language and stays escalated once it has been', async () => {
+  assert.deepEqual(await conversationAttributes('user_a', 'attrs'), { language: null, escalated: false });
+  await saveConversation('user_a', 'attrs', 'Hola', chat, { language: 'es' });
+  assert.deepEqual(await conversationAttributes('user_a', 'attrs'), { language: 'es', escalated: false });
+  await saveConversation('user_a', 'attrs', 'Hola', chat, { language: 'en', escalated: true });
+  assert.deepEqual(await conversationAttributes('user_a', 'attrs'), { language: 'es', escalated: true });
+  await saveConversation('user_a', 'attrs', 'Hola', chat, { language: null, escalated: false });
+  assert.deepEqual(await conversationAttributes('user_a', 'attrs'), { language: 'es', escalated: true });
+  assert.deepEqual(await conversationAttributes('user_b', 'attrs'), { language: null, escalated: false });
 });

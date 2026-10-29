@@ -63,6 +63,10 @@ const SCHEMA = [
   `ALTER TABLE user_settings ADD COLUMN IF NOT EXISTS custom_instructions text NOT NULL DEFAULT ''`,
   // Set while a chat is shared with a public link. Deleting the chat removes the link with it.
   `ALTER TABLE conversations ADD COLUMN IF NOT EXISTS share_id text UNIQUE`,
+  // Two-letter language of the chat, found from its first message and kept once set.
+  `ALTER TABLE conversations ADD COLUMN IF NOT EXISTS language text`,
+  // True once any message in the chat asked for a person.
+  `ALTER TABLE conversations ADD COLUMN IF NOT EXISTS escalated boolean NOT NULL DEFAULT false`,
 ];
 
 async function db() {
@@ -91,12 +95,15 @@ export async function getMessages(userId, conversationId) {
 // Replaces the stored conversation with its current state, so edits and
 // regenerations (which drop later messages) are saved too. An existing chat keeps
 // its title unless replaceTitle is set (a new AI title for the first message).
-export async function saveConversation(userId, conversationId, title, messages, { replaceTitle = false } = {}) {
+// The language is kept once set; escalated stays true once it has been true.
+export async function saveConversation(userId, conversationId, title, messages, { replaceTitle = false, language = null, escalated = false } = {}) {
   const d = await db();
   await d.transaction([
-    [`INSERT INTO conversations (user_id, id, title) VALUES ($1, $2, $3)
+    [`INSERT INTO conversations (user_id, id, title, language, escalated) VALUES ($1, $2, $3, $5, $6)
       ON CONFLICT (user_id, id) DO UPDATE SET updated_at = now(),
-        title = CASE WHEN $4::boolean THEN EXCLUDED.title ELSE conversations.title END`, [userId, conversationId, title, replaceTitle]],
+        title = CASE WHEN $4::boolean THEN EXCLUDED.title ELSE conversations.title END,
+        language = COALESCE(conversations.language, EXCLUDED.language),
+        escalated = conversations.escalated OR EXCLUDED.escalated`, [userId, conversationId, title, replaceTitle, language, escalated]],
     ['DELETE FROM messages WHERE user_id = $1 AND conversation_id = $2', [userId, conversationId]],
     [`INSERT INTO messages (user_id, conversation_id, position, role, content, model, trace_id, attachments)
       SELECT $1, $2, p, r, c, m, t, a::jsonb FROM unnest($3::int[], $4::text[], $5::text[], $6::text[], $7::text[], $8::text[]) AS x(p, r, c, m, t, a)`,
@@ -104,6 +111,17 @@ export async function saveConversation(userId, conversationId, title, messages, 
       messages.map((m) => m.model ?? null), messages.map((m) => m.traceId ?? null),
       messages.map((m) => (m.attachments?.length ? JSON.stringify(m.attachments) : null))]],
   ]);
+}
+
+// What is known about a chat so far; empty values if it isn't saved yet or can't be read.
+export async function conversationAttributes(userId, conversationId) {
+  try {
+    const d = await db();
+    const [row] = await d.query('SELECT language, escalated FROM conversations WHERE user_id = $1 AND id = $2', [userId, conversationId]);
+    return { language: row?.language ?? null, escalated: row?.escalated ?? false };
+  } catch {
+    return { language: null, escalated: false };
+  }
 }
 
 // Retention: removes every chat with no activity for longer than its owner's

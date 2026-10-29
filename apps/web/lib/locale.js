@@ -39,12 +39,13 @@ async function localeNames(langfuse, code) {
   return names;
 }
 
-// Returns { code, text }: the detected language and the joined locale prompts ('' if none).
-export async function getLocale(client, firstMessage) {
+// Returns { code, text }: the language and the joined locale prompts ('' if none). A language
+// already saved with the chat (knownCode) is used as is, without classifying again.
+export async function getLocale(client, firstMessage, knownCode = null) {
   const langfuse = getLangfuse();
   if (!langfuse) return { code: null, text: '' };
   try {
-    const code = await detectLanguage(langfuse, client, firstMessage);
+    const code = knownCode || await detectLanguage(langfuse, client, firstMessage);
     if (!code) return { code: null, text: '' };
     const names = await localeNames(langfuse, code);
     const parts = await Promise.all(names.map(async (name) => {
