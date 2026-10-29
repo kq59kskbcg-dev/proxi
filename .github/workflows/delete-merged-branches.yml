@@ -1,0 +1,57 @@
+name: Delete merged branches
+
+# Run by hand from the Actions tab. Deletes branches whose pull requests are all merged or
+# closed. Keeps the default branch, branches with an open pull request, and branches that
+# never had a pull request. Starts as a dry run that only lists what it would delete.
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Only list the branches, delete nothing
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        env:
+          DRY_RUN: ${{ inputs.dry_run }}
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const dryRun = process.env.DRY_RUN !== 'false';
+            const { data: info } = await github.rest.repos.get({ owner, repo });
+            const branches = await github.paginate(github.rest.repos.listBranches, { owner, repo, per_page: 100 });
+            const pulls = await github.paginate(github.rest.pulls.list, { owner, repo, state: 'all', per_page: 100 });
+
+            const byBranch = new Map();
+            for (const pr of pulls) {
+              if (pr.head.repo?.full_name !== `${owner}/${repo}`) continue;
+              const list = byBranch.get(pr.head.ref) ?? [];
+              list.push(pr);
+              byBranch.set(pr.head.ref, list);
+            }
+
+            const toDelete = [];
+            const kept = [];
+            for (const { name, protected: isProtected } of branches) {
+              const prs = byBranch.get(name) ?? [];
+              if (name === info.default_branch || isProtected) kept.push(`${name} (default or protected)`);
+              else if (prs.length === 0) kept.push(`${name} (no pull request)`);
+              else if (prs.some((pr) => pr.state === 'open')) kept.push(`${name} (open pull request)`);
+              else toDelete.push(name);
+            }
+
+            core.info(`Kept ${kept.length}:\n  ${kept.join('\n  ')}`);
+            core.info(`${dryRun ? 'Would delete' : 'Deleting'} ${toDelete.length}:\n  ${toDelete.join('\n  ')}`);
+            if (dryRun) return;
+            for (const name of toDelete) {
+              await github.rest.git.deleteRef({ owner, repo, ref: `heads/${name}` });
+            }
+            core.info(`Deleted ${toDelete.length} branches.`);
