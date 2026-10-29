@@ -28,6 +28,12 @@ before(async () => {
     req.on('end', () => {
       const body = JSON.parse(raw);
       requests.push(body);
+      // A non-streamed call (a classifier) gets a plain JSON message with the script's text.
+      if (!body.stream) {
+        res.writeHead(200, { 'content-type': 'application/json' });
+        res.end(JSON.stringify({ ...message(), content: [{ type: 'text', text: script.shift()(body) }], stop_reason: 'end_turn' }));
+        return;
+      }
       res.writeHead(200, { 'content-type': 'text/event-stream' });
       const turn = script.shift()(body);
       for (const [event, data] of turn) res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
@@ -140,6 +146,26 @@ test('a temporary chat is not titled, saved or traced', { skip }, async () => {
   assert.equal(events[0].traceId, null);
   assert.ok(!events.some((e) => e.type === 'title'));
   assert.equal(events.at(-1).type, 'done');
+});
+
+test('Auto asks the routing classifier, then replies with the model it picked', { skip }, async () => {
+  script = [() => 'complex', () => textTurn('Here is a design.')];
+  const events = await chat('Design a sync system for offline notes', { model: 'Auto', temporary: true });
+  assert.equal(requests.length, 2);
+  assert.equal(requests[0].model, 'claude-haiku-5-5');
+  assert.match(requests[0].messages[0].content, /simple, standard or complex[\s\S]*Design a sync system for offline notes$/);
+  assert.equal(requests[1].model, 'claude-opus-5-5');
+  assert.equal(events.at(-1).type, 'done');
+});
+
+test('an unknown model is refused', { skip }, async () => {
+  const { POST } = await import('../api/chat.js');
+  const response = await POST(new Request('http://localhost/api/chat', {
+    method: 'POST',
+    headers: { authorization: `Bearer ${token}`, host: 'localhost', 'content-type': 'application/json' },
+    body: JSON.stringify({ model: 'GPT', messages: [{ role: 'user', content: 'Hi' }] }),
+  }));
+  assert.equal(response.status, 400);
 });
 
 test('only the message just sent is counted as redacted, and replies are not redacted', { skip }, async () => {

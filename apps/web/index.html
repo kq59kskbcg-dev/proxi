@@ -554,7 +554,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
           <button class="hov" type="button" aria-label="Attach file" @click="v.attach" :style="`order: ${v.attachOrder}`" style="flex: none; width: 44px; height: 44px; border: 0; background: transparent; border-radius: 50%; color: var(--text-2); display: flex; align-items: center; justify-content: center; cursor: pointer"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5l-8.6 8.6a5 5 0 0 1-7-7l8.6-8.6a3.3 3.3 0 0 1 4.7 4.7l-8.6 8.6a1.7 1.7 0 0 1-2.4-2.4l8-8"></path></svg></button>
           <textarea id="composer" :ref="v.taRef" rows="1" placeholder="Message Proxi" :value="v.draft" @input="v.onDraft" @keydown="v.onKey" @paste="v.onPaste" :style="`order: ${v.textOrder}; flex: ${v.textFlex}; padding: ${v.textPadding}`" style="min-width: 0; box-sizing: border-box; height: 44px; border: 0; resize: none; outline: none; font-size: 16px; line-height: 24px; color: var(--text); background: transparent; overflow-y: hidden"></textarea>
           <div style="order: 3; margin-left: auto; position: relative; display: flex; align-items: center; gap: 4px">
-            <button class="hov" type="button" :aria-label="`Model: ${v.model}, change model`" :aria-expanded="v.modelMenuExpanded" @click="v.toggleModelMenu" style="margin-left: auto; height: 44px; border: 0; background: transparent; border-radius: 22px; padding: 0 4px; display: flex; align-items: center; cursor: pointer"><span style="height: 34px; padding: 0 6px 0 8px; display: flex; align-items: center; gap: 4px; font-size: 13px; font-weight: 500; color: var(--text-muted)"><span>{{ v.modelName }}<span class="model-ver">&nbsp;{{ v.modelVersion }}</span></span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg></span></button>
+            <button class="hov" type="button" :aria-label="`Model: ${v.model}, change model`" :aria-expanded="v.modelMenuExpanded" @click="v.toggleModelMenu" style="margin-left: auto; height: 44px; border: 0; background: transparent; border-radius: 22px; padding: 0 4px; display: flex; align-items: center; cursor: pointer"><span style="height: 34px; padding: 0 6px 0 8px; display: flex; align-items: center; gap: 4px; font-size: 13px; font-weight: 500; color: var(--text-muted)"><span>{{ v.modelName }}<span v-if="v.modelVersion" class="model-ver">&nbsp;{{ v.modelVersion }}</span></span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg></span></button>
             <template v-if="v.modelMenu">
               <div class="pop" role="menu" style="position: absolute; bottom: 52px; right: 44px; z-index: 31; width: 220px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 8px 24px rgba(24,24,27,0.12); padding: 6px">
                 <template v-for="(o, i_o) in v.models" :key="i_o">
@@ -856,7 +856,7 @@ class Component extends DCLogic {
       reading: false,
       history: 'loading',
       dragging: false,
-      model: 'Haiku 5.5',
+      model: 'Auto',
       modelMenu: false,
       chatMenu: false,
       shareMenu: false,
@@ -1457,6 +1457,7 @@ class Component extends DCLogic {
     }) : [];
 
     const models = [
+      { name: 'Auto', note: 'Balances quality with speed' },
       { name: 'Opus 5.5', note: 'Most capable, for complex work' },
       { name: 'Sonnet 5.5', note: 'Fast and smart for everyday tasks' },
       { name: 'Haiku 5.5', note: 'Fastest, for quick answers' }

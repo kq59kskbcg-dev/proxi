@@ -12,9 +12,11 @@ import { makeTitle } from '@proxi/agent/title';
 import { getLocale } from '@proxi/agent/locale';
 import { getEscalation } from '@proxi/agent/escalation';
 import { MEMORY_TOOL, getMemoryTool, memoryText, withMemories } from '@proxi/agent/memory';
+import { chooseModel } from '@proxi/agent/routing';
 import { toolActivity } from '../lib/activity.js';
 
-// Only these models can be requested from the browser.
+// Only these models can be requested from the browser, plus "Auto", which picks one per
+// message with the routing classifier.
 const MODELS = {
   'Opus 5.5': 'claude-opus-5-5',
   'Sonnet 5.5': 'claude-sonnet-5-5',
@@ -47,13 +49,14 @@ export async function POST(request) {
   let body;
   try { body = await request.json(); } catch { return json({ error: 'Invalid request.' }, 400); }
 
-  const model = MODELS[body?.model];
+  const auto = body?.model === 'Auto';
+  const fixedModel = MODELS[body?.model];
   const raw = Array.isArray(body?.messages) ? body.messages : [];
   const lastIndex = raw.length - 1;
   const valid = raw.length > 0 && raw[0].role === 'user' && raw[lastIndex].role === 'user' && raw.every((m, i) =>
     (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string' && m.content.length <= MAX_CHARS
     && validAttachments(m, i === lastIndex) && (m.content.length > 0 || m.attachments?.length > 0));
-  if (!model || !valid) return json({ error: 'Invalid request.' }, 400);
+  if ((!fixedModel && !auto) || !valid) return json({ error: 'Invalid request.' }, 400);
   if (raw.length > MAX_HISTORY) return json({ error: 'This chat is too long. Please start a new one.' }, 400);
   // A temporary chat is never saved, titled or traced.
   const temporary = body.temporary === true;
@@ -103,10 +106,12 @@ export async function POST(request) {
   const localeFor = async () => getLocale(client, history[0].content, conversationId ? (await conversationAttributes(user.userId, conversationId)).language : null);
   // Memory is off in incognito chats: nothing is saved and saved memories aren't used.
   const memoryOn = !temporary && hasDatabase();
-  const [prompt, instructions, locale, escalation, memories, memoryTool] = await Promise.all([
+  const [prompt, instructions, locale, escalation, memories, memoryTool, route] = await Promise.all([
     getSystemPrompt(), customInstructions(user.userId), localeFor(), getEscalation(client, latest.content),
     memoryOn ? savedMemories(user.userId) : [], memoryOn ? getMemoryTool() : null,
+    auto ? chooseModel(client, history) : { level: null, model: fixedModel },
   ]);
+  const model = route.model;
   const base = withMemories([prompt.text, locale.text, escalation.text].filter(Boolean).join('\n\n'), memories);
   const system = { ...prompt, text: withInstructions(base, instructions) };
   const langfuse = temporary ? null : getLangfuse();
@@ -115,7 +120,7 @@ export async function POST(request) {
     name: 'chat',
     sessionId: conversationId ?? undefined,
     input: traced,
-    metadata: { redactions, language: locale.code, escalated: escalation.escalated },
+    metadata: { redactions, language: locale.code, escalated: escalation.escalated, ...(auto ? { route: route.level } : {}) },
   });
   const generation = trace?.generation({
     name: 'reply', model, input: [{ role: 'system', content: system.text }, ...traced], prompt: system.prompt,
