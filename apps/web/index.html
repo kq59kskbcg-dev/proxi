@@ -321,8 +321,8 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
         </template>
       </template>
       <template v-if="v.isNew">
-        <button class="temp-toggle" type="button" aria-label="Temporary chat" :aria-pressed="v.temporaryPressed" :title="v.temporaryHint" @click="v.toggleTemporary" :style="`flex: none; width: 40px; height: 40px; border: 1px solid ${v.temporaryBorder}; background: ${v.temporaryBg}; color: ${v.temporaryColor}; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer`">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke-dasharray="3 3"></circle><path d="M12 7v5l3 2"></path></svg>
+        <button class="temp-toggle" type="button" aria-label="Incognito chat" :aria-pressed="v.temporaryPressed" :title="v.temporaryHint" @click="v.toggleTemporary" :style="`flex: none; width: 40px; height: 40px; border: 1px solid ${v.temporaryBorder}; background: ${v.temporaryBg}; color: ${v.temporaryColor}; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer`">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 8.5 8.5 0 0 1-3.8-.9L3 21l1.9-5.7A8.4 8.4 0 0 1 3 11.5 8.5 8.5 0 0 1 12 3a8.5 8.5 0 0 1 9 8.5z" stroke-dasharray="3 3"></path></svg>
         </button>
       </template>
     </header>
@@ -410,10 +410,10 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
         <template v-if="v.temporary">
           <div style="position: relative; display: flex; flex-direction: column; align-items: center; text-align: center">
             <div style="display: flex; align-items: center; gap: 10px">
-              <svg :style="`flex: none; color: ${v.accent}`" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke-dasharray="3 3"></circle><path d="M12 7v5l3 2"></path></svg>
-              <h1 style="margin: 0; font-size: 32px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.2">Temporary chat</h1>
+              <svg :style="`flex: none; color: ${v.accent}`" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 8.5 8.5 0 0 1-3.8-.9L3 21l1.9-5.7A8.4 8.4 0 0 1 3 11.5 8.5 8.5 0 0 1 12 3a8.5 8.5 0 0 1 9 8.5z" stroke-dasharray="3 3"></path></svg>
+              <h1 style="margin: 0; font-size: 32px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.2">Incognito chat</h1>
             </div>
-            <p style="position: absolute; top: 100%; left: 50%; transform: translateX(-50%); width: max-content; max-width: calc(100vw - 48px); margin: 6px 0 0; font-size: 14px; color: var(--text-muted)">Not saved or shown in your history.</p>
+            <p style="position: absolute; top: 100%; left: 50%; transform: translateX(-50%); width: max-content; max-width: min(480px, calc(100vw - 48px)); margin: 6px 0 0; font-size: 14px; color: var(--text-muted)">Incognito chats stay out of our records, and aren't used to train AI models. <a :href="v.docsIncognito" target="_blank" rel="noopener noreferrer" style="color: var(--link); text-decoration: underline">Learn more</a></p>
           </div>
         </template>
       </section>
@@ -1261,7 +1261,7 @@ class Component extends DCLogic {
         open: () => this.openConversation(c.id)
       };
     };
-    // Temporary chats are never listed: they exist only until the page reloads.
+    // Incognito (temporary) chats are never listed: they exist only until the page reloads.
     const list = s.convs.filter((c) => !c.temporary && (!q || c.title.toLowerCase().includes(q)));
     const today = list.filter((c) => c.group === 'Today').map(item);
     const older = list.filter((c) => c.group !== 'Today').map(item);
@@ -1384,14 +1384,14 @@ class Component extends DCLogic {
       isChat, isNew, isPage, page,
       pageAction: () => this.showToast(page.action + ' is not part of this prototype'),
       headerBorder: isNew ? 'var(--surface)' : 'var(--divider)',
-      chatTitle: conv ? (conv.temporary ? 'Temporary chat' : conv.title) : '',
+      chatTitle: conv ? (conv.temporary ? 'Incognito chat' : conv.title) : '',
       temporary: s.temporary,
       temporaryPressed: s.temporary ? 'true' : 'false',
       notTemporary: !s.temporary,
       temporaryBg: s.temporary ? accent : 'var(--surface)',
       temporaryBorder: s.temporary ? accent : 'var(--border)',
       temporaryColor: s.temporary ? '#FFFFFF' : 'var(--text-muted)',
-      temporaryHint: "Temporary chats aren't saved or shown in your history",
+      temporaryHint: s.temporary ? 'Incognito chat is on. Click to turn it off.' : 'Start an incognito chat',
       composerBorder: (isNew && s.temporary) || (isChat && conv.temporary) ? 'var(--temp-border)' : 'var(--border-strong)',
       composerBorderStyle: (isNew && s.temporary) || (isChat && conv.temporary) ? 'dashed' : 'solid',
       toggleTemporary: () => this.setState({ temporary: !s.temporary }),
@@ -1503,6 +1503,7 @@ class Component extends DCLogic {
       toggleUserMenu: () => this.setState({ userMenu: !s.userMenu, chatMenu: false, shareMenu: false, modelMenu: false }),
       docsHome: DOCS_URL,
       docsPrivacy: DOCS_URL + '/privacy',
+      docsIncognito: DOCS_URL + '/privacy#incognito-chats',
       privacyPolicy: DOCS_URL + '/privacy-policy',
       terms: DOCS_URL + '/terms',
       docsSecurity: DOCS_URL + '/security',
