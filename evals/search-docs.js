@@ -79,6 +79,12 @@ async function main() {
     if (response.status !== 200) throw new Error(`The chat route returned ${response.status} for "${item.question}".`);
     const events = (await response.text()).trim().split('\n').map((line) => JSON.parse(line));
     const evidence = collectEvidence(events, toolLog);
+    // A failed docs search comes back as text; show it so the log says why nothing was found.
+    for (const call of toolLog) {
+      if (call.name !== 'search_docs') continue;
+      if (call.result?.is_error) console.log(`${item.id}: search_docs failed: ${JSON.stringify(call.result.content).slice(0, 300)}`);
+      else if (!evidence.retrieved.length) console.log(`${item.id}: search_docs found nothing for ${JSON.stringify(call.input)}`);
+    }
     const traceId = events.find((e) => e.type === 'start')?.traceId ?? null;
 
     const scores = {};
