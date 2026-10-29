@@ -50,7 +50,7 @@ export async function runJudge(langfuse, client, name, variables, { model = JUDG
   const res = await client.messages.create({
     model,
     max_tokens: 300,
-    thinking: { type: 'disabled' },
+    thinking: { type: 'between_tools' }, // Sonnet 5.5's way to turn thinking off; it rejects 'disabled'
     messages: [{ role: 'user', content: prompt.compile(variables) + FORMAT }],
   }, { timeout: 30_000, maxRetries: 1 });
   return parseScore(res.content.filter((b) => b.type === 'text').map((b) => b.text).join(''));

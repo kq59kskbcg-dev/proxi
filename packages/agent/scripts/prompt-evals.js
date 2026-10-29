@@ -55,11 +55,20 @@ const LIVE = {
 export async function evalLive(langfuse, client, name) {
   const datasetName = DATASETS[name];
   if (!datasetName) throw new Error(`No eval dataset for "${name}"`);
+  // A prompt that has never been promoted has nothing live to check yet: the app uses its
+  // built-in fallback. Promoting it runs its eval first.
+  try {
+    await langfuse.getPrompt(name, undefined, { label: 'production', cacheTtlSeconds: 0 });
+  } catch (err) {
+    if (!/not found/i.test(String(err?.message))) throw err;
+    return { name, version: 'production', datasetName, total: 0, passed: 0, failures: [], ok: true, skipped: true };
+  }
   const items = await activeItems(langfuse, datasetName);
   return score(name, 'production', datasetName, items, (input) => LIVE[name](langfuse, client, input));
 }
 
 export function report(result) {
+  if (result.skipped) return `${result.name}: skipped, no production version yet`;
   const lines = [`${result.name} ${typeof result.version === 'number' ? `v${result.version}` : result.version} on ${result.datasetName}: ${result.passed}/${result.total} passed`];
   for (const f of result.failures) lines.push(`  FAIL ${JSON.stringify(f.input)}: expected "${f.expected}", got "${f.got}"`);
   if (result.total === 0) lines.push('  The dataset has no active items.');
