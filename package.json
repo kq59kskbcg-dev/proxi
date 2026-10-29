@@ -8,5 +8,9 @@
   ],
   "scripts": {
     "test": "npm test --workspaces --if-present"
+  },
+  "overrides": {
+    "@opentelemetry/exporter-trace-otlp-http": "0.223.0",
+    "@opentelemetry/otlp-exporter-base": "0.223.0"
   }
 }

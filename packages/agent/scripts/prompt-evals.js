@@ -13,7 +13,7 @@ export const DATASETS = {
 };
 
 async function activeItems(langfuse, datasetName) {
-  const { data } = await langfuse.api.datasetItemsList({ datasetName, limit: 100 });
+  const { data } = await langfuse.api.datasetItems.list({ datasetName, limit: 100 });
   return data.filter((item) => item.status !== 'ARCHIVED');
 }
 
@@ -32,7 +32,7 @@ async function score(name, version, datasetName, items, answer) {
 export async function evalPrompt(langfuse, client, name, version) {
   const datasetName = DATASETS[name];
   if (!datasetName) throw new Error(`No eval dataset for "${name}"`);
-  const prompt = await langfuse.getPrompt(name, version, { cacheTtlSeconds: 0 });
+  const prompt = await langfuse.prompt.get(name, { version, cacheTtlSeconds: 0 });
   const items = await activeItems(langfuse, datasetName);
   return score(name, version, datasetName, items, async (input) => {
     const res = await client.messages.create({

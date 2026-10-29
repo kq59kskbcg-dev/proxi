@@ -54,7 +54,7 @@ test('judgeVariables fills every variable the judge prompts use', () => {
 
 test('runJudge loads evals/<name>, asks for JSON and returns the score', async () => {
   let asked; let sent;
-  const langfuse = { getPrompt: async (name, version, options) => { asked = { name, options }; return { compile: (v) => `Judge ${v.output}` }; } };
+  const langfuse = { prompt: { get: async (name, options) => { asked = { name, options }; return { compile: (v) => `Judge ${v.output}` }; } } };
   const client = { messages: { create: async (params) => { sent = params; return { content: [{ type: 'text', text: '{"score": 4, "reason": "Fine."}' }] }; } } };
   const result = await runJudge(langfuse, client, 'tone', { output: 'Hi' });
   assert.deepEqual(result, { score: 4, reason: 'Fine.' });

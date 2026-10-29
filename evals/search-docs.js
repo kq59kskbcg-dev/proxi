@@ -1,8 +1,9 @@
 // Usage: npm run search-docs -w @proxi/evals
 //
 // Sends each question in the Langfuse dataset "evals/search-docs" through the real chat route,
-// with a local MCP server and the real docs search. Every reply is scored by the judges and the
-// page check, the scores are saved on the traces in Langfuse, and the gate decides pass or fail.
+// with a local MCP server and the real docs search, as a Langfuse experiment on the dataset.
+// Every reply is scored by the judges and the page check, the scores are saved on the traces in
+// Langfuse, and the gate decides pass or fail.
 //
 // Needs: LANGFUSE_PUBLIC_KEY, LANGFUSE_SECRET_KEY (and LANGFUSE_BASE_URL outside the EU cloud),
 // ANTHROPIC_API_KEY, MINTLIFY_API_KEY, and `npm ci` run in apps/mcp.
@@ -14,7 +15,7 @@ import http from 'node:http';
 import { createSign, generateKeyPairSync } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import Anthropic from '@anthropic-ai/sdk';
-import { getLangfuse } from '@proxi/agent/langfuse';
+import { enableTracing, flushTraces, getLangfuse } from '@proxi/agent/langfuse';
 import { getMcpTools } from '@proxi/agent/mcp';
 import { collectEvidence, pageRetrieved } from './lib/evidence.js';
 import { JUDGES, JUDGE_MODEL, judgeVariables, runJudge } from './lib/judges.js';
@@ -30,6 +31,7 @@ if (missing.length) {
 }
 
 const langfuse = getLangfuse();
+enableTracing();
 const client = new Anthropic();
 const model = process.env.EVAL_MODEL || 'Sonnet 5.5';
 const judgeModel = process.env.EVAL_JUDGE_MODEL || JUDGE_MODEL;
@@ -63,46 +65,53 @@ async function main() {
     return result;
   };
 
-  const { data } = await langfuse.api.datasetItemsList({ datasetName: DATASET, limit: 100 });
+  const { data } = await langfuse.api.datasetItems.list({ datasetName: DATASET, limit: 100 });
   const dataset = data.filter((item) => item.status !== 'ARCHIVED');
   if (!dataset.length) throw new Error(`The dataset "${DATASET}" has no active items.`);
 
+  // One item at a time: the tool log is shared.
   const items = [];
-  for (const entry of dataset) {
-    const item = { id: entry.id, question: entry.input.question, reference: entry.expectedOutput.reference, page: entry.expectedOutput.page };
-    toolLog.length = 0;
-    const response = await POST(new Request('http://localhost/api/chat', {
-      method: 'POST',
-      headers: { authorization: `Bearer ${token}`, host: 'localhost', 'content-type': 'application/json' },
-      body: JSON.stringify({ model, messages: [{ role: 'user', content: item.question }] }),
-    }));
-    if (response.status !== 200) throw new Error(`The chat route returned ${response.status} for "${item.question}".`);
-    const events = (await response.text()).trim().split('\n').map((line) => JSON.parse(line));
-    const evidence = collectEvidence(events, toolLog);
-    const traceId = events.find((e) => e.type === 'start')?.traceId ?? null;
-
-    const scores = {};
-    const reasons = {};
-    for (const name of Object.keys(JUDGES)) {
-      const { score, reason } = evidence.error
-        ? { score: null, reason: evidence.error }
-        : await runJudge(langfuse, client, name, judgeVariables(item, evidence), { model: judgeModel, label: judgeLabel });
-      scores[name] = score;
-      reasons[name] = reason;
-    }
-    const retrieved = pageRetrieved(evidence, item.page);
-    items.push({ id: item.id, scores, pageRetrieved: retrieved });
-
-    if (traceId) {
-      await langfuse.api.datasetRunItemsCreate({ runName, datasetItemId: entry.id, traceId });
-      for (const [name, score] of Object.entries(scores)) {
-        if (score !== null) langfuse.score({ traceId, name, value: score, comment: reasons[name], dataType: 'NUMERIC' });
+  await langfuse.experiment.run({
+    name: DATASET,
+    runName,
+    data: dataset,
+    maxConcurrency: 1,
+    task: async ({ input }) => {
+      toolLog.length = 0;
+      const response = await POST(new Request('http://localhost/api/chat', {
+        method: 'POST',
+        headers: { authorization: `Bearer ${token}`, host: 'localhost', 'content-type': 'application/json' },
+        body: JSON.stringify({ model, messages: [{ role: 'user', content: input.question }] }),
+      }));
+      if (response.status !== 200) throw new Error(`The chat route returned ${response.status} for "${input.question}".`);
+      const events = (await response.text()).trim().split('\n').map((line) => JSON.parse(line));
+      return collectEvidence(events, toolLog);
+    },
+    evaluators: [async ({ input, output: evidence, expectedOutput }) => {
+      const item = { question: input.question, reference: expectedOutput.reference, page: expectedOutput.page };
+      const scores = {};
+      const evaluations = [];
+      for (const name of Object.keys(JUDGES)) {
+        const { score, reason } = evidence.error
+          ? { score: null, reason: evidence.error }
+          : await runJudge(langfuse, client, name, judgeVariables(item, evidence), { model: judgeModel, label: judgeLabel });
+        scores[name] = score;
+        if (score !== null) evaluations.push({ name, value: score, comment: reason, dataType: 'NUMERIC' });
       }
-      langfuse.score({ traceId, name: 'page-retrieved', value: retrieved ? 1 : 0, dataType: 'NUMERIC' });
-    }
-    console.log(`${item.id}: ${retrieved ? 'page found' : 'PAGE MISSED'}; ${Object.entries(scores).map(([n, s]) => `${n} ${s ?? '-'}`).join(', ')}`);
+      const retrieved = pageRetrieved(evidence, item.page);
+      evaluations.push({ name: 'page-retrieved', value: retrieved ? 1 : 0, dataType: 'NUMERIC' });
+      items.push({ id: item.page, scores, pageRetrieved: retrieved });
+      console.log(`${item.page}: ${retrieved ? 'page found' : 'PAGE MISSED'}; ${Object.entries(scores).map(([n, v]) => `${n} ${v ?? '-'}`).join(', ')}`);
+      return evaluations;
+    }],
+  });
+  await langfuse.flush();
+  await flushTraces();
+  // An item whose chat failed has no scores: that fails the run too.
+  if (items.length < dataset.length) {
+    console.log(`\n${dataset.length - items.length} of ${dataset.length} items didn't finish. Gate failed.`);
+    return 1;
   }
-  await langfuse.flushAsync();
 
   const gate = evaluateGate(items);
   console.log(`\nRun "${runName}" on ${DATASET}`);
