@@ -18,16 +18,34 @@ Some details in the conversation may appear as [IBAN], [EMAIL] or [PHONE], and c
 For questions about Proxi itself (features, privacy, security), use the search_docs tool and base your answer on what it returns.
 Use web_search only when the answer depends on current or changing information, or on facts you don't know. Otherwise answer directly. Cite the web pages you use.`;
 
-// The system prompt is edited in Langfuse (prompt "main-system", label "production").
-// Falls back to the built-in prompt if Langfuse is not set up or unreachable.
+// Prompts added to every reply, after main-system, in this order. Each one is a text
+// prompt in Langfuse with the label "production"; one that is missing or unreachable is skipped.
+export const SNIPPETS = ['snippets/tone-format', 'snippets/privacy-redaction'];
+
+const options = (fallback) => ({ label: 'production', fallback, cacheTtlSeconds: 60, fetchTimeoutMs: 2000 });
+
+async function getSnippet(langfuse, name) {
+  try {
+    const prompt = await langfuse.getPrompt(name, undefined, options(''));
+    return prompt.isFallback ? '' : prompt.compile();
+  } catch {
+    return '';
+  }
+}
+
+// The system prompt is edited in Langfuse: "main-system" plus the snippets above, joined
+// into one text. Falls back to the built-in prompt if Langfuse is not set up or unreachable.
+// Only main-system is linked to the trace.
 export async function getSystemPrompt() {
   const langfuse = getLangfuse();
   if (!langfuse) return { text: DEFAULT_SYSTEM_PROMPT, prompt: undefined };
   try {
-    const prompt = await langfuse.getPrompt('main-system', undefined, {
-      label: 'production', fallback: DEFAULT_SYSTEM_PROMPT, cacheTtlSeconds: 60, fetchTimeoutMs: 2000,
-    });
-    return { text: prompt.compile(), prompt: prompt.isFallback ? undefined : prompt };
+    const [prompt, ...snippets] = await Promise.all([
+      langfuse.getPrompt('main-system', undefined, options(DEFAULT_SYSTEM_PROMPT)),
+      ...SNIPPETS.map((name) => getSnippet(langfuse, name)),
+    ]);
+    const text = [prompt.compile(), ...snippets].filter(Boolean).join('\n\n');
+    return { text, prompt: prompt.isFallback ? undefined : prompt };
   } catch {
     return { text: DEFAULT_SYSTEM_PROMPT, prompt: undefined };
   }
