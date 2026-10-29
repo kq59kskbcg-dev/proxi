@@ -53,3 +53,15 @@ test('evalLive runs the agent code with the production prompt and compares exact
   const bad = await evalLive(lf, answering({ 'Q: I want a human': 'false' }), 'classifiers/escalation');
   assert.equal(bad.ok, false);
 });
+
+test('evalLive skips a prompt that has no production version yet', async () => {
+  const lf = {
+    prompt: { get: async () => { throw new Error("Prompt not found: 'classifiers/language' with label 'production'"); } },
+    api: { datasetItems: { list: async () => { throw new Error('should not list items'); } } },
+  };
+  const { evalLive } = await import('../scripts/prompt-evals.js');
+  const result = await evalLive(lf, answering({}), 'classifiers/language');
+  assert.equal(result.ok, true);
+  assert.equal(result.skipped, true);
+  assert.match(report(result), /skipped, no production version yet/);
+});
