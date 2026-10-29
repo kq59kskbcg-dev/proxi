@@ -8,7 +8,8 @@
   "scripts": {
     "test": "node --test",
     "eval": "node scripts/eval.js",
-    "promote": "node scripts/promote.js"
+    "promote": "node scripts/promote.js",
+    "eval:ci": "node scripts/ci.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "1.3.0",
