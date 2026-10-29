@@ -10,7 +10,7 @@ const options = { label: 'production', cacheTtlSeconds: 60, fetchTimeoutMs: 2000
 export async function wantsPerson(langfuse, client, text) {
   const input = text?.trim().slice(0, 1000);
   if (!input) return false;
-  const prompt = await langfuse.getPrompt('classifiers/escalation', undefined, options);
+  const prompt = await langfuse.prompt.get('classifiers/escalation', options);
   const res = await client.messages.create({
     model: TITLE_MODEL,
     max_tokens: 8,
@@ -33,7 +33,7 @@ export async function getEscalation(client, latestMessage) {
     return { escalated: false, text: '' };
   }
   try {
-    return { escalated: true, text: (await langfuse.getPrompt('snippets/escalation-reply', undefined, options)).compile() };
+    return { escalated: true, text: (await langfuse.prompt.get('snippets/escalation-reply', options)).compile() };
   } catch {
     return { escalated: true, text: '' };
   }

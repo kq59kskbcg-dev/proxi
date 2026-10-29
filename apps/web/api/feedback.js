@@ -15,8 +15,8 @@ export async function POST(request) {
   }
   const langfuse = getLangfuse();
   if (langfuse && value !== null) {
-    langfuse.score({ traceId, name: 'user-feedback', value, dataType: 'BOOLEAN' });
-    await langfuse.flushAsync().catch(() => {});
+    langfuse.score.create({ traceId, name: 'user-feedback', value, dataType: 'BOOLEAN' });
+    await langfuse.flush().catch(() => {});
   }
   return new Response(null, { status: 204 });
 }

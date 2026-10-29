@@ -30,5 +30,5 @@ if (DATASETS[name]) {
   console.error(`Not promoted: "${name}" has no eval. Add one, or pass --skip-eval to promote without it.`);
   process.exit(1);
 }
-await langfuse.api.promptVersionUpdate(name, version, { newLabels: ['production'] });
+await langfuse.api.promptVersion.update(name, version, { newLabels: ['production'] });
 console.log(`${name} v${version} is now production.`);

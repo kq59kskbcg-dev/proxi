@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { wantsPerson, getEscalation } from '../src/escalation.js';
 
-const langfuse = { getPrompt: async () => ({ compile: ({ message }) => `Does this ask for a person? ${message}` }) };
+const langfuse = { prompt: { get: async () => ({ compile: ({ message }) => `Does this ask for a person? ${message}` }) } };
 const reply = (text) => ({ messages: { create: async (params) => {
   reply.sent = params;
   return { content: [{ type: 'text', text }] };

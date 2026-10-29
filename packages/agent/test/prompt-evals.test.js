@@ -8,8 +8,8 @@ const items = [
   { status: 'ARCHIVED', input: { message: 'ignored' }, expectedOutput: 'xx' },
 ];
 const langfuse = {
-  getPrompt: async (name, version) => ({ compile: ({ message }) => `${name}@${version}: ${message}` }),
-  api: { datasetItemsList: async () => ({ data: items }) },
+  prompt: { get: async (name, { version }) => ({ compile: ({ message }) => `${name}@${version}: ${message}` }) },
+  api: { datasetItems: { list: async () => ({ data: items }) } },
 };
 const answering = (answers) => ({ messages: { create: async (params) => {
   answering.sent.push(params);
@@ -35,15 +35,15 @@ test('evalPrompt fails and lists the items that got the wrong reply', async () =
 });
 
 test('evalPrompt fails on an empty dataset and rejects prompts without an eval', async () => {
-  const empty = { ...langfuse, api: { datasetItemsList: async () => ({ data: [] }) } };
+  const empty = { ...langfuse, api: { datasetItems: { list: async () => ({ data: [] }) } } };
   assert.equal((await evalPrompt(empty, answering({}), 'classifiers/language', 1)).ok, false);
   await assert.rejects(() => evalPrompt(langfuse, answering({}), 'evals/tone', 1), /No eval dataset/);
 });
 
 test('evalLive runs the agent code with the production prompt and compares exactly', async () => {
   const lf = {
-    getPrompt: async () => ({ compile: ({ message }) => `Q: ${message}` }),
-    api: { datasetItemsList: async () => ({ data: [{ status: 'ACTIVE', input: { message: 'I want a human' }, expectedOutput: true }] }) },
+    prompt: { get: async () => ({ compile: ({ message }) => `Q: ${message}` }) },
+    api: { datasetItems: { list: async () => ({ data: [{ status: 'ACTIVE', input: { message: 'I want a human' }, expectedOutput: true }] }) } },
   };
   const { evalLive } = await import('../scripts/prompt-evals.js');
   const ok = await evalLive(lf, answering({ 'Q: I want a human': 'true' }), 'classifiers/escalation');
@@ -52,4 +52,16 @@ test('evalLive runs the agent code with the production prompt and compares exact
   assert.match(report(ok), /classifiers\/escalation production on .*: 1\/1 passed/);
   const bad = await evalLive(lf, answering({ 'Q: I want a human': 'false' }), 'classifiers/escalation');
   assert.equal(bad.ok, false);
+});
+
+test('evalLive skips a prompt that has no production version yet', async () => {
+  const lf = {
+    prompt: { get: async () => { throw new Error("Prompt not found: 'classifiers/language' with label 'production'"); } },
+    api: { datasetItems: { list: async () => { throw new Error('should not list items'); } } },
+  };
+  const { evalLive } = await import('../scripts/prompt-evals.js');
+  const result = await evalLive(lf, answering({}), 'classifiers/language');
+  assert.equal(result.ok, true);
+  assert.equal(result.skipped, true);
+  assert.match(report(result), /skipped, no production version yet/);
 });
