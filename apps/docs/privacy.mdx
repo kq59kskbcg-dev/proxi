@@ -25,29 +25,33 @@ description: "How Proxi handles your data."
 
 ## How Proxi compares
 
-How Proxi handles chats next to ChatGPT and Claude, based on their published help pages in October 2026. Policies change, so check theirs for the latest.
-
-**Normal chats**
-
-| | Proxi | ChatGPT | Claude |
-|---|---|---|---|
-| Never used to train AI models | ✓ | ✗ | ✗ |
-| Card numbers, IBANs, emails and phones removed before the model | ✓ | ✗ | ✗ |
-| You choose how long chats are kept | ✓ | ✗ | ✗ |
-
-ChatGPT and Claude use consumer chats for training unless you turn that off in your settings.
+How Proxi handles chats next to the ChatGPT and Claude apps, based on their published help pages in October 2026. Policies change, so check theirs for the latest. Proxi uses Claude through Anthropic's API, which has its own terms: Anthropic does not train on customer content sent that way.
 
 **Incognito chats**
 
-| | Proxi | ChatGPT | Claude |
+| | Proxi | ChatGPT app | Claude app |
 |---|---|---|---|
 | Kept out of your history and search | ✓ | ✓ | ✓ |
+| Kept out of memory | ✓ | ✓ | ✓ |
 | Never used to train AI models | ✓ | ✓ | ✓ |
-| Not stored or logged by the service you are chatting with | ✓ | ✗ | ✗ |
 
-ChatGPT and Claude keep a copy of incognito chats for up to 30 days for safety. In Proxi, the reply is written by Claude, so Anthropic's own terms apply to that request.
+Proxi has no memory feature, so there is nothing for an incognito chat to leave out. In the ChatGPT and Claude apps, an incognito chat can still be kept for up to 30 days for safety. In Proxi, the reply is written by Claude, so Anthropic's own terms apply to that request.
 
-Sources: OpenAI's [Temporary Chat](https://help.openai.com/en/articles/8914046-temporary-chat-in-chatgpt) and [data usage for consumers](https://help.openai.com/en/articles/7730893-data-usage-for-consumers) pages, and Anthropic's [incognito chats](https://support.claude.com/en/articles/12260368-use-incognito-chats) and [data retention](https://privacy.claude.com/en/articles/10023548-how-long-do-you-store-my-data) pages.
+**Normal chats**
+
+| | Proxi | ChatGPT app | Claude app |
+|---|---|---|---|
+| Not used to train AI models by default | ✓ | ✗ | ✗ |
+
+The ChatGPT and Claude apps use consumer chats for training unless you turn that off in your settings.
+
+**What Proxi adds to every chat**
+
+| | Proxi | ChatGPT app | Claude app |
+|---|---|---|---|
+| Card numbers, IBANs, emails and phone numbers removed before the model | ✓ | ✗ | ✗ |
+
+Sources: OpenAI's [Temporary Chat](https://help.openai.com/en/articles/8914046-temporary-chat-in-chatgpt) and [data usage for consumers](https://help.openai.com/en/articles/7730893-data-usage-for-consumers) pages, and Anthropic's [incognito chats](https://support.claude.com/en/articles/12260368-use-incognito-chats) page.
 
 ## Subprocessors
 
