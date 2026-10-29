@@ -39,3 +39,17 @@ test('evalPrompt fails on an empty dataset and rejects prompts without an eval',
   assert.equal((await evalPrompt(empty, answering({}), 'classifiers/language', 1)).ok, false);
   await assert.rejects(() => evalPrompt(langfuse, answering({}), 'evals/tone', 1), /No eval dataset/);
 });
+
+test('evalLive runs the agent code with the production prompt and compares exactly', async () => {
+  const lf = {
+    getPrompt: async () => ({ compile: ({ message }) => `Q: ${message}` }),
+    api: { datasetItemsList: async () => ({ data: [{ status: 'ACTIVE', input: { message: 'I want a human' }, expectedOutput: true }] }) },
+  };
+  const { evalLive } = await import('../scripts/prompt-evals.js');
+  const ok = await evalLive(lf, answering({ 'Q: I want a human': 'true' }), 'classifiers/escalation');
+  assert.equal(ok.ok, true);
+  assert.equal(ok.version, 'production');
+  assert.match(report(ok), /classifiers\/escalation production on .*: 1\/1 passed/);
+  const bad = await evalLive(lf, answering({ 'Q: I want a human': 'false' }), 'classifiers/escalation');
+  assert.equal(bad.ok, false);
+});

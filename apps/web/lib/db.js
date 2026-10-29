@@ -13,6 +13,8 @@ export const RETENTION_OPTIONS = [7, 30, 90];
 export const DEFAULT_RETENTION_DAYS = 30;
 // Custom instructions: how long they may be, in characters.
 export const CUSTOM_INSTRUCTIONS_MAX = 1500;
+// Memory: how many facts one user can have saved.
+export const MEMORY_LIMIT = 50;
 
 let driver = null;
 let ready = null;
@@ -67,6 +69,13 @@ const SCHEMA = [
   `ALTER TABLE conversations ADD COLUMN IF NOT EXISTS language text`,
   // True once any message in the chat asked for a person.
   `ALTER TABLE conversations ADD COLUMN IF NOT EXISTS escalated boolean NOT NULL DEFAULT false`,
+  // Facts the user asked Proxi to remember, already redacted. Kept until the user deletes them.
+  `CREATE TABLE IF NOT EXISTS memories (
+     user_id text NOT NULL,
+     id text NOT NULL,
+     content text NOT NULL,
+     created_at timestamptz NOT NULL DEFAULT now(),
+     PRIMARY KEY (user_id, id))`,
 ];
 
 async function db() {
@@ -194,4 +203,31 @@ export async function getSharedConversation(shareId) {
     updatedAt: new Date(updatedAt).toISOString(),
     messages: rows.map((r) => ({ role: r.role, content: r.content, attachments: r.attachments ?? null })),
   };
+}
+
+// The user's saved memories, oldest first.
+export async function listMemories(userId) {
+  const d = await db();
+  const rows = await d.query('SELECT id, content, created_at FROM memories WHERE user_id = $1 ORDER BY created_at, id', [userId]);
+  return rows.map((r) => ({ id: r.id, content: r.content, createdAt: new Date(r.created_at).toISOString() }));
+}
+
+// Saves a memory unless the same text is already saved or the user has MEMORY_LIMIT of them.
+// Returns "saved", "duplicate" or "full".
+export async function addMemory(userId, id, content) {
+  const d = await db();
+  const rows = await d.query(
+    `INSERT INTO memories (user_id, id, content)
+     SELECT $1, $2, $3
+     WHERE NOT EXISTS (SELECT 1 FROM memories WHERE user_id = $1 AND content = $3)
+       AND (SELECT count(*) FROM memories WHERE user_id = $1) < $4
+     RETURNING id`, [userId, id, content, MEMORY_LIMIT]);
+  if (rows.length) return 'saved';
+  const same = await d.query('SELECT 1 FROM memories WHERE user_id = $1 AND content = $2', [userId, content]);
+  return same.length ? 'duplicate' : 'full';
+}
+
+export async function deleteMemory(userId, id) {
+  const d = await db();
+  await d.query('DELETE FROM memories WHERE user_id = $1 AND id = $2', [userId, id]);
 }

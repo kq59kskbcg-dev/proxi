@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { wantsPerson, getEscalation } from '../lib/escalation.js';
+import { wantsPerson, getEscalation } from '../src/escalation.js';
 
 const langfuse = { getPrompt: async () => ({ compile: ({ message }) => `Does this ask for a person? ${message}` }) };
 const reply = (text) => ({ messages: { create: async (params) => {

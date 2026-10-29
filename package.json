@@ -1,0 +1,12 @@
+{
+  "name": "proxi-monorepo",
+  "private": true,
+  "workspaces": [
+    "apps/web",
+    "packages/agent",
+    "evals"
+  ],
+  "scripts": {
+    "test": "npm test --workspaces --if-present"
+  }
+}
