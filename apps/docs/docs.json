@@ -29,10 +29,12 @@
         "pages": [
           "index",
           "what-is-proxi",
+          "using-proxi",
           "architecture",
           "how-proxi-is-tested",
           "privacy",
-          "security"
+          "security",
+          "release-notes"
         ]
       }
     ]
