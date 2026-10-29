@@ -17,7 +17,7 @@ No single test catches every problem. Each one has gaps, like slices of Swiss ch
 Offline evals run before a change goes live. They use datasets in Langfuse: test cases with an input and, where it makes sense, a known good answer. Any change to a prompt, the agent's code, a tool or the docs is tested this way, and a change that fails is blocked. Failures found later are added to these datasets, as described in section 5.
 
 <Card title="Classifiers" icon="tags">
-  The small helpers that detect the language and detect a request to speak with a person are tested on messages with one correct answer. A Spanish question must be classified `es`, and "Who is Lisandro?" must not trigger an escalation. The output must match exactly, and every case must pass.
+  The small helpers that detect the language and detect a request to speak with a person are tested on messages with one correct answer. A Spanish question must be classified `es`, and a question about who built Proxi must not trigger an escalation. The output must match exactly, and every case must pass.
 </Card>
 
 <Card title="Snippets" icon="puzzle-piece">
