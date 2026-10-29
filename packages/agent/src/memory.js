@@ -19,7 +19,7 @@ export async function getMemoryTool() {
   const langfuse = getLangfuse();
   if (langfuse) {
     try {
-      const prompt = await langfuse.getPrompt('tools/save-memory', undefined, {
+      const prompt = await langfuse.prompt.get('tools/save-memory', {
         label: 'production', fallback: DEFAULT_MEMORY_TOOL_DESCRIPTION, cacheTtlSeconds: 60, fetchTimeoutMs: 2000,
       });
       description = prompt.compile();

@@ -16,7 +16,7 @@ export async function detectLanguage(langfuse, client, text) {
   const input = text?.trim().slice(0, 1000);
   if (!input) return null;
   if (detected.has(input)) return detected.get(input);
-  const prompt = await langfuse.getPrompt('classifiers/language', undefined, options);
+  const prompt = await langfuse.prompt.get('classifiers/language', options);
   const res = await client.messages.create({
     model: TITLE_MODEL,
     max_tokens: 8,
@@ -33,7 +33,7 @@ export async function detectLanguage(langfuse, client, text) {
 async function localeNames(langfuse, code) {
   const hit = listed.get(code);
   if (hit && Date.now() - hit.at < TTL_MS) return hit.names;
-  const { data } = await langfuse.api.promptsList({ tag: `locale-${code}`, limit: 20 });
+  const { data } = await langfuse.api.prompts.list({ tag: `locale-${code}`, limit: 20 });
   const names = data.map((p) => p.name).sort();
   listed.set(code, { at: Date.now(), names });
   return names;
@@ -49,7 +49,7 @@ export async function getLocale(client, firstMessage, knownCode = null) {
     if (!code) return { code: null, text: '' };
     const names = await localeNames(langfuse, code);
     const parts = await Promise.all(names.map(async (name) => {
-      try { return (await langfuse.getPrompt(name, undefined, options)).compile(); } catch { return ''; }
+      try { return (await langfuse.prompt.get(name, options)).compile(); } catch { return ''; }
     }));
     return { code, text: parts.filter(Boolean).join('\n\n') };
   } catch (error) {

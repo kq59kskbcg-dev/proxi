@@ -3,7 +3,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { redact } from '@proxi/agent/redact';
 import { rateLimit } from '../lib/ratelimit.js';
 import { requireUser } from '../lib/auth.js';
-import { getLangfuse, getSystemPrompt } from '@proxi/agent/langfuse';
+import { flushTraces, getSystemPrompt, startTrace } from '@proxi/agent/langfuse';
 import { CONVERSATION_ID, hasDatabase, saveConversation, conversationAttributes, listMemories, addMemory } from '../lib/db.js';
 import { customInstructions, withInstructions } from '../lib/instructions.js';
 import { processAttachments, AttachmentError, KINDS, MAX_ATTACHMENTS } from '../lib/attachments.js';
@@ -12,9 +12,11 @@ import { makeTitle } from '@proxi/agent/title';
 import { getLocale } from '@proxi/agent/locale';
 import { getEscalation } from '@proxi/agent/escalation';
 import { MEMORY_TOOL, getMemoryTool, memoryText, withMemories } from '@proxi/agent/memory';
+import { chooseModel } from '@proxi/agent/routing';
 import { toolActivity } from '../lib/activity.js';
 
-// Only these models can be requested from the browser.
+// Only these models can be requested from the browser, plus "Auto", which picks one per
+// message with the routing classifier.
 const MODELS = {
   'Opus 5.5': 'claude-opus-5-5',
   'Sonnet 5.5': 'claude-sonnet-5-5',
@@ -47,13 +49,14 @@ export async function POST(request) {
   let body;
   try { body = await request.json(); } catch { return json({ error: 'Invalid request.' }, 400); }
 
-  const model = MODELS[body?.model];
+  const auto = body?.model === 'Auto';
+  const fixedModel = MODELS[body?.model];
   const raw = Array.isArray(body?.messages) ? body.messages : [];
   const lastIndex = raw.length - 1;
   const valid = raw.length > 0 && raw[0].role === 'user' && raw[lastIndex].role === 'user' && raw.every((m, i) =>
     (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string' && m.content.length <= MAX_CHARS
     && validAttachments(m, i === lastIndex) && (m.content.length > 0 || m.attachments?.length > 0));
-  if (!model || !valid) return json({ error: 'Invalid request.' }, 400);
+  if ((!fixedModel && !auto) || !valid) return json({ error: 'Invalid request.' }, 400);
   if (raw.length > MAX_HISTORY) return json({ error: 'This chat is too long. Please start a new one.' }, 400);
   // A temporary chat is never saved, titled or traced.
   const temporary = body.temporary === true;
@@ -103,23 +106,24 @@ export async function POST(request) {
   const localeFor = async () => getLocale(client, history[0].content, conversationId ? (await conversationAttributes(user.userId, conversationId)).language : null);
   // Memory is off in incognito chats: nothing is saved and saved memories aren't used.
   const memoryOn = !temporary && hasDatabase();
-  const [prompt, instructions, locale, escalation, memories, memoryTool] = await Promise.all([
+  const [prompt, instructions, locale, escalation, memories, memoryTool, route] = await Promise.all([
     getSystemPrompt(), customInstructions(user.userId), localeFor(), getEscalation(client, latest.content),
     memoryOn ? savedMemories(user.userId) : [], memoryOn ? getMemoryTool() : null,
+    auto ? chooseModel(client, history) : { level: null, model: fixedModel },
   ]);
+  const model = route.model;
   const base = withMemories([prompt.text, locale.text, escalation.text].filter(Boolean).join('\n\n'), memories);
   const system = { ...prompt, text: withInstructions(base, instructions) };
-  const langfuse = temporary ? null : getLangfuse();
-  // No user ID in traces: Langfuse alone can't tell whose chat a trace belongs to.
-  const trace = langfuse?.trace({
-    name: 'chat',
+  // Incognito chats aren't traced. No user ID in traces: Langfuse alone can't tell whose chat a
+  // trace belongs to.
+  const trace = temporary ? null : startTrace('chat', {
     sessionId: conversationId ?? undefined,
     input: traced,
-    metadata: { redactions, language: locale.code, escalated: escalation.escalated },
+    metadata: { redactions, language: locale.code, escalated: escalation.escalated, ...(auto ? { route: route.level } : {}) },
   });
-  const generation = trace?.generation({
-    name: 'reply', model, input: [{ role: 'system', content: system.text }, ...traced], prompt: system.prompt,
-  });
+  const generation = trace?.startObservation('reply', {
+    model, input: [{ role: 'system', content: system.text }, ...traced], prompt: system.prompt,
+  }, { asType: 'generation' });
 
   const mcp = await getMcpTools();
   const tools = [...(mcp?.tools ?? []), ...(memoryTool ? [memoryTool] : [])];
@@ -139,7 +143,7 @@ export async function POST(request) {
   const body$ = new ReadableStream({
     async start(controller) {
       const send = (event) => controller.enqueue(encoder.encode(JSON.stringify(event) + '\n'));
-      send({ type: 'start', traceId: trace?.id ?? null, redactions, notices: attached.notices });
+      send({ type: 'start', traceId: trace?.traceId ?? null, redactions, notices: attached.notices });
       // A new chat gets a short AI title, made alongside the reply so nobody waits for it.
       const firstMessage = history.length === 1 ? history[0] : null;
       const titled = conversationId && firstMessage ? makeTitle(client, firstMessage.content, trace) : null;
@@ -180,11 +184,11 @@ export async function POST(request) {
           // Tell the page what the agent is doing, e.g. "Searching the help center".
           for (const call of calls) send({ type: 'activity', tool: call.name, ...toolActivity(call.name, mcp?.titles?.[call.name], call.input) });
           const results = await Promise.all(calls.map(async (call) => {
-            const span = trace?.span({ name: `tool ${call.name}`, input: call.input });
+            const span = trace?.startObservation(`tool ${call.name}`, { input: call.input }, { asType: 'tool' });
             const result = call.name === MEMORY_TOOL && memoryTool ? await remember(user.userId, call)
               : mcp ? await mcp.call(call)
               : { type: 'tool_result', tool_use_id: call.id, content: 'This tool is not available.', is_error: true };
-            span?.end({ output: result.content, level: result.is_error ? 'ERROR' : 'DEFAULT' });
+            span?.update({ output: result.content, level: result.is_error ? 'ERROR' : 'DEFAULT' }).end();
             return result;
           }));
           turns.push({ role: 'assistant', content: final.content }, { role: 'user', content: results });
@@ -196,18 +200,18 @@ export async function POST(request) {
         if (final.stop_reason === 'refusal') {
           send({ type: 'error', error: "Proxi can't help with that request." });
         }
-        generation?.end({
+        generation?.update({
           output: text,
           usageDetails: usage,
           metadata: { stopReason: final.stop_reason, servedBy: final.model },
-        });
+        }).end();
         trace?.update({ output: text });
         send({ type: 'done', stopReason: final.stop_reason, model: final.model });
       } catch (error) {
         if (request.signal.aborted) {
-          generation?.end({ output: text, level: 'WARNING', statusMessage: 'Stopped by user' });
+          generation?.update({ output: text, level: 'WARNING', statusMessage: 'Stopped by user' }).end();
         } else {
-          generation?.end({ output: text, level: 'ERROR', statusMessage: errorName(error) });
+          generation?.update({ output: text, level: 'ERROR', statusMessage: errorName(error) }).end();
           send({ type: 'error', error: userMessage(error) });
         }
       } finally {
@@ -217,11 +221,12 @@ export async function POST(request) {
           try { send({ type: 'title', title: aiTitle }); } catch {}
         }
         if (conversationId && hasDatabase()) {
-          const reply = text ? [{ role: 'assistant', content: text, model: servedBy, traceId: trace?.id ?? null }] : [];
+          const reply = text ? [{ role: 'assistant', content: text, model: servedBy, traceId: trace?.traceId ?? null }] : [];
           await saveConversation(user.userId, conversationId, aiTitle || titleFrom(history), [...history, ...reply], { replaceTitle: Boolean(aiTitle), language: locale.code, escalated: escalation.escalated })
             .catch((e) => console.error('saving chat failed', e));
         }
-        await langfuse?.flushAsync().catch(() => {});
+        trace?.end();
+        await flushTraces();
         try { controller.close(); } catch {}
       }
     },

@@ -46,11 +46,11 @@ export function parseScore(text) {
 }
 
 export async function runJudge(langfuse, client, name, variables, { model = JUDGE_MODEL, label = 'latest' } = {}) {
-  const prompt = await langfuse.getPrompt(`evals/${name}`, undefined, { label, cacheTtlSeconds: 0 });
+  const prompt = await langfuse.prompt.get(`evals/${name}`, { label, cacheTtlSeconds: 0 });
   const res = await client.messages.create({
     model,
     max_tokens: 300,
-    thinking: { type: 'disabled' },
+    thinking: { type: 'between_tools' }, // Sonnet 5.5's way to turn thinking off; it rejects 'disabled'
     messages: [{ role: 'user', content: prompt.compile(variables) + FORMAT }],
   }, { timeout: 30_000, maxRetries: 1 });
   return parseScore(res.content.filter((b) => b.type === 'text').map((b) => b.text).join(''));

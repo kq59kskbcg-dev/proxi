@@ -17,7 +17,7 @@ async function getTitlePrompt() {
   const langfuse = getLangfuse();
   if (!langfuse) return { text: DEFAULT_TITLE_PROMPT, prompt: undefined };
   try {
-    const prompt = await langfuse.getPrompt('summarizers/conversation-title', undefined, {
+    const prompt = await langfuse.prompt.get('summarizers/conversation-title', {
       label: 'production', fallback: DEFAULT_TITLE_PROMPT, cacheTtlSeconds: 60, fetchTimeoutMs: 2000,
     });
     return { text: prompt.compile(), prompt: prompt.isFallback ? undefined : prompt };
@@ -31,7 +31,7 @@ export async function makeTitle(client, text, trace) {
   const input = text?.trim().slice(0, MAX_INPUT);
   if (!input) return null;
   const system = await getTitlePrompt();
-  const generation = trace?.generation({ name: 'title', model: TITLE_MODEL, input, prompt: system.prompt });
+  const generation = trace?.startObservation('title', { model: TITLE_MODEL, input, prompt: system.prompt }, { asType: 'generation' });
   try {
     const res = await client.messages.create({
       model: TITLE_MODEL,
@@ -42,10 +42,10 @@ export async function makeTitle(client, text, trace) {
     }, { timeout: 10_000, maxRetries: 1 });
     const raw = res.stop_reason === 'refusal' ? '' : res.content.filter((b) => b.type === 'text').map((b) => b.text).join('');
     const title = cleanTitle(raw);
-    generation?.end({ output: title, usageDetails: { input: res.usage.input_tokens, output: res.usage.output_tokens } });
+    generation?.update({ output: title, usageDetails: { input: res.usage.input_tokens, output: res.usage.output_tokens } }).end();
     return title;
   } catch (error) {
-    generation?.end({ level: 'ERROR', statusMessage: String(error?.status ?? error?.name ?? 'Error') });
+    generation?.update({ level: 'ERROR', statusMessage: String(error?.status ?? error?.name ?? 'Error') }).end();
     console.error('title generation failed', error?.status ?? error?.name);
     return null;
   }
