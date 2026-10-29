@@ -73,6 +73,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 .scrim{display:none}
 .search-layer{position:absolute;inset:0;z-index:50;display:flex;justify-content:center;align-items:flex-start;padding-top:72px;background:rgba(24,24,27,0.25)}
 .search-panel{width:min(560px,calc(100% - 32px));max-height:min(520px,calc(100% - 120px));background:var(--surface);border:1px solid var(--border);border-radius:14px;box-shadow:0 18px 50px rgba(24,24,27,0.22);display:flex;flex-direction:column;overflow:hidden}
+.foot-link{display:inline-flex;align-items:center;min-height:44px;color:var(--text-muted-2);text-decoration:none}.foot-link:hover{color:var(--text);text-decoration:underline;text-underline-offset:2px}
 .search-hit{background:var(--accent-soft);color:inherit;border-radius:3px;padding:0 1px}
 .search-row[aria-selected="true"]{background:var(--hover-solid) !important}
 @media (min-width: 831px){.phone-only{display:none !important}}
@@ -507,11 +508,10 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
               <template v-for="(o, i_o) in v.retentionChoices" :key="i_o"><option :value="o.value">{{ o.label }}</option></template>
             </select>
           </div>
-          <div style="border: 1px solid var(--border); border-radius: 16px; padding: 20px 20px 8px; background: var(--surface); display: flex; flex-direction: column">
-            <h3 style="margin: 0 0 8px; font-size: 16px; font-weight: 600">Legal</h3>
-            <a class="hov" :href="v.privacyPolicy" target="_blank" rel="noopener noreferrer" style="height: 44px; display: flex; align-items: center; border-top: 1px solid var(--border); font-size: 14px; font-weight: 500; color: var(--text); text-decoration: none">Privacy policy<svg style="margin-left: auto; color: var(--text-muted-2)" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17L17 7"></path><path d="M8 7h9v9"></path></svg></a>
-            <a class="hov" :href="v.terms" target="_blank" rel="noopener noreferrer" style="height: 44px; display: flex; align-items: center; border-top: 1px solid var(--border); font-size: 14px; font-weight: 500; color: var(--text); text-decoration: none">Terms of service<svg style="margin-left: auto; color: var(--text-muted-2)" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17L17 7"></path><path d="M8 7h9v9"></path></svg></a>
-          </div>
+          <nav aria-label="Legal" style="display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 20px; padding: 8px 0 16px; font-size: 13px">
+            <a class="foot-link" :href="v.privacyPolicy" target="_blank" rel="noopener noreferrer">Privacy policy</a>
+            <a class="foot-link" :href="v.terms" target="_blank" rel="noopener noreferrer">Terms of service</a>
+          </nav>
         </div>
       </section>
     </template>
