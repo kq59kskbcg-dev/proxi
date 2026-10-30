@@ -235,15 +235,15 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
       </button>
     </div>
 
-    <div style="display: flex; flex-direction: column; gap: 2px">
+    <div style="display: flex; flex-direction: column; gap: 0">
       <div style="display: flex; align-items: center; min-height: 34px; padding: 4px 4px 2px 10px; box-sizing: border-box">
         <span style="font-size: 12px; font-weight: 600; color: var(--text-muted-2); letter-spacing: 0.02em">Recents</span>
       </div>
       <template v-for="(c, i_c) in v.recents" :key="i_c">
-          <button :class="c.cls" :aria-current="c.current" @click="c.open" :style="`border: 0; text-align: left; cursor: pointer; color: ${c.color}; background: ${c.bg}; box-shadow: ${c.shadow}; border-radius: 8px; padding: 10px 10px; font-size: 14px; font-weight: ${c.weight}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis`">{{ c.title }}</button>
+          <button :class="c.cls" :aria-current="c.current" @click="c.open" :style="`border: 0; text-align: left; cursor: pointer; color: ${c.color}; background: ${c.bg}; box-shadow: ${c.shadow}; border-radius: 8px; padding: 8px 10px; font-size: 14px; font-weight: ${c.weight}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis`">{{ c.title }}</button>
       </template>
       <template v-if="v.hasMore">
-        <button class="hov" type="button" @click="v.openSearch" aria-haspopup="dialog" style="border: 0; background: transparent; text-align: left; cursor: pointer; border-radius: 8px; padding: 10px 10px; font-size: 14px; color: var(--text-muted-2)">View all</button>
+        <button class="hov" type="button" @click="v.openSearch" aria-haspopup="dialog" style="border: 0; background: transparent; text-align: left; cursor: pointer; border-radius: 8px; padding: 8px 10px; font-size: 14px; color: var(--text-muted-2)">View all</button>
       </template>
       <template v-if="v.historyNote">
         <p style="margin: 0; padding: 6px 10px; font-size: 13px; line-height: 1.45; color: var(--text-muted-2)">{{ v.historyNote }}
