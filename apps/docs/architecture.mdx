@@ -44,7 +44,7 @@ flowchart LR
     Claude streams its reply. When it calls a tool, the app runs it through MCP and returns the result, up to five rounds.
   </Step>
   <Step title="Citations">
-    Results from `search_docs` become numbered links in the reply and a Sources list.
+    Results from `search_docs` and `web_search` become numbered links in the reply and a Sources list.
   </Step>
   <Step title="Save and trace">
     The redacted chat is saved to Postgres, and the whole exchange, including tool calls, is traced in Langfuse.
