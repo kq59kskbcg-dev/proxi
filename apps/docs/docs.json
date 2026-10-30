@@ -28,12 +28,56 @@
         "group": "Get started",
         "pages": [
           "index",
-          "what-is-proxi",
-          "using-proxi",
-          "architecture",
-          "how-proxi-is-tested",
+          "what-is-proxi"
+        ]
+      },
+      {
+        "group": "Chats",
+        "pages": [
+          "chats/send-messages",
+          "chats/models",
+          "chats/attachments",
+          "chats/incognito",
+          "chats/share"
+        ]
+      },
+      {
+        "group": "Chat history",
+        "pages": [
+          "history/find-chats",
+          "history/delete-chats"
+        ]
+      },
+      {
+        "group": "Tools",
+        "pages": [
+          "tools/overview",
+          "tools/web-search",
+          "tools/help-center-search",
+          "tools/service-status"
+        ]
+      },
+      {
+        "group": "Settings",
+        "pages": [
+          "settings/preferences",
+          "settings/memory",
+          "settings/custom-instructions"
+        ]
+      },
+      {
+        "group": "Trust and quality",
+        "pages": [
           "privacy",
           "security",
+          "how-proxi-is-tested",
+          "privacy-policy",
+          "terms"
+        ]
+      },
+      {
+        "group": "Reference",
+        "pages": [
           "release-notes"
         ]
       }
@@ -43,6 +87,14 @@
     {
       "source": "/features",
       "destination": "/what-is-proxi"
+    },
+    {
+      "source": "/architecture",
+      "destination": "/what-is-proxi"
+    },
+    {
+      "source": "/using-proxi",
+      "destination": "/chats/send-messages"
     }
   ],
   "navbar": {

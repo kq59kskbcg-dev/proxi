@@ -1,0 +1,42 @@
+---
+title: "How Proxi uses tools"
+description: "What tools are, when Proxi uses them, and how you can see what it did."
+---
+
+Besides answering from what it already knows, Proxi can use tools. A tool is a small action the assistant can take while writing a reply. Proxi uses three:
+
+<CardGroup cols={3}>
+  <Card title="Search the web" icon="globe" href="/tools/web-search">
+    For current information.
+  </Card>
+  <Card title="Ask about Proxi" icon="book-open" href="/tools/help-center-search">
+    Answers from this help center.
+  </Card>
+  <Card title="Check service status" icon="pulse" href="/tools/service-status">
+    Whether Proxi's tools are running.
+  </Card>
+</CardGroup>
+
+## You don't have to ask
+
+Proxi decides when a tool helps. A simple question gets a direct answer with no tool.
+
+## Read-only
+
+All tools are read-only. They look things up and can't change anything for you.
+
+## See what Proxi did
+
+Each reply shows a short list of its steps, such as searching the help center or the web.
+
+## Sources
+
+When a tool finds pages, the reply links to them in numbered links and a Sources list, so you can check them.
+
+## Limits
+
+- Proxi can use tools in up to five rounds per reply.
+- When a tool fails, Proxi tells you.
+- What you type into a tool is redacted first, like your messages.
+
+See [how Proxi is tested](/how-proxi-is-tested) for how tool choices are checked.
