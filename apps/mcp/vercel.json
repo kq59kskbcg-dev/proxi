@@ -2,5 +2,6 @@
   "git": { "deploymentEnabled": { "**": false, "main": true } },
   "ignoreCommand": "[ \"$VERCEL_ENV\" = \"preview\" ] || git diff HEAD^ HEAD --quiet -- .",
   "regions": ["fra1"],
+  "functions": { "api/mcp.js": { "maxDuration": 60 } },
   "rewrites": [{ "source": "/mcp", "destination": "/api/mcp" }]
 }
