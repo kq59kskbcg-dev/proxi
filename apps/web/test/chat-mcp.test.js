@@ -138,6 +138,35 @@ test('search_docs results come back citable and the reply cites them', { skip },
   assert.match(text, /\*\*Sources\*\*\n1\. \[Privacy\]\(https:\/\/proxi\.mintlify\.site\/privacy\)$/);
 });
 
+test('a citation marker is shown only when the cited source changes', { skip }, async () => {
+  const a = 'https://proxi.mintlify.site/privacy';
+  const b = 'https://proxi.mintlify.site/security';
+  script = [
+    () => toolUseTurn('search_docs', { query: 'how is my data protected' }),
+    () => citedBlocksTurn([
+      { text: '- Card numbers are masked.', source: a },
+      { text: '\n- So are IBANs.', source: a },
+      { text: '\n- Traffic uses HTTPS.', source: b },
+      { text: '\n- Chats can be deleted.', source: a },
+      { text: '\n\nIn short:' },
+      { text: '\n- Incognito chats are not saved.', source: a },
+    ]),
+  ];
+  const events = await chat('How is my data protected?');
+
+  const text = events.filter((e) => e.type === 'text').map((e) => e.text).join('');
+  const reply = text.slice(0, text.indexOf('\n\n**Sources**'));
+  assert.equal(reply, [
+    `- Card numbers are masked. [[1]](${a})`,
+    '- So are IBANs.',
+    `- Traffic uses HTTPS. [[2]](${b})`,
+    `- Chats can be deleted. [[1]](${a})`,
+    '',
+    'In short:',
+    `- Incognito chats are not saved. [[1]](${a})`,
+  ].join('\n'));
+});
+
 test('a temporary chat is not titled, saved or traced', { skip }, async () => {
   script = [() => textTurn('Sure.')];
   const events = await chat('Help me plan a trip', { conversationId: 'temp-chat-1', temporary: true });
@@ -215,6 +244,28 @@ function citedTextTurn(body) {
     ['content_block_delta', { type: 'content_block_delta', index: 0, delta: { type: 'citations_delta', citation } }],
     ['content_block_delta', { type: 'content_block_delta', index: 0, delta: { type: 'text_delta', text: 'Proxi masks card numbers.' } }],
     ['content_block_stop', { type: 'content_block_stop', index: 0 }],
+    ['message_delta', { type: 'message_delta', delta: { stop_reason: 'end_turn', stop_sequence: null }, usage: { output_tokens: 8 } }],
+    ['message_stop', { type: 'message_stop' }],
+  ];
+}
+
+// One text block per item; an item with a source cites it.
+function citedBlocksTurn(items) {
+  const blocks = items.flatMap((item, index) => {
+    const citation = item.source && {
+      type: 'search_result_location', source: item.source, title: item.source, cited_text: item.text,
+      search_result_index: 0, start_block_index: 0, end_block_index: 0,
+    };
+    return [
+      ['content_block_start', { type: 'content_block_start', index, content_block: { type: 'text', text: '', citations: [] } }],
+      ...(citation ? [['content_block_delta', { type: 'content_block_delta', index, delta: { type: 'citations_delta', citation } }]] : []),
+      ['content_block_delta', { type: 'content_block_delta', index, delta: { type: 'text_delta', text: item.text } }],
+      ['content_block_stop', { type: 'content_block_stop', index }],
+    ];
+  });
+  return [
+    ['message_start', { type: 'message_start', message: message() }],
+    ...blocks,
     ['message_delta', { type: 'message_delta', delta: { stop_reason: 'end_turn', stop_sequence: null }, usage: { output_tokens: 8 } }],
     ['message_stop', { type: 'message_stop' }],
   ];
