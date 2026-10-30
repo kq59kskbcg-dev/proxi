@@ -1,0 +1,19 @@
+---
+title: "Search the web"
+description: "How Proxi looks up current information on the web."
+---
+
+Proxi uses the `web_search` tool when an answer depends on current or changing information, such as news, prices, releases or events. It doesn't search the web for questions it can answer from its own knowledge, or for questions about Proxi itself. Those use [Ask about Proxi](/tools/help-center-search).
+
+## What you see
+
+- A search step in the reply's list of steps.
+- The answer, with numbered links to the pages it used, and a Sources list.
+
+## How it works
+
+The search runs through Claude with Anthropic's web search tool. The reply is based on what the pages say, so check the sources for anything important.
+
+## Privacy
+
+Your search query is redacted like your messages, and doesn't include your name, email or account. See [Privacy](/privacy#subprocessors) for who processes it.
