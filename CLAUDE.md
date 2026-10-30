@@ -33,6 +33,7 @@ Never in the docs:
 - Details that help someone attack or abuse Proxi: rate limit numbers, redaction patterns, prompt text, classifier rules, safety thresholds.
 - Personal data, except the contact address in the privacy policy and terms.
 - Features that aren't shipped, roadmap promises or dates, unless the user explicitly asks for a page that describes planned work.
+- Self-explanatory UI, such as what a close button or a back arrow does. Describe a control only when it is hard to find or what it does isn't obvious.
 
 How to make claims:
 - Describe only what the code does today. When unsure, check the code or leave it out.
