@@ -61,6 +61,21 @@ export async function deleteTraces(ids) {
   }
 }
 
+// One page of chat traces started before `before`, as { traceId, sessionId } (the session is
+// the saved chat's ID), and the cursor for the next page, or null when there is none.
+export async function listChatTraces({ before, cursor = null }) {
+  const langfuse = getLangfuse();
+  if (!langfuse) return { traces: [], cursor: null };
+  const res = await langfuse.api.observations.getMany({
+    name: 'chat', isRootObservation: true, toStartTime: before.toISOString(),
+    fields: 'core,basic,trace_context', limit: 100, ...(cursor ? { cursor } : {}),
+  });
+  return {
+    traces: (res.data ?? []).map((o) => ({ traceId: o.traceId, sessionId: o.sessionId ?? null })),
+    cursor: res.meta?.cursor ?? null,
+  };
+}
+
 export async function flushTraces() {
   await processor?.forceFlush().catch(() => {});
 }
