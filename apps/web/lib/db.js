@@ -135,15 +135,22 @@ export async function conversationAttributes(userId, conversationId) {
 
 // Retention: removes every chat with no activity for longer than its owner's
 // "Delete chats after" setting (or the default). Their messages go with them
-// (ON DELETE CASCADE). Returns how many were removed.
+// (ON DELETE CASCADE). Returns how many were removed and the monitoring trace IDs
+// of their messages, so the caller can delete those too.
 export async function deleteInactiveConversations(defaultDays = DEFAULT_RETENTION_DAYS) {
   const d = await db();
-  const rows = await d.query(
-    `DELETE FROM conversations c
-     WHERE c.updated_at < now() - make_interval(days => COALESCE(
-       (SELECT s.chat_retention_days FROM user_settings s WHERE s.user_id = c.user_id), $1))
-     RETURNING c.id`, [defaultDays]);
-  return rows.length;
+  const [row] = await d.query(
+    `WITH due AS (
+       SELECT c.user_id, c.id FROM conversations c
+       WHERE c.updated_at < now() - make_interval(days => COALESCE(
+         (SELECT s.chat_retention_days FROM user_settings s WHERE s.user_id = c.user_id), $1))),
+     traces AS (
+       SELECT m.trace_id FROM messages m JOIN due ON m.user_id = due.user_id AND m.conversation_id = due.id
+       WHERE m.trace_id IS NOT NULL),
+     gone AS (
+       DELETE FROM conversations c USING due WHERE c.user_id = due.user_id AND c.id = due.id RETURNING c.id)
+     SELECT (SELECT count(*) FROM gone)::int AS deleted, (SELECT array_agg(DISTINCT trace_id) FROM traces) AS trace_ids`, [defaultDays]);
+  return { deleted: Number(row?.deleted ?? 0), traceIds: row?.trace_ids ?? [] };
 }
 
 export async function getSettings(userId) {
@@ -168,9 +175,27 @@ export async function saveSettings(userId, { chatRetentionDays, customInstructio
     [userId, chatRetentionDays ?? null, customInstructions ?? null, DEFAULT_RETENTION_DAYS]);
 }
 
+// Deletes one chat. Returns the monitoring trace IDs of its messages, so the caller can delete those too.
 export async function deleteConversation(userId, conversationId) {
   const d = await db();
-  await d.query('DELETE FROM conversations WHERE user_id = $1 AND id = $2', [userId, conversationId]);
+  const rows = await d.query(
+    `WITH traces AS (SELECT trace_id FROM messages WHERE user_id = $1 AND conversation_id = $2 AND trace_id IS NOT NULL),
+          gone AS (DELETE FROM conversations WHERE user_id = $1 AND id = $2 RETURNING id)
+     SELECT DISTINCT trace_id FROM traces WHERE EXISTS (SELECT 1 FROM gone)`, [userId, conversationId]);
+  return rows.map((r) => r.trace_id);
+}
+
+// Account deletion: removes everything stored for the user. Returns the monitoring trace IDs
+// of their messages, so the caller can delete those too.
+export async function deleteAccountData(userId) {
+  const d = await db();
+  const rows = await d.query('SELECT DISTINCT trace_id FROM messages WHERE user_id = $1 AND trace_id IS NOT NULL', [userId]);
+  await d.transaction([
+    ['DELETE FROM conversations WHERE user_id = $1', [userId]],
+    ['DELETE FROM memories WHERE user_id = $1', [userId]],
+    ['DELETE FROM user_settings WHERE user_id = $1', [userId]],
+  ]);
+  return rows.map((r) => r.trace_id);
 }
 
 // Shares one of the user's chats. Sharing again keeps the existing link. Returns

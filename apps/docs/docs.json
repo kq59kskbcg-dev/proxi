@@ -62,7 +62,8 @@
         "pages": [
           "settings/preferences",
           "settings/memory",
-          "settings/custom-instructions"
+          "settings/custom-instructions",
+          "settings/delete-account"
         ]
       },
       {
