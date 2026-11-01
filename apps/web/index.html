@@ -112,6 +112,13 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 .md th,.md td{border:1px solid var(--border);padding:6px 10px;text-align:left}
 .md .cite{display:inline-flex;align-items:center;height:20px;padding:0 8px;margin-left:4px;border-radius:10px;background:var(--sunken);color:var(--text-muted);font-size:12px;font-weight:500;line-height:1;text-decoration:none;vertical-align:1px;white-space:nowrap}
 .md .cite:hover{background:var(--accent-soft);color:var(--link)}
+.err-card{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;padding:14px;border:1px solid var(--border);border-radius:12px;background:var(--surface);font-size:14px;line-height:1.5}
+.err-ic{grid-row:span 3;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--sunken);color:var(--danger)}
+.err-t{font-weight:600;color:var(--text)}
+.err-b{color:var(--text-muted)}
+.err-acts{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:6px}
+.err-retry{font:inherit;font-size:13px;font-weight:500;height:32px;padding:0 14px;border:0;border-radius:8px;background:var(--sunken);color:var(--text);cursor:pointer}
+.err-ref{font-size:12px;color:var(--text-muted-3);font-variant-numeric:tabular-nums}
 .md .sources{margin-top:14px}
 .md .sources summary{list-style:none;display:inline-flex;align-items:center;gap:8px;height:32px;box-sizing:border-box;padding:0 12px 0 6px;border:1px solid var(--border);border-radius:16px;font-size:13px;font-weight:500;color:var(--text-2);cursor:pointer}
 .md .sources summary::-webkit-details-marker{display:none}
@@ -388,8 +395,17 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
                     </div>
                   </details>
                 </template>
-                <div class="md" v-html="m.html"></div>
-                <div style="display: flex; gap: 0; margin-left: -12px">
+                <div v-if="m.html" class="md" v-html="m.html"></div>
+                <div v-if="m.isErrorCard" class="err-card" role="alert">
+                  <span class="err-ic" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v5"></path><path d="M12 16.5h.01"></path></svg></span>
+                  <span class="err-t">{{ m.cardTitle }}</span>
+                  <span class="err-b">{{ m.cardBody }}</span>
+                  <span class="err-acts">
+                    <button type="button" class="err-retry hov" @click="m.onRetry">Try again</button>
+                    <span v-if="m.cardRef" class="err-ref">Ref {{ m.cardRef }}</span>
+                  </span>
+                </div>
+                <div v-if="!m.isErrorCard" style="display: flex; gap: 0; margin-left: -12px">
                   <button class="hov" :aria-label="m.copyLabel" @click="m.onCopy" style="width: 44px; height: 44px; border: 0; background: transparent; border-radius: 8px; color: var(--text-muted-3); display: flex; align-items: center; justify-content: center; cursor: pointer">
                     <template v-if="m.copied"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"></path></svg></template>
                     <template v-if="m.notCopied"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"></rect><path d="M5 15V5a2 2 0 0 1 2-2h10"></path></svg></template>
@@ -523,7 +539,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
           </template>
           <label for="composer" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Message Proxi</label>
           <button class="hov" type="button" aria-label="Attach file" @click="v.attach" :style="`order: ${v.attachOrder}`" style="flex: none; width: 44px; height: 44px; border: 0; background: transparent; border-radius: 50%; color: var(--text-2); display: flex; align-items: center; justify-content: center; cursor: pointer"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5l-8.6 8.6a5 5 0 0 1-7-7l8.6-8.6a3.3 3.3 0 0 1 4.7 4.7l-8.6 8.6a1.7 1.7 0 0 1-2.4-2.4l8-8"></path></svg></button>
-          <textarea id="composer" :ref="v.taRef" rows="1" placeholder="Message Proxi" :value="v.draft" @input="v.onDraft" @keydown="v.onKey" @paste="v.onPaste" :style="`order: ${v.textOrder}; flex: ${v.textFlex}; padding: ${v.textPadding}`" style="min-width: 0; box-sizing: border-box; height: 44px; border: 0; resize: none; outline: none; font-size: 16px; line-height: 24px; color: var(--text); background: transparent; overflow-y: hidden"></textarea>
+          <textarea id="composer" :ref="v.taRef" rows="1" placeholder="Message Proxi" :maxlength="v.maxChars" :value="v.draft" @input="v.onDraft" @keydown="v.onKey" @paste="v.onPaste" :style="`order: ${v.textOrder}; flex: ${v.textFlex}; padding: ${v.textPadding}`" style="min-width: 0; box-sizing: border-box; height: 44px; border: 0; resize: none; outline: none; font-size: 16px; line-height: 24px; color: var(--text); background: transparent; overflow-y: hidden"></textarea>
           <div style="order: 3; margin-left: auto; position: relative; display: flex; align-items: center; gap: 4px">
             <button class="hov" type="button" :aria-label="`Model: ${v.model}, change model`" :aria-expanded="v.modelMenuExpanded" @click="v.toggleModelMenu" style="margin-left: auto; height: 44px; border: 0; background: transparent; border-radius: 22px; padding: 0 4px; display: flex; align-items: center; cursor: pointer"><span style="height: 34px; padding: 0 6px 0 8px; display: flex; align-items: center; gap: 4px; font-size: 13px; font-weight: 500; color: var(--text-muted)"><span>{{ v.modelName }}<span v-if="v.modelVersion" class="model-ver">&nbsp;{{ v.modelVersion }}</span></span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg></span></button>
             <template v-if="v.modelMenu">
@@ -792,6 +808,18 @@ async function authHeaders() {
 const MAX_FILES = 3;
 const MAX_TOTAL = 3000000;
 const MAX_TEXT = 200000;
+// What one message and one chat can hold. Keep these in sync with apps/web/lib/limits.js (a test checks it).
+const MAX_MESSAGE_CHARS = 20000;
+const MAX_CHAT_MESSAGES = 200; // 100 of your messages and 100 replies
+const MESSAGE_TOO_LONG = 'That message is too long. Messages can be up to 20,000 characters.';
+const CHAT_FULL = 'This chat has reached its limit of 100 of your messages. Start a new chat to keep going.';
+const CHAT_TOO_LARGE = 'This chat is too large to send. Start a new chat, or try fewer or smaller attachments.';
+// The server sends its error cards with its own words. These two are raised here, when there is no
+// connection or the answer can't be read; a test keeps the second equal to the server's.
+const OWN_CARDS = {
+  network: { title: "Couldn't reach Proxi", body: 'Check your connection, then try again. Anything that already arrived is kept above.' },
+  error: { title: 'Something went wrong on our side', body: 'Your message is fine. Try again.' }
+};
 const IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
 const TEXT_EXT = /\.(txt|md|markdown|csv|tsv|json|xml|html|css|js|mjs|ts|tsx|jsx|py|rb|go|rs|java|kt|swift|c|h|cpp|cs|php|sh|sql|ya?ml|toml|ini|log)$/i;
 const ACCEPT = IMAGE_TYPES.join(',') + ',application/pdf,text/*,' + TEXT_EXT.source.match(/\(([^)]*)\)/)[1].split('|').map((e) => '.' + e.replace('ya?ml', 'yaml')).join(',') + ',.yml';
@@ -1033,12 +1061,16 @@ class Component extends DCLogic {
     this.focusComposer();
   }
 
+  // The messages that are part of a chat. Error notices are shown to the user but never sent back.
+  liveMessages(conv) {
+    return conv.messages.filter((m) => !m.error && (m.text || (m.attachments || []).length));
+  }
+
   // Streams a real reply from /api/chat into the conversation.
   async ask(convId) {
     const conv = this.state.convs.find((c) => c.id === convId);
     if (!conv) return;
-    // Error notices are shown to the user but never sent back to the model.
-    const live = conv.messages.filter((m) => !m.error && (m.text || (m.attachments || []).length));
+    const live = this.liveMessages(conv);
     const messages = live.map((m, i) => ({
       role: m.role, content: m.text || '', model: m.model, traceId: m.traceId,
       attachments: (m.attachments || []).map((a) => (i === live.length - 1 && a.data ? { name: a.name, type: a.mediaType, data: a.data } : { kind: a.kind }))
@@ -1056,15 +1088,20 @@ class Component extends DCLogic {
       clearInterval(this.verbTimer);
       this.setState({ typing: false, typingConv: null, replyStarted: false, activity: [] });
     };
-    const fail = (text) => {
-      if (msgId) this.patchMessage(convId, msgId, (m) => ({ ...m, text: m.text ? m.text + '\n\n' + text : text, error: true }));
+    // A card has a title, a sentence and a Try again button. Text-only errors (a declined request, an
+    // attachment problem) are shown as plain text.
+    const fail = ({ text, card }) => {
+      if (card) {
+        if (msgId) this.patchMessage(convId, msgId, (m) => ({ ...m, card, error: true }));
+        else { const id = this.addAssistant(convId, ''); this.patchMessage(convId, id, (m) => ({ ...m, card, error: true })); }
+      } else if (msgId) this.patchMessage(convId, msgId, (m) => ({ ...m, text: m.text ? m.text + '\n\n' + text : text, error: true }));
       else { const id = this.addAssistant(convId, text); this.patchMessage(convId, id, (m) => ({ ...m, error: true })); }
     };
     try {
       const payload = JSON.stringify({ model: this.state.model, messages, conversationId: convId, temporary: !!conv.temporary });
       // The host rejects request bodies over 4.5 MB, so say so before sending.
       if (payload.length > 4400000) {
-        fail('That message is too large to send. Try fewer or smaller attachments.');
+        fail({ text: CHAT_TOO_LARGE });
         return finish();
       }
       const res = await fetch('/api/chat', {
@@ -1074,11 +1111,13 @@ class Component extends DCLogic {
         signal: controller.signal
       });
       if (!res.ok || !res.body) {
-        let error = res.status === 404 ? "Proxi's AI isn't connected on this site yet."
-          : res.status === 413 ? 'That message is too large to send. Try fewer or smaller attachments.'
-          : 'Something went wrong. Please try again.';
-        try { const data = await res.json(); if (data.error) error = data.error + (data.code ? ' (error ' + res.status + ' · ' + data.code + ')' : ''); } catch (e) {}
-        fail(error);
+        let problem = res.status === 413 ? { text: CHAT_TOO_LARGE } : { card: { ...OWN_CARDS.error, ref: String(res.status) } };
+        try {
+          const data = await res.json();
+          if (data.card) problem = { card: data.card };
+          else if (data.error) problem = { text: data.error };
+        } catch (e) {}
+        fail(problem);
         return finish();
       }
       const reader = res.body.getReader();
@@ -1116,12 +1155,12 @@ class Component extends DCLogic {
           } else if (event.type === 'title') {
             this.setState((s) => ({ convs: s.convs.map((c) => c.id === convId ? { ...c, title: event.title } : c) }));
           } else if (event.type === 'error') {
-            fail(event.error);
+            fail(event.card ? { card: event.card } : { text: event.error });
           }
         }
       }
     } catch (e) {
-      if (!controller.signal.aborted) fail("Couldn't reach Proxi. Check your connection and try again.");
+      if (!controller.signal.aborted) fail({ card: { ...OWN_CARDS.network, ref: 'network' } });
     }
     finish();
   }
@@ -1212,11 +1251,14 @@ class Component extends DCLogic {
     const text = (raw != null ? raw : this.state.draft).trim();
     const files = this.state.pending;
     if ((!text && !files.length) || this.state.typing || this.state.reading) return;
+    if (text.length > MAX_MESSAGE_CHARS) return this.showToast(MESSAGE_TOO_LONG);
     const id = this.nextId++;
     let convId = this.state.view === 'chat' ? this.state.activeId : null;
     const current = this.state.convs.find((c) => c.id === convId);
     // Never send from a half-loaded chat: saving it would drop its earlier messages.
     if (current && !current.loaded) return;
+    // A chat holds up to 100 of your messages; the draft stays in the box.
+    if (current && this.liveMessages(current).length + 1 > MAX_CHAT_MESSAGES) return this.showToast(CHAT_FULL);
     let fresh = null;
     if (!convId) {
       convId = crypto.randomUUID();
@@ -1455,7 +1497,13 @@ class Component extends DCLogic {
         onEdit: () => this.edit(m),
         onUp: () => this.vote(m, 'up'),
         onDown: () => this.vote(m, 'down'),
-        onRegen: () => this.regen(m)
+        onRegen: () => this.regen(m),
+        isErrorCard: !!m.card,
+        cardTitle: m.card ? m.card.title : '',
+        cardBody: m.card ? m.card.body : '',
+        cardRef: m.card ? m.card.ref : '',
+        // Try again replaces the failed reply, the same as Regenerate.
+        onRetry: () => this.regen(m)
       };
     }) : [];
 
@@ -1609,7 +1657,12 @@ class Component extends DCLogic {
       showChips: isNew && !s.draft.trim() && !s.pending.length,
       taRef: (el) => { this.taEl = el; },
       draft: s.draft,
-      onDraft: (e) => this.setState({ draft: e.target.value }),
+      maxChars: MAX_MESSAGE_CHARS,
+      onDraft: (e) => {
+        // The box stops at the limit, and pasting more is cut there: say so when it is reached.
+        if (e.target.value.length >= MAX_MESSAGE_CHARS) this.showToast(MESSAGE_TOO_LONG);
+        this.setState({ draft: e.target.value });
+      },
       onKey: (e) => {
         if (e.key === 'Enter' && !e.shiftKey && !(e.nativeEvent && e.nativeEvent.isComposing)) { e.preventDefault(); this.send(); }
       },
