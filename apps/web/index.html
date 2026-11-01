@@ -825,6 +825,19 @@ function redactionSteps(counts) {
 // Shown while waiting for a reply, until the agent reports a real step.
 const WORKING_VERBS = ['Thinking', 'Pondering', 'Connecting the dots', 'Weighing it up', 'Choosing words', 'Drafting'];
 
+// Resolves once the page is showing. A hidden tab can't be relied on to keep a connection open.
+function whenVisible() {
+  if (document.visibilityState === 'visible') return Promise.resolve();
+  return new Promise((resolve) => {
+    const on = () => {
+      if (document.visibilityState !== 'visible') return;
+      document.removeEventListener('visibilitychange', on);
+      resolve();
+    };
+    document.addEventListener('visibilitychange', on);
+  });
+}
+
 async function authHeaders() {
   const token = await window.Clerk.session.getToken();
   return { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token };
@@ -840,6 +853,8 @@ const MAX_CHAT_MESSAGES = 200; // 100 of your messages and 100 replies
 const MESSAGE_TOO_LONG = 'That message is too long. Messages can be up to 20,000 characters.';
 const CHAT_FULL = 'This chat has reached its limit of 100 of your messages. Start a new chat to keep going.';
 const CHAT_TOO_LARGE = 'This chat is too large to send. Start a new chat, or try fewer or smaller attachments.';
+// How long to wait for a reply the server is still writing after the connection dropped.
+const RECOVER_MS = 90000;
 // The server sends its error cards with its own words. These two are raised here, when there is no
 // connection or the answer can't be read; a test keeps the second equal to the server's.
 const OWN_CARDS = {
@@ -1188,9 +1203,41 @@ class Component extends DCLogic {
         }
       }
     } catch (e) {
-      if (!controller.signal.aborted) fail({ card: { ...OWN_CARDS.network, ref: 'network' } });
+      if (!controller.signal.aborted) {
+        // Switching tabs can make the browser drop the connection while Proxi keeps going and saves
+        // the reply. In a saved chat, wait for that reply instead of showing an error.
+        const saved = conv.temporary || !traceId ? null : await this.savedReply(convId, traceId, controller);
+        if (saved) this.placeReply(convId, msgId, saved);
+        else if (!controller.signal.aborted) fail({ card: { ...OWN_CARDS.network, ref: 'network' } });
+      }
     }
     finish();
+  }
+
+  // The reply the server saved for this request, matched by its trace ID so an older reply (before
+  // a Regenerate, say) is never taken for it. Checks once the page is showing, every 2 seconds.
+  async savedReply(convId, traceId, controller) {
+    await whenVisible();
+    const until = Date.now() + RECOVER_MS;
+    while (Date.now() < until && !controller.signal.aborted) {
+      try {
+        const res = await fetch('/api/conversations?id=' + encodeURIComponent(convId), { headers: await authHeaders() });
+        if (res.ok) {
+          const { messages } = await res.json();
+          const last = messages[messages.length - 1];
+          if (last && last.role === 'assistant' && last.traceId === traceId) return last;
+        }
+      } catch (e) {}
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+    }
+    return null;
+  }
+
+  // Puts a recovered reply where the interrupted one was, or adds it.
+  placeReply(convId, msgId, saved) {
+    const reply = { text: saved.content, model: saved.model, traceId: saved.traceId, error: false, card: null };
+    if (msgId) this.patchMessage(convId, msgId, (m) => ({ ...m, ...reply }));
+    else { const id = this.addAssistant(convId, ''); this.patchMessage(convId, id, (m) => ({ ...m, ...reply })); }
   }
 
   // The signed-in user's saved chats, newest first. Messages load when a chat is opened.
