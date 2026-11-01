@@ -1,11 +1,13 @@
 ---
 title: "About"
-description: "A solo-built AI assistant, and the principles behind it."
+description: "What Proxi is, and how it's built."
 ---
 
-Proxi is a solo project: an AI assistant built as a privacy proxy between people and large language models. Every request is checked, redacted and stripped of identity before it reaches Claude, and every answer is traced so its behavior can be inspected and improved. Behind a simple chat interface sits the engineering of a production AI product: privacy and security by design, tool use through MCP, answers grounded in documentation with citations, and evaluation and observability in Langfuse.
+## What is Proxi
 
-## Under the hood
+Proxi is an AI chat assistant with built-in privacy. It sits between you and the AI model, Claude, and removes who you are before your message is sent. Your name, email, account and IP address are never shared with the model provider, and personal details in your messages, such as names, addresses, card numbers, IBANs, emails and phone numbers, are detected and replaced before they reach the model. You get the answers of a frontier model with much greater privacy. Proxi is built and maintained by one person.
+
+## How it's built
 
 <Card title="Privacy and security first" icon="shield-check">
   Sensitive data is kept out of the conversation from the start.
