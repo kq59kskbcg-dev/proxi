@@ -1,0 +1,39 @@
+name: Promote prompt
+
+# Moves the "production" label to a prompt version, but only if its eval passes (it runs
+# `npm run promote`). Start it from the Actions tab with Run workflow. There is no way to skip
+# the eval here: a prompt without one is refused.
+on:
+  workflow_dispatch:
+    inputs:
+      name:
+        description: 'Prompt name, for example classifiers/language'
+        required: true
+      version:
+        description: 'Version number to promote'
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # The inputs reach the command as environment variables, so a typed value can't run as shell.
+      - name: Promote
+        run: npm run promote -w @proxi/agent -- "$PROMPT_NAME" "$PROMPT_VERSION"
+        env:
+          PROMPT_NAME: ${{ inputs.name }}
+          PROMPT_VERSION: ${{ inputs.version }}
+          LANGFUSE_PUBLIC_KEY: ${{ secrets.LANGFUSE_PUBLIC_KEY }}
+          LANGFUSE_SECRET_KEY: ${{ secrets.LANGFUSE_SECRET_KEY }}
+          LANGFUSE_BASE_URL: ${{ vars.LANGFUSE_BASE_URL }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
