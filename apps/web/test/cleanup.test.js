@@ -4,8 +4,9 @@ import { PGlite } from '@electric-sql/pglite';
 import { setDriver } from '../lib/db.js';
 import { GET } from '../api/cleanup.js';
 
+let pg;
 before(() => {
-  const pg = new PGlite();
+  pg = new PGlite();
   setDriver({
     query: async (text, params) => (await pg.query(text, params)).rows,
     transaction: (steps) => pg.transaction(async (tx) => {
@@ -32,4 +33,17 @@ test('cleanup runs with the right secret and reports what it deleted', async () 
   const res = await call('Bearer cron-test-secret');
   assert.equal(res.status, 200);
   assert.deepEqual(await res.json(), { deleted: 0 });
+});
+
+test('a shared link is deleted with its chat when the retention job runs', async () => {
+  const { saveConversation, shareConversation, getSharedConversation } = await import('../lib/db.js');
+  const query = async (text, params) => (await pg.query(text, params)).rows;
+  process.env.CRON_SECRET = 'cron-test-secret';
+  await saveConversation('user_old', 'chat-old', 'Old shared chat', [{ role: 'user', content: 'hi' }, { role: 'assistant', content: 'hello' }]);
+  const shareId = await shareConversation('user_old', 'chat-old', 'x'.repeat(22));
+  assert.ok(await getSharedConversation(shareId));
+  await query("UPDATE conversations SET updated_at = now() - interval '31 days' WHERE id = 'chat-old'");
+  assert.deepEqual(await (await call('Bearer cron-test-secret')).json(), { deleted: 1 });
+  assert.equal(await getSharedConversation(shareId), null);
+  assert.equal((await query('SELECT count(*)::int AS n FROM conversations WHERE share_id = $1', [shareId]))[0].n, 0);
 });
