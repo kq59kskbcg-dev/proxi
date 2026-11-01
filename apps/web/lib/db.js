@@ -175,6 +175,14 @@ export async function saveSettings(userId, { chatRetentionDays, customInstructio
     [userId, chatRetentionDays ?? null, customInstructions ?? null, DEFAULT_RETENTION_DAYS]);
 }
 
+// Which of these chat IDs still belong to a saved chat, for any user.
+export async function existingConversationIds(ids) {
+  if (!ids.length) return [];
+  const d = await db();
+  const rows = await d.query('SELECT DISTINCT id FROM conversations WHERE id = ANY($1::text[])', [ids]);
+  return rows.map((r) => r.id);
+}
+
 // Deletes one chat. Returns the monitoring trace IDs of its messages, so the caller can delete those too.
 export async function deleteConversation(userId, conversationId) {
   const d = await db();
