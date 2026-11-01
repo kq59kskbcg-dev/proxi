@@ -14,8 +14,8 @@ The app reads its prompts from Langfuse, using the `production` label.
 
 Every pull request follows `.github/pull_request_template.md`, with these required:
 
-- **Release notes:** 1 to 5 short bullets, written for the people who use Proxi. Say what changes for them, not which files changed. Write "No user-facing changes" when there are none.
-- **Release notes page:** add the same notes to `apps/docs/release-notes.mdx`, as a new `<Update>` entry at the top, labelled with the release date (or added to that date's entry if it already exists). Put the one-line summary as a bold first line in the body, not in the `description` prop, which renders squeezed in the date column. Skip this when there are no user-facing changes.
+- **Release notes:** only for user-facing changes, meaning something people who use Proxi can see or do differently. Write 1 to 5 short bullets for them. Say what changes for them, not which files changed. Reworded docs, tests, CI, refactors and other internal changes get no release notes: leave the template's Release notes section as "No user-facing changes".
+- **Release notes page:** for user-facing changes, add the same notes to `apps/docs/release-notes.mdx`, as a new `<Update>` entry at the top, labelled with the release date (or added to that date's entry if it already exists). Put the one-line summary as a bold first line in the body, not in the `description` prop, which renders squeezed in the date column. Skip this when there are no user-facing changes.
 - **Docs:** before opening the pull request, check the help center (`apps/docs`, published by Mintlify from `main`) for anything the change makes missing or outdated. Search the docs for the feature's names, labels and terms, including old names that were replaced. Update or add pages in the same pull request, and add new pages to `docs.json`. List what changed, or say why nothing needed to.
 - **Wording approval:** Put the exact docs and release note wording in the design preview or plan, and wait for the user's approval before committing it. Approving a design, or asking to ship or merge, does not approve wording.
 
@@ -37,6 +37,5 @@ Never in the docs:
 
 How to make claims:
 - Describe only what the code does today. When unsure, check the code or leave it out.
-- Claims about other products need a source link and a date, and must be checked against the provider's own pages.
 - Avoid absolute words like "anonymous", "never" or "fully private" unless they are true without exceptions. If there's an exception, state it next to the claim.
 - When a change removes or renames a feature, update or remove every mention of it.
