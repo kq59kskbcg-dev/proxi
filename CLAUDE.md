@@ -37,6 +37,5 @@ Never in the docs:
 
 How to make claims:
 - Describe only what the code does today. When unsure, check the code or leave it out.
-- Claims about other products need a source link and a date, and must be checked against the provider's own pages.
 - Avoid absolute words like "anonymous", "never" or "fully private" unless they are true without exceptions. If there's an exception, state it next to the claim.
 - When a change removes or renames a feature, update or remove every mention of it.
