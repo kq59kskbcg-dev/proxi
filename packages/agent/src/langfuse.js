@@ -46,6 +46,21 @@ export function startTrace(name, { sessionId, ...attributes } = {}) {
   return root;
 }
 
+// Deletes traces (best effort: a failure is logged and never blocks the caller). Only
+// real trace IDs are sent, since the IDs saved with messages come from the browser.
+export async function deleteTraces(ids) {
+  const langfuse = getLangfuse();
+  const list = [...new Set(ids ?? [])].filter((id) => typeof id === 'string' && /^[0-9a-f]{32}$/.test(id));
+  if (!langfuse || !list.length) return;
+  for (let i = 0; i < list.length; i += 100) {
+    try {
+      await langfuse.api.trace.deleteMultiple({ traceIds: list.slice(i, i + 100) });
+    } catch (error) {
+      console.error('deleting traces failed', error?.name);
+    }
+  }
+}
+
 export async function flushTraces() {
   await processor?.forceFlush().catch(() => {});
 }

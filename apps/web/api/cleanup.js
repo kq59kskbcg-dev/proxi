@@ -1,3 +1,4 @@
+import { deleteTraces } from '@proxi/agent/langfuse';
 import { hasDatabase, deleteInactiveConversations } from '../lib/db.js';
 
 // Run once a day by a Vercel Cron Job (see vercel.json). Vercel sends
@@ -13,7 +14,8 @@ export async function GET(request) {
   try {
     // Each user's "Delete chats after" setting, or the default. Both are described
     // on the help center's Privacy page and in the privacy policy.
-    const deleted = await deleteInactiveConversations();
+    const { deleted, traceIds } = await deleteInactiveConversations();
+    await deleteTraces(traceIds);
     console.log(`retention: deleted ${deleted} inactive chat(s)`);
     return json({ deleted });
   } catch (error) {

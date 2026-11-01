@@ -1,3 +1,4 @@
+import { deleteTraces } from '@proxi/agent/langfuse';
 import { requireUser } from '../lib/auth.js';
 import { CONVERSATION_ID, hasDatabase, listConversations, getMessages, deleteConversation } from '../lib/db.js';
 
@@ -27,7 +28,7 @@ export async function DELETE(request) {
   try {
     const id = chatId(request);
     if (!id || !CONVERSATION_ID.test(id)) return json({ error: 'Invalid chat.' }, 400);
-    await deleteConversation(user.userId, id);
+    await deleteTraces(await deleteConversation(user.userId, id));
     return new Response(null, { status: 204 });
   } catch (error) {
     console.error('conversations DELETE failed', error);

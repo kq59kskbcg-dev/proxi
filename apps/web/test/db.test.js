@@ -1,7 +1,7 @@
 import { test, before } from 'node:test';
 import assert from 'node:assert/strict';
 import { PGlite } from '@electric-sql/pglite';
-import { setDriver, saveConversation, listConversations, getMessages, deleteConversation, deleteInactiveConversations, getSettings, saveSettings, conversationAttributes, listMemories, addMemory, deleteMemory, MEMORY_LIMIT } from '../lib/db.js';
+import { setDriver, saveConversation, listConversations, getMessages, deleteConversation, deleteAccountData, deleteInactiveConversations, getSettings, saveSettings, conversationAttributes, listMemories, addMemory, deleteMemory, MEMORY_LIMIT } from '../lib/db.js';
 
 let pg;
 before(() => {
@@ -53,7 +53,7 @@ test('most recently updated chat comes first', async () => {
 });
 
 test('deleting removes the chat and its messages, only for that user', async () => {
-  await deleteConversation('user_a', 'c1');
+  assert.deepEqual(await deleteConversation('user_a', 'c1'), ['trace-1']);
   assert.deepEqual(await getMessages('user_a', 'c1'), []);
   assert.deepEqual((await listConversations('user_a')).map((c) => c.id), ['c2']);
   assert.equal((await getMessages('user_b', 'c1')).length, 1);
@@ -81,7 +81,7 @@ test('chats inactive for longer than the retention period are deleted with their
   await saveConversation('user_r', 'old', 'Old chat', chat);
   await saveConversation('user_r', 'new', 'New chat', chat);
   await pg.query(`UPDATE conversations SET updated_at = now() - interval '91 days' WHERE user_id = 'user_r' AND id = 'old'`);
-  assert.equal(await deleteInactiveConversations(90), 1);
+  assert.deepEqual(await deleteInactiveConversations(90), { deleted: 1, traceIds: ['trace-1'] });
   assert.deepEqual((await listConversations('user_r')).map((c) => c.id), ['new']);
   assert.deepEqual(await getMessages('user_r', 'old'), []);
   assert.equal((await getMessages('user_r', 'new')).length, 2);
@@ -129,4 +129,20 @@ test('memories are saved once per user, listed oldest first, capped and deletabl
   assert.deepEqual((await listMemories('mem_a')).map((m) => m.id), ['m2']);
   for (let i = 0; i < MEMORY_LIMIT; i++) await addMemory('mem_c', 'c' + i, 'Fact ' + i);
   assert.equal(await addMemory('mem_c', 'over', 'One too many'), 'full');
+});
+
+test('deleting an account removes the user\'s chats, memories and settings, and returns their trace IDs', async () => {
+  await saveConversation('user_gone', 'a', 'One', chat);
+  await saveConversation('user_gone', 'b', 'Two', [chat[0], { ...chat[1], traceId: 'trace-2' }]);
+  await saveSettings('user_gone', { chatRetentionDays: 7, customInstructions: 'Be brief' });
+  await addMemory('user_gone', 'm1', 'Likes tea');
+  await saveConversation('user_kept', 'a', 'Kept', chat);
+  await addMemory('user_kept', 'm1', 'Likes coffee');
+
+  assert.deepEqual((await deleteAccountData('user_gone')).sort(), ['trace-1', 'trace-2']);
+  assert.deepEqual(await listConversations('user_gone'), []);
+  assert.deepEqual(await listMemories('user_gone'), []);
+  assert.deepEqual(await getSettings('user_gone'), { chatRetentionDays: 30, customInstructions: '' });
+  assert.equal((await listConversations('user_kept')).length, 1);
+  assert.equal((await listMemories('user_kept')).length, 1);
 });
