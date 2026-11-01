@@ -188,11 +188,31 @@ export async function unshareConversation(userId, conversationId) {
   await d.query('UPDATE conversations SET share_id = NULL WHERE user_id = $1 AND id = $2', [userId, conversationId]);
 }
 
-// A shared chat as anyone with the link sees it: title, last activity and messages.
-// Never includes who it belongs to. Returns null when the link doesn't exist.
-export async function getSharedConversation(shareId) {
+// When a chat is due for automatic deletion: its last activity plus its owner's
+// "Delete chats after" setting, the same rule deleteInactiveConversations uses.
+// A shared link stops working at that moment, even if the daily cleanup hasn't run yet.
+// $1 in the surrounding query must be the default number of days.
+const EXPIRES_AT = `c.updated_at + make_interval(days => COALESCE(
+  (SELECT s.chat_retention_days FROM user_settings s WHERE s.user_id = c.user_id), $1))`;
+
+// The user's shared chats that haven't expired, most recently active first.
+export async function listSharedConversations(userId, defaultDays = DEFAULT_RETENTION_DAYS) {
   const d = await db();
-  const chats = await d.query('SELECT user_id, id, title, updated_at FROM conversations WHERE share_id = $1', [shareId]);
+  const rows = await d.query(
+    `SELECT id, title, share_id, expires_at FROM (
+       SELECT c.id, c.title, c.share_id, c.updated_at, ${EXPIRES_AT} AS expires_at
+       FROM conversations c WHERE c.user_id = $2 AND c.share_id IS NOT NULL) t
+     WHERE expires_at > now() ORDER BY updated_at DESC, id`, [defaultDays, userId]);
+  return rows.map((r) => ({ id: r.id, title: r.title, shareId: r.share_id, expiresAt: new Date(r.expires_at).toISOString() }));
+}
+
+// A shared chat as anyone with the link sees it: title, last activity and messages.
+// Never includes who it belongs to. Returns null when the link doesn't exist or has expired.
+export async function getSharedConversation(shareId, defaultDays = DEFAULT_RETENTION_DAYS) {
+  const d = await db();
+  const chats = await d.query(
+    `SELECT c.user_id, c.id, c.title, c.updated_at FROM conversations c
+     WHERE c.share_id = $2 AND ${EXPIRES_AT} > now()`, [defaultDays, shareId]);
   if (!chats.length) return null;
   const { user_id: userId, id, title, updated_at: updatedAt } = chats[0];
   const rows = await d.query(

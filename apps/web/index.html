@@ -136,6 +136,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 .md .sources li a:hover{background:var(--soft)}
 .src-site{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-muted)}
 .src-ico{width:16px;height:16px;border-radius:4px;flex:none;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#FFFFFF;overflow:hidden}
+.shared-link-title:hover{text-decoration:underline!important;text-underline-offset:2px}
 .src-ico img,.src-tile img{width:100%;height:100%;object-fit:cover;display:none}
 .has-img img{display:block}.has-img .site-letter{display:none}
 .src-tile.has-img{background:var(--surface)}
@@ -479,6 +480,28 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
                 <li style="display: flex; align-items: center; gap: 12px; border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px">
                   <span style="flex: 1; min-width: 0; font-size: 14px; line-height: 1.5; overflow-wrap: anywhere">{{ mem.text }}</span>
                   <button type="button" @click="mem.remove" aria-label="Delete memory" style="flex: none; height: 32px; border: 1px solid var(--border); border-radius: 8px; padding: 0 12px; font-size: 13px; font-weight: 500; background: var(--surface); color: var(--text-2); cursor: pointer">Delete</button>
+                </li>
+              </template>
+            </ul>
+          </div>
+          <div style="border: 1px solid var(--border); border-radius: 16px; padding: 20px; background: var(--surface); display: flex; flex-direction: column; gap: 12px">
+            <div style="display: flex; flex-direction: column; gap: 4px">
+              <h3 style="margin: 0; font-size: 16px; font-weight: 600">Shared links</h3>
+            </div>
+            <template v-if="v.noSharedLinks">
+              <p style="margin: 0; font-size: 14px; color: var(--text-muted-2); line-height: 1.5">You aren't sharing any chats.</p>
+            </template>
+            <ul style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px">
+              <template v-for="link in v.sharedLinkItems" :key="link.key">
+                <li style="display: flex; align-items: center; gap: 12px; border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px">
+                  <span style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+                    <a href="#" class="shared-link-title" @click.prevent="link.open" style="font-size: 14px; font-weight: 500; line-height: 1.45; color: var(--text); text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{ link.title }}</a>
+                    <span style="font-size: 13px; color: var(--text-muted-2)">{{ link.expires }}</span>
+                  </span>
+                  <span style="flex: none; display: flex; gap: 6px">
+                    <button type="button" @click="link.copy" aria-label="Copy link" title="Copy link" style="width: 32px; height: 32px; padding: 0; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text-2); display: flex; align-items: center; justify-content: center; cursor: pointer"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"></rect><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"></path></svg></button>
+                    <button type="button" @click="link.stop" aria-label="Stop sharing" title="Stop sharing" style="width: 32px; height: 32px; padding: 0; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--danger); display: flex; align-items: center; justify-content: center; cursor: pointer"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 17H7a5 5 0 0 1 0-10h2"></path><path d="M15 7h2a5 5 0 0 1 4 8"></path><path d="M8 12h4"></path><path d="M3 3l18 18"></path></svg></button>
+                  </span>
                 </li>
               </template>
             </ul>
@@ -922,6 +945,7 @@ class Component extends DCLogic {
       settingsBusy: false,
       instructionsDraft: '',
       memories: null,
+      sharedLinks: null,
       theme: window.proxiTheme?.get() || 'system',
       // Incognito stays on for new chats until turned off, remembered in this browser.
       temporary: (() => { try { return localStorage.getItem('proxi-incognito') === 'on'; } catch { return false; } })(),
@@ -1335,7 +1359,7 @@ class Component extends DCLogic {
     try {
       const res = await fetch('/api/share?id=' + encodeURIComponent(id), { method: 'DELETE', headers: await authHeaders() });
       if (!res.ok) throw new Error(res.status);
-      this.setState((s) => ({ convs: s.convs.map((c) => (c.id === id ? { ...c, shareId: null } : c)) }));
+      this.setState((s) => ({ convs: s.convs.map((c) => (c.id === id ? { ...c, shareId: null } : c)), sharedLinks: s.sharedLinks && s.sharedLinks.filter((l) => l.id !== id) }));
       this.showToast('Stopped sharing. The link no longer works.');
     } catch (e) {
       this.showToast("Couldn't stop sharing. Try again.");
@@ -1373,6 +1397,7 @@ class Component extends DCLogic {
   // ---- Settings: custom instructions and "Delete chats after" (7, 30 or 90 days) ----
   async loadSettings() {
     this.loadMemories();
+    this.loadSharedLinks();
     try {
       const res = await fetch('/api/settings', { headers: await authHeaders() });
       if (!res.ok) throw new Error('settings ' + res.status);
@@ -1384,6 +1409,26 @@ class Component extends DCLogic {
     } catch {
       this.showToast("Couldn't load your settings. Please try again.");
     }
+  }
+
+  // ---- Shared links: every shared chat that hasn't expired. Shown in Settings ----
+  async loadSharedLinks() {
+    try {
+      const res = await fetch('/api/share', { headers: await authHeaders() });
+      if (!res.ok) throw new Error('share ' + res.status);
+      this.setState({ sharedLinks: (await res.json()).links || [] });
+    } catch {
+      this.setState({ sharedLinks: [] });
+      this.showToast("Couldn't load your shared links. Please try again.");
+    }
+  }
+
+  // Opens a shared chat, even one older than the chats listed in the sidebar.
+  openSharedChat(link) {
+    if (!this.state.convs.some((c) => c.id === link.id)) {
+      this.setState((s) => ({ convs: [...s.convs, { id: link.id, title: link.title, updatedAt: '', group: 'Earlier', messages: [], loaded: false, shareId: link.shareId }] }));
+    }
+    this.openConversation(link.id);
   }
 
   // ---- Memory: facts Proxi saved to remember. Shown in Settings, where each one can be deleted ----
@@ -1419,6 +1464,7 @@ class Component extends DCLogic {
       const res = await fetch('/api/settings', { method: 'PUT', headers: await authHeaders(), body: JSON.stringify({ chatRetentionDays: days }) });
       if (!res.ok) throw new Error('settings ' + res.status);
       this.showToast(`Chats will be deleted after ${days} days without activity.`);
+      this.loadSharedLinks();
     } catch {
       this.setState({ settings: before });
       this.showToast("Couldn't save your settings. Please try again.");
@@ -1562,6 +1608,14 @@ class Component extends DCLogic {
       retentionValue: String(s.settings?.chatRetentionDays ?? 30),
       memoryItems: (s.memories || []).map((m) => ({ key: m.id, text: m.content, remove: () => this.deleteMemory(m.id) })),
       noMemories: Array.isArray(s.memories) && s.memories.length === 0,
+      sharedLinkItems: (s.sharedLinks || []).map((l) => ({
+        key: l.id, title: l.title,
+        expires: 'Expires ' + new Date(l.expiresAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }),
+        open: () => this.openSharedChat(l),
+        copy: () => { this.copyText(shareUrl(l.shareId)); this.showToast('Link copied'); },
+        stop: () => this.stopSharing(l.id)
+      })),
+      noSharedLinks: Array.isArray(s.sharedLinks) && s.sharedLinks.length === 0,
       retentionChoices: (s.settings?.options || [7, 30, 90]).map((d) => ({ value: String(d), label: d + ' days' })),
       changeRetention: (e) => this.saveRetention(Number(e.target.value)),
       instructionsMax: s.settings?.instructionsMax || 1500,
