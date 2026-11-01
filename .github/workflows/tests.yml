@@ -1,0 +1,34 @@
+name: Tests
+
+# Runs the unit tests on every pull request and on main, whatever the change touches, so a
+# change to the page can't skip them (for example the CSP test, which fails when an inline
+# script changes without its hash in vercel.json). Needs no secrets. Make "tests" a required
+# check in the branch protection rules so a failing change can't be merged.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            apps/mcp/package-lock.json
+      - run: npm ci
+      - run: npm test
+      # The MCP server is not an npm workspace: it has its own lockfile.
+      - run: npm ci
+        working-directory: apps/mcp
+      - run: npm test
+        working-directory: apps/mcp
