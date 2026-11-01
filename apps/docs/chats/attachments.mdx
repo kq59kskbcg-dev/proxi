@@ -21,7 +21,7 @@ Word, Excel and PowerPoint files aren't supported yet. Export them as a PDF or p
 
 Proxi checks what a file really contains, not just its name. Files that can't be read, such as damaged or password-protected PDFs, are refused with a message saying why.
 
-- **Text files** are redacted like messages: card numbers, IBANs, emails and phone numbers are removed before the model sees them.
+- **Text files** are redacted like messages: names, addresses, card numbers, IBANs, emails and phone numbers are removed before the model sees them.
 - **PDFs** can't be redacted. A PDF that looks like it contains a card number or IBAN isn't sent. Proxi tells you, so you can remove that part or paste the text instead. If a PDF has an email address or phone number, Proxi warns you that it is sent as it is.
 - **Images and scans** aren't checked, because Proxi can't read text inside them. See [limitations](/privacy#limitations).
 

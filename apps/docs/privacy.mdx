@@ -8,7 +8,7 @@ description: "How Proxi handles your data."
 </Card>
 
 <Card title="Sensitive data redaction" icon="eye-slash">
-  Card numbers, IBANs, emails and phone numbers are redacted before reaching the model.
+  Names, addresses, card numbers, IBANs, emails and phone numbers are detected and removed before reaching the model.
 </Card>
 
 <Card title="No training on your data" icon="brain">
@@ -33,9 +33,9 @@ How Proxi handles chats next to the ChatGPT and Claude apps, based on their publ
 |---|---|---|---|
 | Not used to train AI models by default | ✓ | ✗ | ✗ |
 | Anonymous to the model provider | ✓ | ✗ | ✗ |
-| Card numbers, IBANs, emails and phone numbers removed before the model | ✓ | ✗ | ✗ |
+| Names, addresses, card numbers, IBANs, emails and phone numbers removed before the model | ✓ | ✗ | ✗ |
 
-The ChatGPT and Claude apps use consumer chats for training unless you turn that off in your settings. They also tie your chats to your account. Proxi never sends your name, email, account or IP address to Anthropic, and only the redacted messages reach it, so Anthropic can't tell who is writing. Names and addresses you type into a chat are not removed, so a chat can still identify you if you include them.
+The ChatGPT and Claude apps use consumer chats for training unless you turn that off in your settings. They also tie your chats to your account. Proxi never sends your name, email, account or IP address to Anthropic, and only the redacted messages reach it, so Anthropic can't tell who is writing. Names and addresses you type are removed in the same way, so what reaches Anthropic doesn't say who you are.
 
 ### Incognito chats
 
@@ -46,7 +46,7 @@ The ChatGPT and Claude apps use consumer chats for training unless you turn that
 | Kept out of memory | ✓ | ✓ | ✓ |
 | Kept out of the app's own records | ✓ | ✗ | ✗ |
 | Anonymous to the model provider | ✓ | ✗ | ✗ |
-| Card numbers, IBANs, emails and phone numbers removed before the model | ✓ | ✗ | ✗ |
+| Names, addresses, card numbers, IBANs, emails and phone numbers removed before the model | ✓ | ✗ | ✗ |
 
 The ChatGPT and Claude apps keep a copy of an incognito chat for up to 30 days for safety, even though it stays out of your history, memory and training. Proxi keeps none. The reply is written by Claude, so Anthropic's own terms still apply to that request, and Anthropic may keep API requests for a short time. Incognito chats never save to memory and don't use your saved memories.
 
@@ -68,7 +68,6 @@ These providers process data on Proxi's behalf.
 
 Proxi is a personal project. These are known tradeoffs made to keep it free to run.
 
-- **Redaction covers structured data only.** Proxi uses pattern matching to redact cards, IBANs, emails and phone numbers, but can't catch names or addresses. A company could add a small self-hosted model for those.
 - **Source icons come from DuckDuckGo.** When you open a reply's sources, your browser asks DuckDuckGo's icon service for each site's icon. DuckDuckGo sees the site's domain and your IP address, but not your messages. A company could serve the icons itself.
 - **Observability runs on Langfuse Cloud.** Redacted conversations are stored by Langfuse in the EU. A company could self-host it to keep that data in its own infrastructure.
 - **Images and scanned documents aren't checked.** Proxi checks the text in PDFs and blocks files with card numbers or IBANs, but can't read text inside images or scans. A company could add OCR to check them before sending.
