@@ -17,6 +17,7 @@ Every pull request follows `.github/pull_request_template.md`, with these requir
 - **Release notes:** 1 to 5 short bullets, written for the people who use Proxi. Say what changes for them, not which files changed. Write "No user-facing changes" when there are none.
 - **Release notes page:** add the same notes to `apps/docs/release-notes.mdx`, as a new `<Update>` entry at the top, labelled with the release date (or added to that date's entry if it already exists). Put the one-line summary as a bold first line in the body, not in the `description` prop, which renders squeezed in the date column. Skip this when there are no user-facing changes.
 - **Docs:** before opening the pull request, check the help center (`apps/docs`, published by Mintlify from `main`) for anything the change makes missing or outdated. Search the docs for the feature's names, labels and terms, including old names that were replaced. Update or add pages in the same pull request, and add new pages to `docs.json`. List what changed, or say why nothing needed to.
+- **Wording approval:** Put the exact docs and release note wording in the design preview or plan, and wait for the user's approval before committing it. Approving a design, or asking to ship or merge, does not approve wording.
 
 ## Help center content
 

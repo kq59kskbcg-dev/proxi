@@ -14,6 +14,8 @@ import { getEscalation } from '@proxi/agent/escalation';
 import { MEMORY_TOOL, getMemoryTool, memoryText, withMemories } from '@proxi/agent/memory';
 import { chooseModel } from '@proxi/agent/routing';
 import { toolActivity } from '../lib/activity.js';
+import { cardResponse, replyError } from '../lib/errors.js';
+import { MAX_MESSAGE_CHARS, MAX_CHAT_MESSAGES, MAX_REPLY_CHARS, CHAT_FULL, CHAT_TOO_LARGE } from '../lib/limits.js';
 
 // Only these models can be requested from the browser, plus "Auto", which picks one per
 // message with the routing classifier.
@@ -27,8 +29,6 @@ const FALLBACK_MODELS = new Set(['claude-opus-5-5', 'claude-sonnet-5-5']);
 
 const MAX_TOKENS = 8000; // cost cap per reply
 const MAX_MESSAGES = 40; // most recent messages sent to the model
-const MAX_HISTORY = 200; // messages kept in a saved chat
-const MAX_CHARS = 20000;
 const MAX_BODY_BYTES = 4_400_000; // Vercel rejects request bodies over 4.5 MB
 const MAX_TOOL_ROUNDS = 5;
 
@@ -36,28 +36,32 @@ let client;
 
 export async function POST(request) {
   const user = await requireUser(request);
-  if (!user.userId) return json({ error: user.error, code: user.reason }, user.status);
+  if (!user.userId) {
+    // An expired or missing sign-in is the user's to renew; a site that isn't set up is ours.
+    const ref = [user.status, user.reason].filter(Boolean).join(' · ');
+    return json(cardResponse(user.status === 401 ? 'session' : 'error', ref), user.status);
+  }
 
   const limit = rateLimit(user.userId);
   if (!limit.ok) {
-    return json({ error: 'Too many messages. Please wait a few minutes.' }, 429, { 'Retry-After': String(limit.retryAfter) });
+    return json(cardResponse('limit', '429 · limit'), 429, { 'Retry-After': String(limit.retryAfter) });
   }
 
   if (Number(request.headers.get('content-length')) > MAX_BODY_BYTES) {
-    return json({ error: 'That message is too large to send. Try fewer or smaller attachments.' }, 413);
+    return json({ error: CHAT_TOO_LARGE }, 413);
   }
   let body;
-  try { body = await request.json(); } catch { return json({ error: 'Invalid request.' }, 400); }
+  try { body = await request.json(); } catch { return json(cardResponse('error', '400 · invalid'), 400); }
 
   const auto = body?.model === 'Auto';
   const fixedModel = MODELS[body?.model];
   const raw = Array.isArray(body?.messages) ? body.messages : [];
   const lastIndex = raw.length - 1;
   const valid = raw.length > 0 && raw[0].role === 'user' && raw[lastIndex].role === 'user' && raw.every((m, i) =>
-    (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string' && m.content.length <= MAX_CHARS
+    (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string' && (m.role === 'assistant' || m.content.length <= MAX_MESSAGE_CHARS)
     && validAttachments(m, i === lastIndex) && (m.content.length > 0 || m.attachments?.length > 0));
-  if ((!fixedModel && !auto) || !valid) return json({ error: 'Invalid request.' }, 400);
-  if (raw.length > MAX_HISTORY) return json({ error: 'This chat is too long. Please start a new one.' }, 400);
+  if ((!fixedModel && !auto) || !valid) return json(cardResponse('error', '400 · invalid'), 400);
+  if (raw.length > MAX_CHAT_MESSAGES) return json({ error: CHAT_FULL }, 400);
   // A temporary chat is never saved, titled or traced.
   const temporary = body.temporary === true;
   const conversationId = !temporary && typeof body.conversationId === 'string' && CONVERSATION_ID.test(body.conversationId) ? body.conversationId : null;
@@ -71,7 +75,7 @@ export async function POST(request) {
   } catch (error) {
     if (error instanceof AttachmentError) return json({ error: error.message }, 422);
     console.error('attachment processing failed', error);
-    return json({ error: "Couldn't read your attachments. Please try again." }, 500);
+    return json(cardResponse('error', '500 · attachments'), 500);
   }
 
   // Redact every message, including earlier ones, before the model or logs see them.
@@ -224,7 +228,8 @@ export async function POST(request) {
           generation?.update({ output: text, level: 'WARNING', statusMessage: 'Stopped by user' }).end();
         } else {
           generation?.update({ output: text, level: 'ERROR', statusMessage: errorName(error) }).end();
-          send({ type: 'error', error: userMessage(error) });
+          const { kind, ref } = replyError(error);
+          send({ type: 'error', ...cardResponse(kind, ref) });
         }
       } finally {
         // Save the chat (already redacted), including a partial reply if it was stopped.
@@ -261,7 +266,9 @@ function titleFrom(history) {
 function toContent(message, blocks) {
   const gone = message.unavailable;
   const note = gone.length ? `[Attachment no longer available: ${gone.join(', ')}]` : '';
-  const text = [message.content, note].filter(Boolean).join('\n\n');
+  // Only what the model sees is cut; the chat is saved from the full text.
+  const written = message.role === 'assistant' ? message.content.slice(0, MAX_REPLY_CHARS) : message.content;
+  const text = [written, note].filter(Boolean).join('\n\n');
   if (!blocks.length) return text;
   return text ? [...blocks, { type: 'text', text }] : blocks;
 }
@@ -294,13 +301,6 @@ function validAttachments(message, isLast) {
 // Optional per-message labels sent back by the page (which model answered, trace ID).
 function label(value) {
   return typeof value === 'string' && value.length <= 80 ? value : null;
-}
-
-function userMessage(error) {
-  if (error instanceof Anthropic.RateLimitError) return 'Proxi is busy right now. Please try again in a minute.';
-  if (error instanceof Anthropic.AuthenticationError) return 'Proxi is not set up correctly. Please try again later.';
-  if (error instanceof Anthropic.BadRequestError) return 'That message could not be sent. Try a shorter message.';
-  return 'Something went wrong. Please try again.';
 }
 
 function errorName(error) {

@@ -15,12 +15,14 @@ let fakeClaude;
 let fakeMintlify;
 let mcpServer;
 let token;
+let signing;
 
 before(async () => {
   if (!ready) return;
   const keys = generateKeyPairSync('rsa', { modulusLength: 2048 });
   process.env.CLERK_JWT_KEY = keys.publicKey.export({ type: 'spki', format: 'pem' });
-  token = signJwt(keys.privateKey, { sub: 'user_e2e', azp: 'https://localhost' });
+  signing = keys.privateKey;
+  token = signJwt(signing, { sub: 'user_e2e', azp: 'https://localhost' });
 
   fakeClaude = http.createServer((req, res) => {
     let raw = '';
@@ -34,8 +36,14 @@ before(async () => {
         res.end(JSON.stringify({ ...message(), content: [{ type: 'text', text: script.shift()(body) }], stop_reason: 'end_turn' }));
         return;
       }
-      res.writeHead(200, { 'content-type': 'text/event-stream' });
       const turn = script.shift()(body);
+      // A turn can be an error from Claude instead of events. It isn't retried, so one call is one turn.
+      if (turn.status) {
+        res.writeHead(turn.status, { 'content-type': 'application/json', 'x-should-retry': 'false' });
+        res.end(JSON.stringify({ type: 'error', error: { type: turn.type, message: 'rejected' } }));
+        return;
+      }
+      res.writeHead(200, { 'content-type': 'text/event-stream' });
       for (const [event, data] of turn) res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
       res.end();
     });
@@ -167,6 +175,95 @@ test('a citation marker is shown only when the cited source changes', { skip }, 
   ].join('\n'));
 });
 
+test('a request Claude rejects is "something went wrong on our side", not a message about length', { skip }, async () => {
+  // What the web search bug looked like: a 400 for a request Proxi built, with a message that was fine.
+  script = [() => ({ status: 400, type: 'invalid_request_error' })];
+  const events = await chat('What is the weather in Lisbon?');
+
+  const error = events.find((e) => e.type === 'error');
+  assert.deepEqual(error.card, { title: 'Something went wrong on our side', body: 'Your message is fine. Try again.', ref: '400' });
+  assert.equal(error.error, 'Something went wrong on our side. Your message is fine. Try again.');
+  assert.ok(!events.some((e) => e.type === 'done'));
+});
+
+test('a busy Claude is "busy right now", with the status as the reference', { skip }, async () => {
+  script = [() => ({ status: 429, type: 'rate_limit_error' })];
+  assert.deepEqual((await chat('Hello')).find((e) => e.type === 'error').card,
+    { title: 'Proxi is busy right now', body: 'Too many requests at once. Try again in a minute.', ref: '429' });
+
+  script = [() => ({ status: 529, type: 'overloaded_error' })];
+  assert.equal((await chat('Hello')).find((e) => e.type === 'error').card.ref, '529');
+});
+
+test('no sign-in is a card about the session, and a missing setup is on our side', { skip }, async () => {
+  const response = await post({ model: 'Haiku 5.5', messages: [{ role: 'user', content: 'Hello' }] }, null);
+  assert.equal(response.status, 401);
+  const body = await response.json();
+  assert.deepEqual(body.card, { title: 'Your session expired', body: 'Try again to sign back in. If it keeps happening, reload the page.', ref: '401 · no-token' });
+  assert.equal(body.error, `${body.card.title}. ${body.card.body}`);
+});
+
+test('sending too fast is "too many messages"', { skip }, async () => {
+  const fast = signJwt(signing, { sub: 'user_fast', azp: 'https://localhost' });
+  let last;
+  for (let i = 0; i < 21; i++) last = await post('{}', fast);
+  assert.equal(last.status, 429);
+  assert.ok(Number(last.headers.get('retry-after')) > 0);
+  assert.deepEqual((await last.json()).card, { title: 'Too many messages', body: "You've sent a lot of messages in a short time. Wait a few minutes, then try again.", ref: '429 · limit' });
+});
+
+test('a message can be 20,000 characters, and one character more is refused', { skip }, async () => {
+  script = [() => textTurn('Got it.')];
+  const ok = await post({ model: 'Haiku 5.5', messages: [{ role: 'user', content: 'a'.repeat(20000) }] });
+  assert.equal(ok.status, 200);
+  await ok.text();
+
+  const long = await post({ model: 'Haiku 5.5', messages: [{ role: 'user', content: 'a'.repeat(20001) }] });
+  assert.equal(long.status, 400);
+  assert.equal((await long.json()).card.ref, '400 · invalid');
+});
+
+test('a chat holds 100 of the user\'s messages; the 101st is refused with the limit as plain text', { skip }, async () => {
+  const chatOf = (users) => Array.from({ length: users * 2 - 1 }, (_, i) => ({ role: i % 2 ? 'assistant' : 'user', content: `message ${i}` }));
+
+  script = [() => textTurn('Still here.')];
+  const full = await post({ model: 'Haiku 5.5', messages: chatOf(100) });
+  assert.equal(full.status, 200);
+  await full.text();
+  assert.ok(requests[0].messages.length <= 40, 'the model is only sent the latest messages');
+  assert.equal(requests[0].messages.at(-1).content, 'message 198');
+
+  const over = await post({ model: 'Haiku 5.5', messages: chatOf(101) });
+  assert.equal(over.status, 400);
+  const body = await over.json();
+  assert.equal(body.error, 'This chat has reached its limit of 100 of your messages. Start a new chat to keep going.');
+  assert.equal(body.card, undefined, 'a plain message, not a card with Try again');
+});
+
+test('a long earlier reply does not break the chat, and the model gets it cut', { skip }, async () => {
+  // A reply can run past 20,000 characters (8,000 tokens, plus the links Proxi adds).
+  script = [() => textTurn('You are welcome.')];
+  const reply = 'word '.repeat(10000);
+  const response = await post({ model: 'Haiku 5.5', messages: [
+    { role: 'user', content: 'Write me a very long essay.' },
+    { role: 'assistant', content: reply },
+    { role: 'user', content: 'Thanks.' },
+  ] });
+  assert.equal(response.status, 200);
+  await response.text();
+  assert.equal(requests[0].messages[1].content.length, 40000);
+  assert.equal(requests[0].messages[0].content, 'Write me a very long essay.');
+});
+
+test('an attachment that can\'t be used keeps its own plain message', { skip }, async () => {
+  const data = Buffer.from('%PDF-1.4 this is not really a pdf').toString('base64');
+  const response = await post({ model: 'Haiku 5.5', messages: [{ role: 'user', content: 'Read this', attachments: [{ name: 'report.pdf', type: 'application/pdf', data }] }] });
+  assert.equal(response.status, 422);
+  const body = await response.json();
+  assert.match(body.error, /report\.pdf could not be read as a PDF/);
+  assert.equal(body.card, undefined);
+});
+
 test('a temporary chat is not titled, saved or traced', { skip }, async () => {
   script = [() => textTurn('Sure.')];
   const events = await chat('Help me plan a trip', { conversationId: 'temp-chat-1', temporary: true });
@@ -219,6 +316,17 @@ function toolUseTurn(name, input) {
     ['message_delta', { type: 'message_delta', delta: { stop_reason: 'tool_use', stop_sequence: null }, usage: { output_tokens: 5 } }],
     ['message_stop', { type: 'message_stop' }],
   ];
+}
+
+// Posts to the chat route and returns the Response as is. A null token sends no sign-in.
+async function post(body, bearer = token) {
+  requests.length = 0;
+  const { POST } = await import('../api/chat.js');
+  return POST(new Request('http://localhost/api/chat', {
+    method: 'POST',
+    headers: { ...(bearer ? { authorization: `Bearer ${bearer}` } : {}), host: 'localhost', 'content-type': 'application/json' },
+    body: typeof body === 'string' ? body : JSON.stringify(body),
+  }));
 }
 
 function textTurn(reply) {

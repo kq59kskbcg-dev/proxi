@@ -14,6 +14,9 @@
 
 -
 
+- [ ] The user approved the exact docs and release note wording before it was committed
+<!-- Tick this only after the user has seen the exact wording and approved it. -->
+
 ## Testing
 
 <!-- What you ran or checked, and what you couldn't check. -->
