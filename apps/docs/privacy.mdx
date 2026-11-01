@@ -69,5 +69,6 @@ These providers process data on Proxi's behalf.
 Proxi is a personal project. These are known tradeoffs made to keep it free to run.
 
 - **Redaction covers structured data only.** Proxi uses pattern matching to redact cards, IBANs, emails and phone numbers, but can't catch names or addresses. A company could add a small self-hosted model for those.
+- **Source icons come from DuckDuckGo.** When you open a reply's sources, your browser asks DuckDuckGo's icon service for each site's icon. DuckDuckGo sees the site's domain and your IP address, but not your messages. A company could serve the icons itself.
 - **Observability runs on Langfuse Cloud.** Redacted conversations are stored by Langfuse in the EU. A company could self-host it to keep that data in its own infrastructure.
 - **Images and scanned documents aren't checked.** Proxi checks the text in PDFs and blocks files with card numbers or IBANs, but can't read text inside images or scans. A company could add OCR to check them before sending.

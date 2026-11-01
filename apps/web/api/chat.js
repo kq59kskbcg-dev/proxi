@@ -165,15 +165,27 @@ export async function POST(request) {
           stream = open(turns);
           gap = text.length > 0;
           let cited = new Set();
+          let lastCited = '';
+          let wrote = false;
           for await (const event of stream) {
             if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
               emit(event.delta.text);
+              wrote = true;
             } else if (event.type === 'content_block_delta' && event.delta.type === 'citations_delta') {
               const n = sourceNumber(sources, event.delta.citation);
               if (n) cited.add(n);
-            } else if (event.type === 'content_block_stop' && cited.size) {
-              emit(' ' + [...cited].map((n) => `[[${n}]](${sources[n - 1].url})`).join(''));
-              cited = new Set();
+            } else if (event.type === 'content_block_stop') {
+              // A block citing the same sources as the one before it gets no marker of its own,
+              // so a list drawn from one page shows its pill once. Uncited text resets this.
+              if (cited.size) {
+                const marker = [...cited].map((n) => `[[${n}]](${sources[n - 1].url})`).join('');
+                if (marker !== lastCited) emit(' ' + marker);
+                lastCited = marker;
+                cited = new Set();
+              } else if (wrote) {
+                lastCited = '';
+              }
+              wrote = false;
             }
           }
           final = await stream.finalMessage();
