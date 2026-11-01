@@ -46,6 +46,36 @@ export function startTrace(name, { sessionId, ...attributes } = {}) {
   return root;
 }
 
+// Deletes traces (best effort: a failure is logged and never blocks the caller). Only
+// real trace IDs are sent, since the IDs saved with messages come from the browser.
+export async function deleteTraces(ids) {
+  const langfuse = getLangfuse();
+  const list = [...new Set(ids ?? [])].filter((id) => typeof id === 'string' && /^[0-9a-f]{32}$/.test(id));
+  if (!langfuse || !list.length) return;
+  for (let i = 0; i < list.length; i += 100) {
+    try {
+      await langfuse.api.trace.deleteMultiple({ traceIds: list.slice(i, i + 100) });
+    } catch (error) {
+      console.error('deleting traces failed', error?.name);
+    }
+  }
+}
+
+// One page of chat traces started before `before`, as { traceId, sessionId } (the session is
+// the saved chat's ID), and the cursor for the next page, or null when there is none.
+export async function listChatTraces({ before, cursor = null }) {
+  const langfuse = getLangfuse();
+  if (!langfuse) return { traces: [], cursor: null };
+  const res = await langfuse.api.observations.getMany({
+    name: 'chat', isRootObservation: true, toStartTime: before.toISOString(),
+    fields: 'core,basic,trace_context', limit: 100, ...(cursor ? { cursor } : {}),
+  });
+  return {
+    traces: (res.data ?? []).map((o) => ({ traceId: o.traceId, sessionId: o.sessionId ?? null })),
+    cursor: res.meta?.cursor ?? null,
+  };
+}
+
 export async function flushTraces() {
   await processor?.forceFlush().catch(() => {});
 }
