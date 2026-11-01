@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, interactive-widget=resizes-content">
 <title>Proxi</title>
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Manrope:wght@800&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<link href="/fonts/fonts.css" rel="stylesheet">
+<link rel="preload" href="/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
 <script>
 // Applies the saved theme before the page paints. "system" follows the device setting.
 (function () {
@@ -126,7 +126,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 .md .sources summary::-webkit-details-marker{display:none}
 .md .sources summary:hover{background:var(--soft);border-color:var(--border-hover)}
 .src-stack{display:flex}
-.src-tile{width:20px;height:20px;box-sizing:border-box;border-radius:50%;border:2px solid var(--surface);margin-left:-6px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#FFFFFF}
+.src-tile{width:20px;height:20px;box-sizing:border-box;border-radius:50%;border:2px solid var(--surface);margin-left:-6px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#FFFFFF;overflow:hidden}
 .src-tile:first-child{margin-left:0}
 .src-tile.t0{background:#6D28FF}.src-tile.t1{background:#0F7B5F}.src-tile.t2{background:#F4511E}.src-tile.t3{background:#2563EB}.src-tile.t4{background:#B45309}
 .md .sources ul{list-style:none;margin:10px 0 0;padding:0;border:1px solid var(--border);border-radius:12px;overflow:hidden}
@@ -136,7 +136,8 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 .md .sources li a:hover{background:var(--soft)}
 .src-site{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-muted)}
 .src-ico{width:16px;height:16px;border-radius:4px;flex:none;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#FFFFFF;overflow:hidden}
-.src-ico img,.src-tile img{width:100%;height:100%;object-fit:cover;display:block}
+.src-ico img,.src-tile img{width:100%;height:100%;object-fit:cover;display:none}
+.has-img img{display:block}.has-img .site-letter{display:none}
 .src-tile.has-img{background:var(--surface)}
 .src-title{font-size:16px;font-weight:500;line-height:1.3;color:var(--link)}
 .md .sources li a:hover .src-title{text-decoration:underline;text-underline-offset:2px}
@@ -650,6 +651,11 @@ function shareUrl(shareId) {
 
 // Citations arrive as Markdown: [[1]](url) after a sentence and a "Sources" list at the end.
 // Turn them into source name pills and a collapsible list. Runs on sanitized HTML.
+// Shows a source's site icon once it loads. Load events don't bubble, so this listens in the capture phase.
+document.addEventListener('load', (e) => {
+  if (e.target instanceof HTMLImageElement && e.target.classList.contains('site-img')) e.target.parentElement?.classList.add('has-img');
+}, true);
+
 function renderCitations(html) {
   if (!html.includes('<strong>Sources</strong>')) return html;
   const root = document.createElement('template');
@@ -659,17 +665,22 @@ function renderCitations(html) {
   if (!list || list.tagName !== 'OL') return html;
   const host = (url) => { try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return ''; } };
   const label = (url) => url.startsWith(DOCS_URL) ? 'Help center' : host(url);
-  // Site icon from a public favicon service; the colored letter stays if it doesn't load.
+  // Site icon, fetched through Proxi's own server so the icon service never sees the visitor's IP address.
+  // This returns HTML text, so the icon is in the markup, hidden until the page-wide listener
+  // below sees it load. The colored letter stays if it doesn't.
   const siteIcon = (name, url, cls) => {
     const el = document.createElement('span');
     el.className = cls + ' t' + ([...name].reduce((n, ch) => n + ch.charCodeAt(0), 0) % 5);
-    el.textContent = name[0].toUpperCase();
+    const letter = document.createElement('span');
+    letter.className = 'site-letter';
+    letter.textContent = name[0].toUpperCase();
+    el.append(letter);
     const h = host(url);
     if (h) {
-      const img = new Image();
-      img.alt = ''; img.referrerPolicy = 'no-referrer';
-      img.onload = () => { el.textContent = ''; el.classList.add('has-img'); el.append(img); };
-      img.src = 'https://icons.duckduckgo.com/ip3/' + encodeURIComponent(h) + '.ico';
+      const img = document.createElement('img');
+      img.className = 'site-img'; img.alt = ''; img.setAttribute('referrerpolicy', 'no-referrer');
+      img.src = '/api/icon?host=' + encodeURIComponent(h);
+      el.append(img);
     }
     return el;
   };
@@ -911,7 +922,8 @@ class Component extends DCLogic {
       instructionsDraft: '',
       memories: null,
       theme: window.proxiTheme?.get() || 'system',
-      temporary: false,
+      // Incognito stays on for new chats until turned off, remembered in this browser.
+      temporary: (() => { try { return localStorage.getItem('proxi-incognito') === 'on'; } catch { return false; } })(),
       votes: {}
     };
   }
@@ -1602,7 +1614,11 @@ class Component extends DCLogic {
       temporaryHint: s.temporary ? 'Incognito chat is on. Click to turn it off.' : 'Start an incognito chat',
       composerBorder: (isNew && s.temporary) || (isChat && conv.temporary) ? 'var(--temp-border)' : 'var(--border-strong)',
       composerBorderStyle: (isNew && s.temporary) || (isChat && conv.temporary) ? 'dashed' : 'solid',
-      toggleTemporary: () => this.setState({ temporary: !s.temporary }),
+      toggleTemporary: () => {
+        const next = !s.temporary;
+        try { if (next) localStorage.setItem('proxi-incognito', 'on'); else localStorage.removeItem('proxi-incognito'); } catch {}
+        this.setState({ temporary: next });
+      },
       chatMenu: s.chatMenu,
       chatMenuExpanded: s.chatMenu ? 'true' : 'false',
       toggleChatMenu: () => this.setState({ chatMenu: !s.chatMenu, shareMenu: false, modelMenu: false, userMenu: false }),
