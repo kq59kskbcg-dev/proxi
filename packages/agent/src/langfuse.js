@@ -1,5 +1,5 @@
 import { LangfuseClient } from '@langfuse/client';
-import { LangfuseSpanProcessor } from '@langfuse/otel';
+import { LangfuseSpanProcessor, isLangfuseSpan } from '@langfuse/otel';
 import { startObservation } from '@langfuse/tracing';
 import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
 
@@ -29,6 +29,9 @@ export function enableTracing() {
     secretKey: process.env.LANGFUSE_SECRET_KEY,
     baseUrl: baseUrl(),
     exportMode: 'immediate',
+    // Only the spans made by startTrace. The Anthropic SDK also reports its own calls (the
+    // classifiers run in incognito chats too), and those must not reach Langfuse.
+    shouldExportSpan: ({ otelSpan }) => isLangfuseSpan(otelSpan),
   });
   new NodeTracerProvider({ spanProcessors: [processor] }).register();
   return processor;

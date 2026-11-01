@@ -65,7 +65,23 @@ export function toClaudeContent(result) {
     return { type: 'text', text: JSON.stringify(item) };
   });
   if (!blocks.length && result.structuredContent) blocks.push({ type: 'text', text: JSON.stringify(result.structuredContent) });
-  return blocks.length ? blocks : [{ type: 'text', text: '(no output)' }];
+  if (!blocks.length) return [{ type: 'text', text: '(no output)' }];
+  // A tool result with search results may hold nothing else: the API rejects the mix with a 400.
+  // Other text, such as web_search's written answer, goes in as a search result of its own. Its
+  // source isn't a web address, so the chat shows no link when Claude cites it.
+  if (blocks.some((b) => b.type === 'search_result')) {
+    const text = blocks.filter((b) => b.type === 'text');
+    const results = blocks.filter((b) => b.type === 'search_result');
+    if (!text.length) return results;
+    return [{
+      type: 'search_result',
+      source: 'tool-output',
+      title: 'Tool answer',
+      content: text.map((b) => ({ type: 'text', text: b.text })),
+      citations: { enabled: true },
+    }, ...results];
+  }
+  return blocks;
 }
 
 function toSearchResult(resource) {
