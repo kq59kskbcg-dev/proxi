@@ -1,31 +1,26 @@
-import { randomUUID } from 'node:crypto';
 import Anthropic from '@anthropic-ai/sdk';
 import { redact } from '@proxi/agent/redact';
 import { rateLimit } from '../lib/ratelimit.js';
 import { requireUser } from '../lib/auth.js';
 import { flushTraces, getSystemPrompt, startTrace } from '@proxi/agent/langfuse';
-import { CONVERSATION_ID, hasDatabase, saveConversation, conversationAttributes, listMemories, addMemory } from '../lib/db.js';
+import { hasDatabase, saveConversation, conversationAttributes } from '../lib/db.js';
 import { customInstructions } from '../lib/instructions.js';
-import { processAttachments, AttachmentError, KINDS, MAX_ATTACHMENTS } from '../lib/attachments.js';
+import { processAttachments, AttachmentError } from '../lib/attachments.js';
+import { parseChatRequest, label } from '../lib/chat-request.js';
+import { savedMemories, remember } from '../lib/memories.js';
 import { getMcpTools } from '@proxi/agent/mcp';
 import { makeTitle } from '@proxi/agent/title';
 import { getLocale } from '@proxi/agent/locale';
 import { getEscalation } from '@proxi/agent/escalation';
-import { MEMORY_TOOL, getMemoryTool, memoryText } from '@proxi/agent/memory';
+import { MEMORY_TOOL, getMemoryTool } from '@proxi/agent/memory';
+import { runAgentLoop } from '@proxi/agent/agent-loop';
 import { buildContext, splitHistory } from '@proxi/agent/context';
 import { summarizeOlder } from '@proxi/agent/summary';
 import { chooseModel } from '@proxi/agent/routing';
 import { toolActivity } from '../lib/activity.js';
 import { cardResponse, replyError } from '../lib/errors.js';
-import { MAX_MESSAGE_CHARS, MAX_CHAT_MESSAGES, MAX_REPLY_CHARS, CHAT_FULL, CHAT_TOO_LARGE } from '../lib/limits.js';
+import { MAX_REPLY_CHARS, CHAT_FULL, CHAT_TOO_LARGE } from '../lib/limits.js';
 
-// Only these models can be requested from the browser, plus "Auto", which picks one per
-// message with the routing classifier.
-const MODELS = {
-  'Opus 5.5': 'claude-opus-5-5',
-  'Sonnet 5.5': 'claude-sonnet-5-5',
-  'Haiku 5.5': 'claude-haiku-5-5',
-};
 // Opus and Sonnet support server-side refusal fallbacks; Haiku does not.
 const FALLBACK_MODELS = new Set(['claude-opus-5-5', 'claude-sonnet-5-5']);
 
@@ -55,18 +50,11 @@ export async function POST(request) {
   let body;
   try { body = await request.json(); } catch { return json(cardResponse('error', '400 · invalid'), 400); }
 
-  const auto = body?.model === 'Auto';
-  const fixedModel = MODELS[body?.model];
-  const raw = Array.isArray(body?.messages) ? body.messages : [];
+  const parsed = parseChatRequest(body);
+  if (parsed.error === 'invalid') return json(cardResponse('error', '400 · invalid'), 400);
+  if (parsed.error === 'full') return json({ error: CHAT_FULL }, 400);
+  const { auto, fixedModel, messages: raw, temporary, conversationId } = parsed;
   const lastIndex = raw.length - 1;
-  const valid = raw.length > 0 && raw[0].role === 'user' && raw[lastIndex].role === 'user' && raw.every((m, i) =>
-    (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string' && (m.role === 'assistant' || m.content.length <= MAX_MESSAGE_CHARS)
-    && validAttachments(m, i === lastIndex) && (m.content.length > 0 || m.attachments?.length > 0));
-  if ((!fixedModel && !auto) || !valid) return json(cardResponse('error', '400 · invalid'), 400);
-  if (raw.length > MAX_CHAT_MESSAGES) return json({ error: CHAT_FULL }, 400);
-  // A temporary chat is never saved, titled or traced.
-  const temporary = body.temporary === true;
-  const conversationId = !temporary && typeof body.conversationId === 'string' && CONVERSATION_ID.test(body.conversationId) ? body.conversationId : null;
 
   // Files attached to the latest message are checked, redacted where possible and
   // turned into content blocks. They are used for this request only, never stored.
@@ -156,64 +144,32 @@ export async function POST(request) {
       let text = '';
       let servedBy = model;
       try {
-        const turns = [...messages];
-        const usage = { input: 0, output: 0 };
-        const sources = [];
-        let gap = false;
-        const emit = (piece) => {
-          const chunk = (gap ? '\n\n' : '') + piece;
-          gap = false;
-          text += chunk;
-          send({ type: 'text', text: chunk });
+        // Routes each tool call: save_memory to the user's memories, the rest to the MCP server.
+        const executeTool = async (call) => {
+          const span = trace?.startObservation(`tool ${call.name}`, { input: call.input }, { asType: 'tool' });
+          const result = call.name === MEMORY_TOOL && memoryTool ? await remember(user.userId, call)
+            : mcp ? await mcp.call(call)
+            : { type: 'tool_result', tool_use_id: call.id, content: 'This tool is not available.', is_error: true };
+          span?.update({ output: result.content, level: result.is_error ? 'ERROR' : 'DEFAULT' }).end();
+          return result;
         };
-        let final;
-        for (let round = 0; ; round++) {
-          stream = open(turns);
-          gap = text.length > 0;
-          let cited = new Set();
-          let lastCited = '';
-          let wrote = false;
-          for await (const event of stream) {
-            if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
-              emit(event.delta.text);
-              wrote = true;
-            } else if (event.type === 'content_block_delta' && event.delta.type === 'citations_delta') {
-              const n = sourceNumber(sources, event.delta.citation);
-              if (n) cited.add(n);
-            } else if (event.type === 'content_block_stop') {
-              // A block citing the same sources as the one before it gets no marker of its own,
-              // so a list drawn from one page shows its pill once. Uncited text resets this.
-              if (cited.size) {
-                const marker = [...cited].map((n) => `[[${n}]](${sources[n - 1].url})`).join('');
-                if (marker !== lastCited) emit(' ' + marker);
-                lastCited = marker;
-                cited = new Set();
-              } else if (wrote) {
-                lastCited = '';
-              }
-              wrote = false;
-            }
+        const onEvent = (event) => {
+          if (event.type === 'text') {
+            text += event.text;
+            send({ type: 'text', text: event.text });
+          } else if (event.type === 'tool_calls') {
+            // Tell the page what the agent is doing, e.g. "Searching the help center".
+            for (const call of event.calls) send({ type: 'activity', tool: call.name, ...toolActivity(call.name, mcp?.titles?.[call.name], call.input) });
           }
-          final = await stream.finalMessage();
-          usage.input += final.usage.input_tokens;
-          usage.output += final.usage.output_tokens;
-          if (final.stop_reason !== 'tool_use' || !tools.length || round + 1 >= MAX_TOOL_ROUNDS) break;
-          const calls = final.content.filter((block) => block.type === 'tool_use');
-          // Tell the page what the agent is doing, e.g. "Searching the help center".
-          for (const call of calls) send({ type: 'activity', tool: call.name, ...toolActivity(call.name, mcp?.titles?.[call.name], call.input) });
-          const results = await Promise.all(calls.map(async (call) => {
-            const span = trace?.startObservation(`tool ${call.name}`, { input: call.input }, { asType: 'tool' });
-            const result = call.name === MEMORY_TOOL && memoryTool ? await remember(user.userId, call)
-              : mcp ? await mcp.call(call)
-              : { type: 'tool_result', tool_use_id: call.id, content: 'This tool is not available.', is_error: true };
-            span?.update({ output: result.content, level: result.is_error ? 'ERROR' : 'DEFAULT' }).end();
-            return result;
-          }));
-          turns.push({ role: 'assistant', content: final.content }, { role: 'user', content: results });
-        }
-        if (sources.length) {
-          emit('\n\n**Sources**\n' + sources.map((s, i) => `${i + 1}. [${escapeLinkText(s.title)}](${s.url})`).join('\n'));
-        }
+        };
+        const { final, usage } = await runAgentLoop({
+          open: (turns) => (stream = open(turns)),
+          messages,
+          toolsEnabled: tools.length > 0,
+          executeTool,
+          onEvent,
+          maxRounds: MAX_TOOL_ROUNDS,
+        });
         servedBy = final.model;
         if (final.stop_reason === 'refusal') {
           send({ type: 'error', error: "Proxi can't help with that request." });
@@ -263,62 +219,10 @@ function titleFrom(history) {
   return first.length > 40 ? first.slice(0, 40).trim() + '...' : first;
 }
 
-function sourceNumber(sources, citation) {
-  const url = typeof citation?.source === 'string' ? citation.source : '';
-  if (!/^https?:\/\//i.test(url)) return 0;
-  const safe = url.replace(/[()\s]/g, encodeURIComponent);
-  let index = sources.findIndex((s) => s.url === safe);
-  if (index === -1) index = sources.push({ url: safe, title: citation.title || url }) - 1;
-  return index + 1;
-}
-
-function escapeLinkText(text) {
-  return String(text).replace(/[[\]\\]/g, '\\$&');
-}
-
-// Files with data are only accepted on the latest message; older ones are just a kind.
-function validAttachments(message, isLast) {
-  if (message.attachments === undefined) return true;
-  const list = message.attachments;
-  return Array.isArray(list) && list.length <= MAX_ATTACHMENTS && list.every((a) => a && typeof a === 'object'
-    && (typeof a.data === 'string' ? isLast : KINDS.has(a.kind)));
-}
-
-// Optional per-message labels sent back by the page (which model answered, trace ID).
-function label(value) {
-  return typeof value === 'string' && value.length <= 80 ? value : null;
-}
-
 function errorName(error) {
   return error instanceof Anthropic.APIError ? `${error.constructor.name} ${error.status}` : String(error?.name || 'Error');
 }
 
 function json(data, status, headers = {}) {
   return new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json', ...headers } });
-}
-
-// The user's saved memories as plain text. A failed lookup means no memories, not a failed reply.
-async function savedMemories(userId) {
-  try {
-    return (await listMemories(userId)).map((m) => m.content);
-  } catch (error) {
-    console.error('memory lookup failed', error?.code ?? error?.name);
-    return [];
-  }
-}
-
-// Runs the save_memory tool for the signed-in user.
-async function remember(userId, call) {
-  const reply = (content, isError = false) => ({ type: 'tool_result', tool_use_id: call.id, content, is_error: isError });
-  const text = memoryText(call.input);
-  if (!text) return reply('Not saved: the memory was empty or longer than one short sentence.', true);
-  try {
-    const outcome = await addMemory(userId, randomUUID(), text);
-    if (outcome === 'duplicate') return reply('This is already saved.');
-    if (outcome === 'full') return reply('Not saved: memory is full. The user can delete memories in Settings.', true);
-    return reply('Saved to memory.');
-  } catch (error) {
-    console.error('saving memory failed', error?.code ?? error?.name);
-    return reply('Saving to memory failed.', true);
-  }
 }
