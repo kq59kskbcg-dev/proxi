@@ -6,10 +6,17 @@
 export function sourceNumber(sources, citation) {
   const url = typeof citation?.source === 'string' ? citation.source : '';
   if (!/^https?:\/\//i.test(url)) return 0;
-  const safe = url.replace(/[()\s]/g, encodeURIComponent);
+  const safe = linkSafe(url);
   let index = sources.findIndex((s) => s.url === safe);
   if (index === -1) index = sources.push({ url: safe, title: citation.title || url }) - 1;
   return index + 1;
+}
+
+// encodeURIComponent leaves ( and ) as they are, so they are encoded by hand: a ")" would
+// end the Markdown link early, and whitespace would stop it being a link at all.
+const LINK_UNSAFE = { '(': '%28', ')': '%29' };
+export function linkSafe(url) {
+  return url.replace(/[()\s]/g, (c) => LINK_UNSAFE[c] ?? encodeURIComponent(c));
 }
 
 export function escapeLinkText(text) {

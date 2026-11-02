@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { sourceNumber, escapeLinkText, citationMarker, sourcesList, blockCitations } from '../src/citations.js';
+import { sourceNumber, linkSafe, escapeLinkText, citationMarker, sourcesList, blockCitations } from '../src/citations.js';
 
 const cite = (source, title) => ({ type: 'search_result_location', source, title });
 
@@ -66,4 +66,27 @@ test('a citation without a URL adds no marker', () => {
   const blocks = blockCitations([]);
   blocks.cite(cite('not a url', 'x'));
   assert.equal(blocks.endBlock(true), '');
+});
+
+// The destination a Markdown parser reads for "[text](url)": up to the first ")" or whitespace.
+const destination = (link) => link.match(/\]\(([^)\s]*)\)/)?.[1];
+
+test('parentheses and whitespace in cited URLs are encoded so the link stays whole', () => {
+  assert.equal(linkSafe('https://en.wikipedia.org/wiki/Mercury_(planet)'), 'https://en.wikipedia.org/wiki/Mercury_%28planet%29');
+  assert.equal(linkSafe('https://a.example/a b\tc\nd'), 'https://a.example/a%20b%09c%0Ad');
+  assert.equal(linkSafe('https://a.example/x?q=(1)%20'), 'https://a.example/x?q=%281%29%20', 'existing escapes are kept');
+
+  const sources = [];
+  const url = 'https://en.wikipedia.org/wiki/Mercury_(planet) notes';
+  assert.equal(sourceNumber(sources, cite(url, 'Mercury (planet)')), 1);
+  assert.equal(sourceNumber(sources, cite(url, 'again')), 1, 'the same URL keeps its number');
+  const encoded = 'https://en.wikipedia.org/wiki/Mercury_%28planet%29%20notes';
+  assert.equal(destination(citationMarker(sources, [1])), encoded);
+  assert.equal(destination(sourcesList(sources)), encoded);
+  assert.match(sourcesList(sources), /1\. \[Mercury \(planet\)\]\(/);
+
+  // An unmatched ")" used to end the link early, leaving the rest of the URL as text.
+  const unmatched = [];
+  sourceNumber(unmatched, cite('https://a.example/smile:)/page', ''));
+  assert.equal(destination(citationMarker(unmatched, [1])), 'https://a.example/smile:%29/page');
 });
