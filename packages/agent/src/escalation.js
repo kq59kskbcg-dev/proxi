@@ -2,23 +2,12 @@
 // When it says they want a person, "snippets/escalation-reply" is added to the system prompt
 // for that reply. Without Langfuse, or if anything fails, the reply goes ahead without it.
 
-import { getLangfuse } from './langfuse.js';
-import { CLASSIFIER_MODEL } from './models.js';
-
-const options = { label: 'production', cacheTtlSeconds: 60, fetchTimeoutMs: 2000 };
+import { classify, getLangfuse, getSnippet } from './langfuse.js';
 
 export async function wantsPerson(langfuse, client, text) {
   const input = text?.trim().slice(0, 1000);
   if (!input) return false;
-  const prompt = await langfuse.prompt.get('classifiers/escalation', options);
-  const res = await client.messages.create({
-    model: CLASSIFIER_MODEL,
-    max_tokens: 8,
-    thinking: { type: 'disabled' },
-    messages: [{ role: 'user', content: prompt.compile({ message: input }) }],
-  }, { timeout: 5_000, maxRetries: 0 });
-  const answer = res.content.filter((b) => b.type === 'text').map((b) => b.text).join('').trim().toLowerCase();
-  return answer === 'true';
+  return (await classify(client, 'classifiers/escalation', { message: input }, { langfuse })) === 'true';
 }
 
 // Returns { escalated, text }: whether the message asked for a person, and the text to add to
@@ -32,9 +21,5 @@ export async function getEscalation(client, latestMessage) {
     console.error('escalation check failed', error?.status ?? error?.name);
     return { escalated: false, text: '' };
   }
-  try {
-    return { escalated: true, text: (await langfuse.prompt.get('snippets/escalation-reply', options)).compile() };
-  } catch {
-    return { escalated: true, text: '' };
-  }
+  return { escalated: true, text: await getSnippet('snippets/escalation-reply', { langfuse }) };
 }

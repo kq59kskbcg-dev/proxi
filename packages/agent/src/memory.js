@@ -2,7 +2,7 @@
 // facts added to later chats. The tool's description is a Langfuse prompt
 // ("tools/save-memory", label "production"), with the built-in text below as the fallback.
 
-import { getLangfuse } from './langfuse.js';
+import { getPrompt } from './langfuse.js';
 import { redact } from './redact.js';
 
 export const MEMORY_TOOL = 'save_memory';
@@ -15,18 +15,7 @@ Write the memory as one short sentence in the third person, for example "Prefers
 After saving, mention it briefly in your reply.`;
 
 export async function getMemoryTool() {
-  let description = DEFAULT_MEMORY_TOOL_DESCRIPTION;
-  const langfuse = getLangfuse();
-  if (langfuse) {
-    try {
-      const prompt = await langfuse.prompt.get('tools/save-memory', {
-        label: 'production', fallback: DEFAULT_MEMORY_TOOL_DESCRIPTION, cacheTtlSeconds: 60, fetchTimeoutMs: 2000,
-      });
-      description = prompt.compile();
-    } catch {
-      // Keep the built-in description.
-    }
-  }
+  const description = (await getPrompt('tools/save-memory', { fallback: DEFAULT_MEMORY_TOOL_DESCRIPTION })).compile();
   return {
     name: MEMORY_TOOL,
     description,

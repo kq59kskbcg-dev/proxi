@@ -2,28 +2,18 @@
 // "classifiers/language"), then every prompt tagged "locale-<code>" is added to the
 // system prompt. Without Langfuse, or if anything fails, the reply goes ahead without them.
 
-import { getLangfuse } from './langfuse.js';
-import { CLASSIFIER_MODEL } from './models.js';
+import { classify, getLangfuse, getSnippet } from './langfuse.js';
 
 const TTL_MS = 60_000;
 const MAX_CACHED = 500;
 const detected = new Map(); // first message -> language code
 const listed = new Map(); // language code -> { at, names }
 
-const options = { label: 'production', cacheTtlSeconds: 60, fetchTimeoutMs: 2000 };
-
 export async function detectLanguage(langfuse, client, text) {
   const input = text?.trim().slice(0, 1000);
   if (!input) return null;
   if (detected.has(input)) return detected.get(input);
-  const prompt = await langfuse.prompt.get('classifiers/language', options);
-  const res = await client.messages.create({
-    model: CLASSIFIER_MODEL,
-    max_tokens: 8,
-    thinking: { type: 'disabled' },
-    messages: [{ role: 'user', content: prompt.compile({ message: input }) }],
-  }, { timeout: 5_000, maxRetries: 0 });
-  const raw = res.content.filter((b) => b.type === 'text').map((b) => b.text).join('').trim().toLowerCase();
+  const raw = await classify(client, 'classifiers/language', { message: input }, { langfuse });
   const code = /^[a-z]{2}$/.test(raw) ? raw : null;
   if (detected.size >= MAX_CACHED) detected.clear();
   detected.set(input, code);
@@ -48,9 +38,7 @@ export async function getLocale(client, firstMessage, knownCode = null) {
     const code = knownCode || await detectLanguage(langfuse, client, firstMessage);
     if (!code) return { code: null, text: '' };
     const names = await localeNames(langfuse, code);
-    const parts = await Promise.all(names.map(async (name) => {
-      try { return (await langfuse.prompt.get(name, options)).compile(); } catch { return ''; }
-    }));
+    const parts = await Promise.all(names.map((name) => getSnippet(name, { langfuse })));
     return { code, text: parts.filter(Boolean).join('\n\n') };
   } catch (error) {
     console.error('locale lookup failed', error?.status ?? error?.name);

@@ -3,7 +3,7 @@
 // summary can't be made, the reply goes ahead without it.
 
 import { createHash } from 'node:crypto';
-import { getLangfuse } from './langfuse.js';
+import { getPrompt } from './langfuse.js';
 import { CLASSIFIER_MODEL } from './models.js';
 
 const MAX_PER_MESSAGE = 600; // characters kept of each older message
@@ -20,16 +20,8 @@ Reply with the summary only.`;
 // The summary prompt is edited in Langfuse (prompt "summarizers/conversation-history", label
 // "production"), with the built-in prompt as the fallback.
 async function getSummaryPrompt() {
-  const langfuse = getLangfuse();
-  if (!langfuse) return { text: DEFAULT_SUMMARY_PROMPT, prompt: undefined };
-  try {
-    const prompt = await langfuse.prompt.get('summarizers/conversation-history', {
-      label: 'production', fallback: DEFAULT_SUMMARY_PROMPT, cacheTtlSeconds: 60, fetchTimeoutMs: 2000,
-    });
-    return { text: prompt.compile(), prompt: prompt.isFallback ? undefined : prompt };
-  } catch {
-    return { text: DEFAULT_SUMMARY_PROMPT, prompt: undefined };
-  }
+  const prompt = await getPrompt('summarizers/conversation-history', { fallback: DEFAULT_SUMMARY_PROMPT });
+  return { text: prompt.compile(), prompt: prompt.prompt };
 }
 
 // The older messages as one block of text, cutting each, and the start of the chat if it is long.

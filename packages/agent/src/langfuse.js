@@ -2,6 +2,7 @@ import { LangfuseClient } from '@langfuse/client';
 import { LangfuseSpanProcessor, isLangfuseSpan } from '@langfuse/otel';
 import { startObservation } from '@langfuse/tracing';
 import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
+import { CLASSIFIER_MODEL } from './models.js';
 
 // Langfuse is optional: without keys the app still works, it just isn't logged.
 const configured = () => Boolean(process.env.LANGFUSE_PUBLIC_KEY && process.env.LANGFUSE_SECRET_KEY);
@@ -90,13 +91,63 @@ Use web_search only when the answer depends on current or changing information, 
 // prompt in Langfuse with the label "production"; one that is missing or unreachable is skipped.
 export const SNIPPETS = ['snippets/tone-format', 'snippets/privacy-redaction'];
 
-const options = (fallback) => ({ label: 'production', fallback, cacheTtlSeconds: 60, fetchTimeoutMs: 2000 });
+const PROMPT_OPTIONS = { label: 'production', cacheTtlSeconds: 60, fetchTimeoutMs: 2000 };
 
-async function getSnippet(langfuse, name) {
+// One short structured line when a prompt isn't used as fetched. Only the prompt's name and
+// the error's status or name, never the prompt text or what the user wrote.
+export function logPrompt(event, name, error) {
+  console.warn(JSON.stringify({ event, prompt: name, error: String(error?.status ?? error?.name ?? 'fallback') }));
+}
+
+// The built-in copy of a prompt, compiled like a Langfuse text prompt.
+function builtIn(text) {
+  return {
+    prompt: undefined,
+    compile: (variables = {}) => text.replace(/\{\{(\w+)\}\}/g, (all, key) => (key in variables ? String(variables[key]) : all)),
+  };
+}
+
+// A prompt from Langfuse (label "production"), as { compile(variables), prompt }. `prompt` is
+// the Langfuse prompt to link to a trace, or undefined when the built-in `fallback` is used:
+// without Langfuse, or (logged) when it can't be fetched. Without a fallback, a prompt that
+// can't be fetched throws, and the caller decides what to do. `langfuse` defaults to the app's.
+export async function getPrompt(name, { fallback, langfuse = getLangfuse() } = {}) {
+  const hasFallback = typeof fallback === 'string';
+  if (!langfuse) {
+    if (hasFallback) return builtIn(fallback);
+    throw new Error('Langfuse is not set up');
+  }
   try {
-    const prompt = await langfuse.prompt.get(name, options(''));
-    return prompt.isFallback ? '' : prompt.compile();
-  } catch {
+    const prompt = await langfuse.prompt.get(name, hasFallback ? { ...PROMPT_OPTIONS, fallback } : PROMPT_OPTIONS);
+    if (!prompt.isFallback) return { prompt, compile: (variables) => prompt.compile(variables) };
+    logPrompt('prompt_fallback', name);
+  } catch (error) {
+    if (!hasFallback) throw error;
+    logPrompt('prompt_fallback', name, error);
+  }
+  return builtIn(fallback);
+}
+
+// Asks the small model a classifier prompt with these variables and returns its answer,
+// trimmed and lower case. Throws when the prompt can't be fetched or the call fails, so each
+// caller logs and picks its own safe answer.
+export async function classify(client, promptName, variables, { maxTokens = 8, timeout = 5_000, fallback, langfuse } = {}) {
+  const prompt = await getPrompt(promptName, { fallback, langfuse });
+  const res = await client.messages.create({
+    model: CLASSIFIER_MODEL,
+    max_tokens: maxTokens,
+    thinking: { type: 'disabled' },
+    messages: [{ role: 'user', content: prompt.compile(variables) }],
+  }, { timeout, maxRetries: 0 });
+  return res.content.filter((b) => b.type === 'text').map((b) => b.text).join('').trim().toLowerCase();
+}
+
+// A snippet's text, or '' when it is missing or unreachable (logged).
+export async function getSnippet(name, { langfuse } = {}) {
+  try {
+    return (await getPrompt(name, { langfuse })).compile();
+  } catch (error) {
+    logPrompt('snippet_skipped', name, error);
     return '';
   }
 }
@@ -105,16 +156,10 @@ async function getSnippet(langfuse, name) {
 // into one text. Falls back to the built-in prompt if Langfuse is not set up or unreachable.
 // Only main-system is linked to the trace.
 export async function getSystemPrompt() {
-  const langfuse = getLangfuse();
-  if (!langfuse) return { text: DEFAULT_SYSTEM_PROMPT, prompt: undefined };
-  try {
-    const [prompt, ...snippets] = await Promise.all([
-      langfuse.prompt.get('main-system', options(DEFAULT_SYSTEM_PROMPT)),
-      ...SNIPPETS.map((name) => getSnippet(langfuse, name)),
-    ]);
-    const text = [prompt.compile(), ...snippets].filter(Boolean).join('\n\n');
-    return { text, prompt: prompt.isFallback ? undefined : prompt };
-  } catch {
-    return { text: DEFAULT_SYSTEM_PROMPT, prompt: undefined };
-  }
+  const [main, ...snippets] = await Promise.all([
+    getPrompt('main-system', { fallback: DEFAULT_SYSTEM_PROMPT }),
+    ...SNIPPETS.map((name) => (getLangfuse() ? getSnippet(name) : '')),
+  ]);
+  const text = [main.compile(), ...snippets].filter(Boolean).join('\n\n');
+  return { text, prompt: main.prompt };
 }

@@ -1,6 +1,6 @@
 // Short chat titles, written by Haiku from the user's first (already redacted) message.
 
-import { getLangfuse } from './langfuse.js';
+import { getPrompt } from './langfuse.js';
 import { CLASSIFIER_MODEL } from './models.js';
 
 const MAX_TITLE = 40;
@@ -14,16 +14,8 @@ Reply with the title only.`;
 // The title prompt is edited in Langfuse (prompt "summarizers/conversation-title", label
 // "production"). Falls back to the built-in prompt if Langfuse is not set up or unreachable.
 async function getTitlePrompt() {
-  const langfuse = getLangfuse();
-  if (!langfuse) return { text: DEFAULT_TITLE_PROMPT, prompt: undefined };
-  try {
-    const prompt = await langfuse.prompt.get('summarizers/conversation-title', {
-      label: 'production', fallback: DEFAULT_TITLE_PROMPT, cacheTtlSeconds: 60, fetchTimeoutMs: 2000,
-    });
-    return { text: prompt.compile(), prompt: prompt.isFallback ? undefined : prompt };
-  } catch {
-    return { text: DEFAULT_TITLE_PROMPT, prompt: undefined };
-  }
+  const prompt = await getPrompt('summarizers/conversation-title', { fallback: DEFAULT_TITLE_PROMPT });
+  return { text: prompt.compile(), prompt: prompt.prompt };
 }
 
 // Returns a title, or null if one couldn't be made (the caller keeps its fallback).

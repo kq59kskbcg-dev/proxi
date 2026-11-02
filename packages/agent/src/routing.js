@@ -2,8 +2,8 @@
 // "classifiers/model-routing" prompt, and each level has its model. Without Langfuse, the
 // built-in copy of the prompt is used; if the check fails, the reply uses the standard model.
 
-import { getLangfuse } from './langfuse.js';
-import { CLASSIFIER_MODEL, ROUTE_MODELS } from './models.js';
+import { classify } from './langfuse.js';
+import { ROUTE_MODELS } from './models.js';
 
 export const ROUTES = ROUTE_MODELS;
 const FALLBACK_LEVEL = 'standard';
@@ -38,8 +38,6 @@ Conversation so far:
 Message:
 {{message}}`;
 
-const options = { label: 'production', fallback: DEFAULT_ROUTING_PROMPT, cacheTtlSeconds: 60, fetchTimeoutMs: 2000 };
-
 // history: the chat's messages ({ role, content, attachments? }), the latest one last.
 export function routingVariables(history) {
   const latest = history[history.length - 1];
@@ -51,22 +49,10 @@ export function routingVariables(history) {
   return { context, message: latest.content.slice(0, MAX_MESSAGE_CHARS) + attached };
 }
 
-async function compileRoutingPrompt(variables) {
-  const langfuse = getLangfuse();
-  if (langfuse) return (await langfuse.prompt.get('classifiers/model-routing', options)).compile(variables);
-  return DEFAULT_ROUTING_PROMPT.replace('{{context}}', variables.context).replace('{{message}}', variables.message);
-}
-
 // Returns { level, model }.
 export async function chooseModel(client, history) {
   try {
-    const res = await client.messages.create({
-      model: CLASSIFIER_MODEL,
-      max_tokens: 8,
-      thinking: { type: 'disabled' },
-      messages: [{ role: 'user', content: await compileRoutingPrompt(routingVariables(history)) }],
-    }, { timeout: 5_000, maxRetries: 0 });
-    const answer = res.content.filter((b) => b.type === 'text').map((b) => b.text).join('').trim().toLowerCase();
+    const answer = await classify(client, 'classifiers/model-routing', routingVariables(history), { fallback: DEFAULT_ROUTING_PROMPT });
     const level = ROUTES[answer] ? answer : FALLBACK_LEVEL;
     return { level, model: ROUTES[level] };
   } catch (error) {
