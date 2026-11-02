@@ -1,3 +1,5 @@
+import { log } from '@proxi/agent/log';
+import { json as baseJson } from '../lib/http.js';
 import { rateLimit } from '../lib/ratelimit.js';
 import { SHARE_ID, hasDatabase, getSharedConversation } from '../lib/db.js';
 
@@ -15,14 +17,10 @@ export async function GET(request) {
     if (!chat) return json({ error: 'Not found.' }, 404);
     return json(chat);
   } catch (error) {
-    console.error('shared GET failed', error);
+    log.error('shared.get_failed', { error });
     return json({ error: 'Could not load this chat.' }, 500);
   }
 }
 
-function json(data, status = 200) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', 'X-Robots-Tag': 'noindex, nofollow' },
-  });
-}
+// Shared chats are kept out of search engines.
+const json = (data, status = 200) => baseJson(data, status, { 'X-Robots-Tag': 'noindex, nofollow' });

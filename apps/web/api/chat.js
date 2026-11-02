@@ -2,6 +2,8 @@ import Anthropic from '@anthropic-ai/sdk';
 import { redact } from '@proxi/agent/redact';
 import { rateLimit } from '../lib/ratelimit.js';
 import { requireUser } from '../lib/auth.js';
+import { json } from '../lib/http.js';
+import { log } from '@proxi/agent/log';
 import { flushTraces, getSystemPrompt, startTrace } from '@proxi/agent/langfuse';
 import { hasDatabase, saveConversation, conversationAttributes, recordRedactions } from '../lib/db.js';
 import { customInstructions } from '../lib/instructions.js';
@@ -64,7 +66,7 @@ export async function POST(request) {
     if (files.length) attached = await processAttachments(files);
   } catch (error) {
     if (error instanceof AttachmentError) return json({ error: error.message }, 422);
-    console.error('attachment processing failed', error);
+    log.error('chat.attachments_failed', { error });
     return json(cardResponse('error', '500 · attachments'), 500);
   }
 
@@ -89,7 +91,7 @@ export async function POST(request) {
   // The privacy page's counts. Incognito chats have no conversation ID, so they aren't counted.
   if (conversationId && hasDatabase()) {
     await recordRedactions(user.userId, redactions, { conversationId, position: lastIndex, content: history[lastIndex].content })
-      .catch((e) => console.error('counting redactions failed', e?.code ?? e?.name));
+      .catch((error) => log.error('chat.redaction_count_failed', { error }));
   }
   // The model sees the most recent messages word for word; older ones become a short summary.
   const { recent, older } = splitHistory(history, MAX_MESSAGES);
@@ -191,6 +193,7 @@ export async function POST(request) {
           generation?.update({ output: text, level: 'WARNING', statusMessage: 'Stopped by user' }).end();
         } else {
           generation?.update({ output: text, level: 'ERROR', statusMessage: errorName(error) }).end();
+          log.error('chat.reply_failed', { error, model });
           const { kind, ref } = replyError(error);
           send({ type: 'error', ...cardResponse(kind, ref) });
         }
@@ -198,16 +201,16 @@ export async function POST(request) {
         // Save the chat (already redacted), including a partial reply if it was stopped.
         const aiTitle = titled ? await titled : null;
         if (aiTitle) {
-          try { send({ type: 'title', title: aiTitle }); } catch {}
+          try { send({ type: 'title', title: aiTitle }); } catch { /* the page already closed the stream */ }
         }
         if (conversationId && hasDatabase()) {
           const reply = text ? [{ role: 'assistant', content: text, model: servedBy, traceId: trace?.traceId ?? null }] : [];
           await saveConversation(user.userId, conversationId, aiTitle || titleFrom(history), [...history, ...reply], { replaceTitle: Boolean(aiTitle), language: locale.code, escalated: escalation.escalated })
-            .catch((e) => console.error('saving chat failed', e));
+            .catch((error) => log.error('chat.save_failed', { error }));
         }
         trace?.end();
         await flushTraces();
-        try { controller.close(); } catch {}
+        try { controller.close(); } catch { /* already closed by a cancel */ }
       }
     },
     cancel() { stream?.abort(); },
@@ -226,8 +229,4 @@ function titleFrom(history) {
 
 function errorName(error) {
   return error instanceof Anthropic.APIError ? `${error.constructor.name} ${error.status}` : String(error?.name || 'Error');
-}
-
-function json(data, status, headers = {}) {
-  return new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json', ...headers } });
 }

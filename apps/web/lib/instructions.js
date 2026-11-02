@@ -1,4 +1,5 @@
 import { redact } from '@proxi/agent/redact';
+import { log } from '@proxi/agent/log';
 import { hasDatabase, getSettings } from './db.js';
 
 // The user's custom instructions from Settings, redacted like their messages. If
@@ -8,7 +9,7 @@ export async function customInstructions(userId) {
   try {
     return redact((await getSettings(userId)).customInstructions).text;
   } catch (error) {
-    console.error('custom instructions lookup failed', error?.code ?? error?.name);
+    log.error('instructions.lookup_failed', { error });
     return '';
   }
 }

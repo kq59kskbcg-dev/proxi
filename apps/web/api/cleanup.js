@@ -1,4 +1,6 @@
 import { deleteTraces, listChatTraces } from '@proxi/agent/langfuse';
+import { log } from '@proxi/agent/log';
+import { json } from '../lib/http.js';
 import { hasDatabase, deleteInactiveConversations, existingConversationIds } from '../lib/db.js';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -19,11 +21,11 @@ export async function GET(request) {
     // on the help center's Privacy page and in the privacy policy.
     const { deleted, traceIds } = await deleteInactiveConversations();
     await deleteTraces(traceIds);
-    console.log(`retention: deleted ${deleted} inactive chat(s)`);
+    log.info('retention.deleted_chats', { deleted });
     const orphanTraces = await deleteOrphanTraces();
     return json({ deleted, orphanTraces });
   } catch (error) {
-    console.error('retention cleanup failed', error?.code ?? error?.name);
+    log.error('retention.failed', { error });
     return json({ error: 'Cleanup failed.' }, 500);
   }
 }
@@ -46,13 +48,9 @@ export async function deleteOrphanTraces({ now = Date.now(), maxPages = MAX_TRAC
       if (!next) break;
       cursor = next;
     }
-    if (removed) console.log(`retention: deleted ${removed} trace(s) of chats that no longer exist`);
+    if (removed) log.info('retention.deleted_orphan_traces', { removed });
   } catch (error) {
-    console.error('orphan trace cleanup failed', error?.name);
+    log.error('retention.orphan_traces_failed', { error, removed });
   }
   return removed;
-}
-
-function json(data, status = 200) {
-  return new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
 }

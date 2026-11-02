@@ -1,12 +1,11 @@
 import { randomBytes } from 'node:crypto';
-import { requireUser } from '../lib/auth.js';
+import { log } from '@proxi/agent/log';
+import { json, withUser } from '../lib/http.js';
 import { rateLimit } from '../lib/ratelimit.js';
 import { CONVERSATION_ID, hasDatabase, shareConversation, unshareConversation } from '../lib/db.js';
 
 // POST { id }: shares one of the signed-in user's chats and returns its link ID.
-export async function POST(request) {
-  const user = await requireUser(request);
-  if (!user.userId) return json({ error: user.error, code: user.reason }, user.status);
+export const POST = withUser(async (request, user) => {
   if (!rateLimit('share:' + user.userId).ok) return json({ error: 'Too many requests. Try again in a few minutes.' }, 429);
   if (!hasDatabase()) return json({ error: 'Chat history is not set up yet.' }, 503);
 
@@ -20,15 +19,13 @@ export async function POST(request) {
     if (!shareId) return json({ error: 'Chat not found.' }, 404);
     return json({ shareId });
   } catch (error) {
-    console.error('share POST failed', error);
+    log.error('share.post_failed', { error });
     return json({ error: 'Could not share the chat.' }, 500);
   }
-}
+});
 
 // DELETE ?id=: stops sharing one of the signed-in user's chats. The old link stops working.
-export async function DELETE(request) {
-  const user = await requireUser(request);
-  if (!user.userId) return json({ error: user.error, code: user.reason }, user.status);
+export const DELETE = withUser(async (request, user) => {
   if (!hasDatabase()) return json({ error: 'Chat history is not set up yet.' }, 503);
 
   const id = new URL(request.url, 'http://localhost').searchParams.get('id');
@@ -37,11 +34,7 @@ export async function DELETE(request) {
     await unshareConversation(user.userId, id);
     return new Response(null, { status: 204 });
   } catch (error) {
-    console.error('share DELETE failed', error);
+    log.error('share.delete_failed', { error });
     return json({ error: 'Could not stop sharing the chat.' }, 500);
   }
-}
-
-function json(data, status = 200) {
-  return new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
-}
+});

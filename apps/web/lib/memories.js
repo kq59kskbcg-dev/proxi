@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { memoryText } from '@proxi/agent/memory';
+import { log } from '@proxi/agent/log';
 import { listMemories, addMemory } from './db.js';
 
 // The user's saved memories as plain text. A failed lookup means no memories, not a failed reply.
@@ -7,7 +8,7 @@ export async function savedMemories(userId) {
   try {
     return (await listMemories(userId)).map((m) => m.content);
   } catch (error) {
-    console.error('memory lookup failed', error?.code ?? error?.name);
+    log.error('memories.lookup_failed', { error });
     return [];
   }
 }
@@ -23,7 +24,7 @@ export async function remember(userId, call) {
     if (outcome === 'full') return reply('Not saved: memory is full. The user can delete memories in Settings.', true);
     return reply('Saved to memory.');
   } catch (error) {
-    console.error('saving memory failed', error?.code ?? error?.name);
+    log.error('memories.save_failed', { error });
     return reply('Saving to memory failed.', true);
   }
 }

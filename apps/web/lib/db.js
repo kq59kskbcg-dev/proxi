@@ -1,4 +1,5 @@
 import { neon } from '@neondatabase/serverless';
+import { log } from '@proxi/agent/log';
 
 // Chat history in Postgres (Neon). Every query is scoped by the signed-in
 // user's Clerk ID, and that ID is part of each primary key, so one user can
@@ -136,7 +137,8 @@ export async function conversationAttributes(userId, conversationId) {
     const d = await db();
     const [row] = await d.query('SELECT language, escalated FROM conversations WHERE user_id = $1 AND id = $2', [userId, conversationId]);
     return { language: row?.language ?? null, escalated: row?.escalated ?? false };
-  } catch {
+  } catch (error) {
+    log.error('db.conversation_attributes_failed', { error });
     return { language: null, escalated: false };
   }
 }

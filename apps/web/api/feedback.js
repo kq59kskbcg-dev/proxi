@@ -1,4 +1,5 @@
 import { getLangfuse } from '@proxi/agent/langfuse';
+import { log } from '@proxi/agent/log';
 import { rateLimit } from '../lib/ratelimit.js';
 import { requireUser } from '../lib/auth.js';
 
@@ -15,8 +16,13 @@ export async function POST(request) {
   }
   const langfuse = getLangfuse();
   if (langfuse && value !== null) {
-    langfuse.score.create({ traceId, name: 'user-feedback', value, dataType: 'BOOLEAN' });
-    await langfuse.flush().catch(() => {});
+    // A lost score isn't worth failing the click for, but it is logged.
+    try {
+      await langfuse.score.create({ traceId, name: 'user-feedback', value, dataType: 'BOOLEAN' });
+      await langfuse.flush();
+    } catch (error) {
+      log.error('feedback.score_failed', { error, traceId });
+    }
   }
   return new Response(null, { status: 204 });
 }
