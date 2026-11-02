@@ -26,9 +26,10 @@ jobs:
             package-lock.json
             apps/mcp/package-lock.json
       - run: npm ci
-      - run: npm test
-      # The MCP server is not an npm workspace: it has its own lockfile.
+      # The MCP server is not an npm workspace: it has its own lockfile. Install it before the
+      # root tests, because the web chat tests start it (they fail in CI when it's missing).
       - run: npm ci
         working-directory: apps/mcp
+      - run: npm test
       - run: npm test
         working-directory: apps/mcp
