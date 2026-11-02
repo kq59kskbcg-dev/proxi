@@ -19,7 +19,10 @@ export function getMcpTools() {
 
 async function connect(url) {
   const client = new Client({ name: 'proxi-web', version: '1.0.0' });
-  await client.connect(new StreamableHTTPClientTransport(new URL(url)), { timeout: DISCOVERY_TIMEOUT_MS });
+  // The MCP server only answers callers that send its shared MCP_TOKEN.
+  const token = process.env.MCP_TOKEN?.trim();
+  const requestInit = token ? { headers: { authorization: `Bearer ${token}` } } : undefined;
+  await client.connect(new StreamableHTTPClientTransport(new URL(url), { requestInit }), { timeout: DISCOVERY_TIMEOUT_MS });
   const tools = [];
   let cursor;
   do {

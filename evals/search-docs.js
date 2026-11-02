@@ -12,7 +12,7 @@
 
 import { spawn } from 'node:child_process';
 import http from 'node:http';
-import { createSign, generateKeyPairSync } from 'node:crypto';
+import { createSign, generateKeyPairSync, randomBytes } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import Anthropic from '@anthropic-ai/sdk';
 import { enableTracing, flushTraces, getLangfuse } from '@proxi/agent/langfuse';
@@ -133,6 +133,8 @@ async function startMcpServer() {
   await new Promise((resolve) => probe.listen(0, '127.0.0.1', resolve));
   const { port } = probe.address();
   await new Promise((resolve) => probe.close(resolve));
+  // A fresh shared token, sent by the agent and checked by the server, unless one is already set.
+  process.env.MCP_TOKEN ||= randomBytes(32).toString('base64url');
   const child = spawn(process.execPath, ['server.js'], { cwd: mcpDir, env: { ...process.env, PORT: String(port) } });
   await new Promise((resolve, reject) => {
     child.stdout.on('data', (chunk) => { if (String(chunk).includes('localhost')) resolve(); });

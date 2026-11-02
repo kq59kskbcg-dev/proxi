@@ -30,6 +30,12 @@ before(async () => {
     req.on('end', () => {
       const body = JSON.parse(raw);
       requests.push(body);
+      // A call the test didn't script fails at once, instead of leaving the request hanging.
+      if (!script.length) {
+        res.writeHead(500, { 'content-type': 'application/json', 'x-should-retry': 'false' });
+        res.end(JSON.stringify({ type: 'error', error: { type: 'api_error', message: 'unscripted call' } }));
+        return;
+      }
       // A non-streamed call (a classifier) gets a plain JSON message with the script's text.
       if (!body.stream) {
         res.writeHead(200, { 'content-type': 'application/json' });
@@ -58,6 +64,8 @@ before(async () => {
   });
   await listen(fakeMintlify);
 
+  // The MCP server and the agent share a token, as in production.
+  process.env.MCP_TOKEN = 'test-mcp-token';
   const port = await freePort();
   mcpServer = spawn(process.execPath, ['server.js'], {
     cwd: mcpDir,
@@ -226,12 +234,14 @@ test('a message can be 20,000 characters, and one character more is refused', { 
 test('a chat holds 100 of the user\'s messages; the 101st is refused with the limit as plain text', { skip }, async () => {
   const chatOf = (users) => Array.from({ length: users * 2 - 1 }, (_, i) => ({ role: i % 2 ? 'assistant' : 'user', content: `message ${i}` }));
 
-  script = [() => textTurn('Still here.')];
+  // The older messages are summarized first (a non-streamed call), then the reply is streamed.
+  script = [() => 'Earlier, the user counted messages.', () => textTurn('Still here.')];
   const full = await post({ model: 'Haiku 5.5', messages: chatOf(100) });
   assert.equal(full.status, 200);
   await full.text();
-  assert.ok(requests[0].messages.length <= 40, 'the model is only sent the latest messages');
-  assert.equal(requests[0].messages.at(-1).content, 'message 198');
+  const reply = requests.find((r) => r.stream);
+  assert.ok(reply.messages.length <= 40, 'the model is only sent the latest messages');
+  assert.equal(reply.messages.at(-1).content, 'message 198');
 
   const over = await post({ model: 'Haiku 5.5', messages: chatOf(101) });
   assert.equal(over.status, 400);

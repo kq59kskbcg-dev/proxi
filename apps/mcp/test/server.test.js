@@ -5,14 +5,18 @@ import { toNodeHandler } from '@modelcontextprotocol/node';
 import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client';
 import { handler } from '../lib/server.js';
 
+const TOKEN = 'test-mcp-token';
 let server;
 let client;
 
 before(async () => {
+  process.env.MCP_TOKEN = TOKEN;
   server = http.createServer(toNodeHandler(handler));
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
   client = new Client({ name: 'test', version: '1.0.0' });
-  await client.connect(new StreamableHTTPClientTransport(new URL(`http://127.0.0.1:${server.address().port}/mcp`)));
+  await client.connect(new StreamableHTTPClientTransport(new URL(`http://127.0.0.1:${server.address().port}/mcp`), {
+    requestInit: { headers: { authorization: `Bearer ${TOKEN}` } },
+  }));
 });
 
 after(async () => {
@@ -45,7 +49,7 @@ test('tools/call with an unknown tool reports an error', async () => {
 test('answers a plain JSON-RPC tools/list request', async () => {
   const response = await handler.fetch(new Request('http://localhost/mcp', {
     method: 'POST',
-    headers: { 'content-type': 'application/json', accept: 'application/json, text/event-stream' },
+    headers: { 'content-type': 'application/json', accept: 'application/json, text/event-stream', authorization: `Bearer ${TOKEN}` },
     body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/list' }),
   }));
   assert.equal(response.status, 200);
