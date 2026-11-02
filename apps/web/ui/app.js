@@ -5,7 +5,8 @@ import { renderMarkdown } from './markdown.js';
 import { highlight, groupOf, fullDate, shareUrl, maskCards, modelLabel } from './format.js';
 import { renderCitations, DOCS_URL } from './citations.js';
 import { toStep, stepIcon, redactionSteps, WORKING_VERBS } from './steps.js';
-import { trackViewport, whenVisible, authHeaders } from './browser.js';
+import { trackViewport, whenVisible } from './browser.js';
+import { api, ApiError, readProblem } from './api.js';
 import { MAX_MESSAGE_CHARS, MAX_CHAT_MESSAGES, MESSAGE_TOO_LONG, CHAT_FULL, CHAT_TOO_LARGE, RECOVER_MS, OWN_CARDS } from './limits.js';
 import { MAX_FILES, MAX_TOTAL, MAX_TEXT, ACCEPT, KIND_LABELS, classify, formatSize, readBase64, makeThumb } from './files.js';
 
@@ -260,20 +261,9 @@ class Component extends DCLogic {
         fail({ text: CHAT_TOO_LARGE });
         return finish();
       }
-      const res = await fetch('/api/chat', {
-        method: 'POST',
-        headers: await authHeaders(),
-        body: payload,
-        signal: controller.signal
-      });
+      const res = await api.post('/api/chat', payload, { raw: true, signal: controller.signal });
       if (!res.ok || !res.body) {
-        let problem = res.status === 413 ? { text: CHAT_TOO_LARGE } : { card: { ...OWN_CARDS.error, ref: String(res.status) } };
-        try {
-          const data = await res.json();
-          if (data.card) problem = { card: data.card };
-          else if (data.error) problem = { text: data.error };
-        } catch (e) {}
-        fail(problem);
+        fail(await readProblem(res));
         return finish();
       }
       const reader = res.body.getReader();
@@ -334,12 +324,9 @@ class Component extends DCLogic {
     const until = Date.now() + RECOVER_MS;
     while (Date.now() < until && !controller.signal.aborted) {
       try {
-        const res = await fetch('/api/conversations?id=' + encodeURIComponent(convId), { headers: await authHeaders() });
-        if (res.ok) {
-          const { messages } = await res.json();
-          const last = messages[messages.length - 1];
-          if (last && last.role === 'assistant' && last.traceId === traceId) return last;
-        }
+        const { messages } = await api.get('/api/conversations', { query: { id: convId } });
+        const last = messages[messages.length - 1];
+        if (last && last.role === 'assistant' && last.traceId === traceId) return last;
       } catch (e) {}
       await new Promise((resolve) => setTimeout(resolve, 2000));
     }
@@ -357,15 +344,7 @@ class Component extends DCLogic {
   async loadConversations() {
     this.setState({ history: 'loading' });
     try {
-      const res = await fetch('/api/conversations', { headers: await authHeaders() });
-      if (res.status === 503) return this.setState({ history: 'off' });
-      if (!res.ok) {
-        let detail = {};
-        try { detail = await res.json(); } catch (e) {}
-        // A short, safe reference (status and database error code) to help find the cause.
-        return this.setState({ history: 'error', historyRef: [res.status, detail.code || detail.kind].filter(Boolean).join(' · ') });
-      }
-      const { conversations } = await res.json();
+      const { conversations } = await api.get('/api/conversations');
       const today = new Date().toDateString();
       this.setState((s) => {
         const known = new Set(s.convs.map((c) => c.id));
@@ -375,6 +354,9 @@ class Component extends DCLogic {
         return { convs: [...s.convs, ...saved], history: 'ok' };
       });
     } catch (e) {
+      if (e instanceof ApiError && e.status === 503) return this.setState({ history: 'off' });
+      // A short, safe reference (status and database error code) to help find the cause.
+      if (e instanceof ApiError) return this.setState({ history: 'error', historyRef: [e.status, e.data.code || e.data.kind].filter(Boolean).join(' · ') });
       console.error('Loading chats failed:', e);
       this.setState({ history: 'error', historyRef: 'network' });
     }
@@ -425,9 +407,7 @@ class Component extends DCLogic {
     const patch = (fields) => this.setState((s) => ({ convs: s.convs.map((c) => c.id === id ? { ...c, ...fields } : c) }));
     patch({ loading: true });
     try {
-      const res = await fetch('/api/conversations?id=' + encodeURIComponent(id), { headers: await authHeaders() });
-      if (!res.ok) throw new Error(res.status);
-      const { messages } = await res.json();
+      const { messages } = await api.get('/api/conversations', { query: { id } });
       patch({ loading: false, loaded: true, messages: messages.map((m) => ({ id: this.nextId++, role: m.role, text: m.content, model: m.model, traceId: m.traceId, attachments: (m.attachments || []).map((a) => ({ kind: a.kind })) })) });
     } catch (e) {
       patch({ loading: false });
@@ -492,9 +472,7 @@ class Component extends DCLogic {
 
   async shareChat(id) {
     try {
-      const res = await fetch('/api/share', { method: 'POST', headers: { ...(await authHeaders()), 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) });
-      if (!res.ok) throw new Error(res.status);
-      const { shareId } = await res.json();
+      const { shareId } = await api.post('/api/share', { id });
       this.setState((s) => ({ convs: s.convs.map((c) => (c.id === id ? { ...c, shareId } : c)) }));
       this.copyText(shareUrl(shareId));
       this.showToast('Link copied. Anyone with the link can view this chat.');
@@ -506,8 +484,7 @@ class Component extends DCLogic {
   async stopSharing(id) {
     this.setState({ shareMenu: false });
     try {
-      const res = await fetch('/api/share?id=' + encodeURIComponent(id), { method: 'DELETE', headers: await authHeaders() });
-      if (!res.ok) throw new Error(res.status);
+      await api.delete('/api/share', { query: { id } });
       this.setState((s) => ({ convs: s.convs.map((c) => (c.id === id ? { ...c, shareId: null } : c)) }));
       this.showToast('Stopped sharing. The link no longer works.');
     } catch (e) {
@@ -535,11 +512,8 @@ class Component extends DCLogic {
     const next = this.state.votes[m.id] === dir ? null : dir;
     this.setState((s) => ({ votes: { ...s.votes, [m.id]: next } }));
     if (m.traceId) {
-      authHeaders().then((headers) => fetch('/api/feedback', {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ traceId: m.traceId, value: next === 'up' ? 1 : next === 'down' ? 0 : null })
-      })).catch(() => {});
+      // Fire and forget: a vote that doesn't arrive isn't worth interrupting anyone for.
+      api.post('/api/feedback', { traceId: m.traceId, value: next === 'up' ? 1 : next === 'down' ? 0 : null }).catch(() => {});
     }
   }
 
@@ -547,9 +521,7 @@ class Component extends DCLogic {
   async loadSettings() {
     this.loadMemories();
     try {
-      const res = await fetch('/api/settings', { headers: await authHeaders() });
-      if (!res.ok) throw new Error('settings ' + res.status);
-      const data = await res.json();
+      const data = await api.get('/api/settings');
       this.setState({
         settings: { chatRetentionDays: data.chatRetentionDays, options: data.retentionOptions, customInstructions: data.customInstructions || '', instructionsMax: data.customInstructionsMax || 1500 },
         instructionsDraft: data.customInstructions || ''
@@ -578,8 +550,7 @@ class Component extends DCLogic {
     if (this.state.deletingAccount) return;
     this.setState({ deletingAccount: true });
     try {
-      const res = await fetch('/api/account', { method: 'DELETE', headers: await authHeaders() });
-      if (!res.ok) throw new Error('account ' + res.status);
+      await api.delete('/api/account');
     } catch {
       this.setState({ deletingAccount: false });
       this.showToast("Couldn't delete your account. Please try again.");
@@ -591,9 +562,7 @@ class Component extends DCLogic {
   // ---- Memory: facts Proxi saved to remember. Shown in Settings, where each one can be deleted ----
   async loadMemories() {
     try {
-      const res = await fetch('/api/memories', { headers: await authHeaders() });
-      if (!res.ok) throw new Error('memories ' + res.status);
-      this.setState({ memories: (await res.json()).memories || [] });
+      this.setState({ memories: (await api.get('/api/memories')).memories || [] });
     } catch {
       this.setState({ memories: [] });
       this.showToast("Couldn't load your memories. Please try again.");
@@ -604,8 +573,7 @@ class Component extends DCLogic {
     const before = this.state.memories || [];
     this.setState({ memories: before.filter((m) => m.id !== id) });
     try {
-      const res = await fetch('/api/memories?id=' + encodeURIComponent(id), { method: 'DELETE', headers: await authHeaders() });
-      if (!res.ok) throw new Error('memories ' + res.status);
+      await api.delete('/api/memories', { query: { id } });
       this.showToast('Memory deleted');
     } catch {
       this.setState({ memories: before });
@@ -618,8 +586,7 @@ class Component extends DCLogic {
     if (!before || before.chatRetentionDays === days) return;
     this.setState({ settings: { ...before, chatRetentionDays: days }, settingsBusy: true });
     try {
-      const res = await fetch('/api/settings', { method: 'PUT', headers: await authHeaders(), body: JSON.stringify({ chatRetentionDays: days }) });
-      if (!res.ok) throw new Error('settings ' + res.status);
+      await api.put('/api/settings', { chatRetentionDays: days });
       this.showToast(`Chats will be deleted after ${days} days without activity.`);
     } catch {
       this.setState({ settings: before });
@@ -634,8 +601,7 @@ class Component extends DCLogic {
     if (!before || text === before.customInstructions) return;
     this.setState({ settingsBusy: true });
     try {
-      const res = await fetch('/api/settings', { method: 'PUT', headers: await authHeaders(), body: JSON.stringify({ customInstructions: text }) });
-      if (!res.ok) throw new Error('settings ' + res.status);
+      await api.put('/api/settings', { customInstructions: text });
       this.setState({ settings: { ...before, customInstructions: text }, instructionsDraft: text });
       this.showToast('Instructions saved');
     } catch {
@@ -835,7 +801,7 @@ class Component extends DCLogic {
         this.stop();
         this.setState((st) => ({ convs: st.convs.filter((c) => c.id !== id), activeId: null, view: 'new', chatMenu: false }));
         try {
-          const res = await fetch('/api/conversations?id=' + encodeURIComponent(id), { method: 'DELETE', headers: await authHeaders() });
+          const res = await api.delete('/api/conversations', { query: { id }, raw: true });
           this.showToast(res.ok || res.status === 503 ? 'Chat deleted' : "Couldn't delete the chat");
         } catch (e) {
           this.showToast("Couldn't delete the chat");
@@ -991,8 +957,7 @@ async function startShared(shareId) {
 
   let chat = null;
   try {
-    const res = await fetch('/api/shared?id=' + encodeURIComponent(shareId));
-    if (res.ok) chat = await res.json();
+    chat = await api.get('/api/shared', { query: { id: shareId }, auth: false });
   } catch (e) {}
   if (!chat || !Array.isArray(chat.messages)) {
     const empty = el('div', 'shared-empty');
