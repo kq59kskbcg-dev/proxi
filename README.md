@@ -55,6 +55,13 @@ Or one workspace's, for example `npm test -w apps/mcp`.
 
 The web tests include an end-to-end check: the chat endpoint discovers `get_status` from the MCP server, Claude (a scripted stand-in) calls it, and the result is routed back. Locally it's skipped if the MCP server's packages aren't installed; in CI (`CI` set) it fails instead.
 
+## Dependency notes
+
+`package.json` files can't hold comments, so the reasons behind unusual entries are here.
+
+- **Root `overrides` for `@opentelemetry/exporter-trace-otlp-http` and `@opentelemetry/otlp-exporter-base`.** They are peer dependencies of `@langfuse/otel` (range `>=0.202.0 <1.0.0`), which npm installs automatically. Without the overrides npm picks the newest 0.x, whose transitive packages need `@opentelemetry/core` 3.x, so a second copy of the OpenTelemetry core packages is installed next to the 2.x that `@opentelemetry/sdk-trace-node` uses. The overrides keep one set of OpenTelemetry packages. When you upgrade `@opentelemetry/sdk-trace-node`, move both overrides to the exporter release that depends on the same `@opentelemetry/core` version, then check `npm ls @opentelemetry/core` shows a single version.
+- **`@opentelemetry/core` and `@opentelemetry/sdk-trace-base`** are also peers of `@langfuse/otel`. They aren't listed in `packages/agent`: `@opentelemetry/sdk-trace-node` pins the same versions, and npm reuses them for the peers.
+
 ## MCP server
 
 `apps/mcp` uses the official MCP TypeScript SDK and serves Streamable HTTP at `/mcp`. It has one tool so far:
