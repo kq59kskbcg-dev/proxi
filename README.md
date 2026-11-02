@@ -37,6 +37,7 @@ AI chat assistant built on Claude, deployed on Vercel, with a Mintlify help cent
 | `LANGFUSE_BASE_URL` | `https://cloud.langfuse.com` (EU) |
 | `CRON_SECRET` | Random secret that lets Vercel's daily cron run `/api/cleanup`, which deletes chats inactive for longer than each user's "Delete chats after" setting (7, 30 or 90 days, default 30). Without it, cleanup refuses to run. |
 | `MCP_URL` | Optional: the MCP server's address, e.g. `https://<mcp-project>.vercel.app/mcp` |
+| `MCP_TOKEN` | Shared secret sent to the MCP server as `Authorization: Bearer <token>`. Must match `MCP_TOKEN` on the `proxi-mcp` project, or the agent gets no tools. |
 
 The system prompt can be edited in Langfuse as a text prompt named `main-system` with the label `production`. Without it, the built-in prompt in `packages/agent/src/langfuse.js` is used.
 
@@ -63,6 +64,7 @@ MCP server environment variables (set in the `proxi-mcp` Vercel project):
 
 | Name | Purpose |
 |---|---|
+| `MCP_TOKEN` | Shared secret every request must send as `Authorization: Bearer <token>`. Generate one with `openssl rand -base64 32` and set the same value on the web app. Without it, the server refuses every request (503). |
 | `MINTLIFY_API_KEY` | Mintlify assistant API key (`mint_dsc_...`), used by `search_docs` |
 | `ANTHROPIC_API_KEY` | Claude API key, used by `web_search`. Without it, `web_search` isn't offered to the agent |
 | `MINTLIFY_DOMAIN` | Optional: the docs domain Mintlify's API expects. Defaults to `proxi.mintlify.site` |
@@ -74,19 +76,19 @@ Run it locally:
 ```
 cd apps/mcp
 npm install
-npm start
+MCP_TOKEN=dev-token npm start
 ```
 
 It listens on `http://localhost:3001/mcp` (set `PORT` to change it). To try it by hand:
 
 ```
-curl -s http://localhost:3001/mcp -H 'content-type: application/json' -H 'accept: application/json, text/event-stream' \
+curl -s http://localhost:3001/mcp -H 'authorization: Bearer dev-token' -H 'content-type: application/json' -H 'accept: application/json, text/event-stream' \
   -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
 ```
 
-Or open it in the MCP Inspector with `npx @modelcontextprotocol/inspector`. To use it from the chat locally, set `MCP_URL=http://localhost:3001/mcp` for the web app.
+Or open it in the MCP Inspector with `npx @modelcontextprotocol/inspector` (add the bearer token in its authentication settings). To use it from the chat locally, set `MCP_URL=http://localhost:3001/mcp` and `MCP_TOKEN=dev-token` for the web app.
 
-The server has no sign-in yet, so only add tools that are safe to expose publicly.
+Every request needs the bearer token, checked in `apps/mcp/lib/server.js`. It's one shared secret for the whole web app, not a per-user sign-in, so tools must not trust it to identify a user.
 
 ## Docs
 
