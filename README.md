@@ -61,6 +61,11 @@ The web tests include an end-to-end check: the chat endpoint discovers `get_stat
 
 - **Root `overrides` for `@opentelemetry/exporter-trace-otlp-http` and `@opentelemetry/otlp-exporter-base`.** They are peer dependencies of `@langfuse/otel` (range `>=0.202.0 <1.0.0`), which npm installs automatically. Without the overrides npm picks the newest 0.x, whose transitive packages need `@opentelemetry/core` 3.x, so a second copy of the OpenTelemetry core packages is installed next to the 2.x that `@opentelemetry/sdk-trace-node` uses. The overrides keep one set of OpenTelemetry packages. When you upgrade `@opentelemetry/sdk-trace-node`, move both overrides to the exporter release that depends on the same `@opentelemetry/core` version, then check `npm ls @opentelemetry/core` shows a single version.
 - **`@opentelemetry/core` and `@opentelemetry/sdk-trace-base`** are also peers of `@langfuse/otel`. They aren't listed in `packages/agent`: `@opentelemetry/sdk-trace-node` pins the same versions, and npm reuses them for the peers.
+- **The page's scripts from jsDelivr** (Vue, marked, DOMPurify in `apps/web/index.html`) are outside npm, so `npm audit` and Dependabot don't see them. Each one is pinned three ways: the exact version in the URL, a `sha384` `integrity` hash on the `<script>` tag, and the exact URL in the Content Security Policy's `script-src` in `apps/web/vercel.json` (jsDelivr as a whole is not allowed). `apps/web/test/csp.test.js` fails if any of the three is missing. To update one, check the library's release notes and security advisories, then:
+  1. Change the version in the URL in `index.html`.
+  2. Get the new hash: `curl -fsS <url> | openssl dgst -sha384 -binary | openssl base64 -A`, and put it in `integrity="sha384-..."`.
+  3. Change the same URL in the CSP in `vercel.json`.
+  4. Run `npm test -w apps/web` and try the page, since a wrong hash or CSP entry stops the script from loading.
 
 ## MCP server
 

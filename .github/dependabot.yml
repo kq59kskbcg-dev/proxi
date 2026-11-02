@@ -1,0 +1,26 @@
+# npm covers every workspace through the root lockfile. The page's Vue, marked and DOMPurify
+# come from jsDelivr, not npm, so Dependabot can't see them: see "Dependency notes" in the README.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      # These are released together and must stay on matching versions.
+      opentelemetry:
+        patterns: ['@opentelemetry/*']
+      langfuse:
+        patterns: ['@langfuse/*']
+      modelcontextprotocol:
+        patterns: ['@modelcontextprotocol/*']
+      minor-and-patch:
+        update-types: [minor, patch]
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ['*']
