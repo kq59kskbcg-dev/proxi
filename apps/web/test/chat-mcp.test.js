@@ -68,6 +68,8 @@ before(async () => {
   });
   await listen(fakeMintlify);
 
+  // The MCP server and the agent share a token, as in production.
+  process.env.MCP_TOKEN = 'test-mcp-token';
   const port = await freePort();
   mcpServer = spawn(process.execPath, ['server.js'], {
     cwd: mcpDir,

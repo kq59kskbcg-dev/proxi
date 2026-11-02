@@ -1,3 +1,4 @@
+import { timingSafeEqual } from 'node:crypto';
 import { McpServer, createMcpHandler } from '@modelcontextprotocol/server';
 import * as z from 'zod';
 import { searchDocs, DocsSearchError } from './mintlify.js';
@@ -112,4 +113,28 @@ export function createServer() {
   return server;
 }
 
-export const handler = createMcpHandler(createServer);
+// Only callers with the shared MCP_TOKEN get in: the tools spend our Anthropic and Mintlify quota.
+// Fails closed: without MCP_TOKEN set, nobody gets in.
+export function requireToken(request) {
+  // Trimmed: a value pasted with a trailing space or line break would fail every check.
+  const expected = process.env.MCP_TOKEN?.trim();
+  if (!expected) return { error: 'The MCP server is not set up yet.', status: 503 };
+  const match = /^Bearer\s+(.+)$/i.exec(request.headers.get('authorization') || '');
+  const given = Buffer.from(match ? match[1].trim() : '');
+  const wanted = Buffer.from(expected);
+  if (given.length !== wanted.length || !timingSafeEqual(given, wanted)) return { error: 'Unauthorized.', status: 401 };
+  return null;
+}
+
+export function withAuth(inner) {
+  return {
+    ...inner,
+    fetch(request, options) {
+      const denied = requireToken(request);
+      if (denied) return Response.json({ error: denied.error }, { status: denied.status, headers: denied.status === 401 ? { 'www-authenticate': 'Bearer' } : {} });
+      return inner.fetch(request, options);
+    },
+  };
+}
+
+export const handler = withAuth(createMcpHandler(createServer));
