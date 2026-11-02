@@ -14,10 +14,11 @@ import { MAX_FILES, MAX_TOTAL, MAX_TEXT, ACCEPT, KIND_LABELS, classify, formatSi
 // component (state, setState, lifecycle) rendered through Vue.
 const { createApp, ref, computed, onMounted, onUpdated, onBeforeUnmount } = Vue;
 
+const ACCENT = '#6D28FF'; // Proxi's brand color
 const RECENTS_SHOWN = 10; // chats listed in the sidebar; "View all" opens search
 
 class DCLogic {
-  constructor(props) { this.props = props; }
+  constructor(user) { this.user = user; }
   setState(update) {
     const patch = typeof update === 'function' ? update(this.state) : update;
     if (!patch) return;
@@ -27,8 +28,8 @@ class DCLogic {
 }
 
 class Component extends DCLogic {
-  constructor(props) {
-    super(props);
+  constructor(user) {
+    super(user);
     this.nextId = 100;
     this.timers = [];
     this.sig = '';
@@ -616,7 +617,7 @@ class Component extends DCLogic {
 
   renderVals() {
     const s = this.state;
-    const accent = this.props.accent ?? '#6D28FF';
+    const accent = ACCENT;
     const conv = s.convs.find((c) => c.id === s.activeId);
     const isChat = s.view === 'chat' && !!conv;
     const isNew = s.view === 'new' || (s.view === 'chat' && !conv);
@@ -898,9 +899,9 @@ class Component extends DCLogic {
       sendCursor: canSend ? 'pointer' : 'default',
       chips,
 
-      userName: this.props.userName,
-      userImage: this.props.userImage,
-      userInitial: (this.props.userName || '?').trim().charAt(0).toUpperCase(),
+      userName: this.user.name,
+      userImage: this.user.image,
+      userInitial: (this.user.name || '?').trim().charAt(0).toUpperCase(),
       userMenu: s.userMenu,
       userMenuExpanded: s.userMenu ? 'true' : 'false',
       toggleUserMenu: () => this.setState({ userMenu: !s.userMenu, chatMenu: false, shareMenu: false, modelMenu: false }),
@@ -923,10 +924,6 @@ class Component extends DCLogic {
     };
   }
 }
-
-const propDefs = {"accent":{"editor":"color","default":"#6D28FF","options":["#6D28FF","#0F7B5F","#F4511E","#111111"]},"startView":{"editor":"enum","options":["chat","new"],"default":"chat"},"$preview":{"width":1440,"height":900}};
-const props = {};
-for (const [k, d] of Object.entries(propDefs)) if (!k.startsWith('$')) props[k] = d.default;
 
 // Clerk's test mode keeps its browser token in two cookies: one per Clerk app and a
 // shared copy, and falls back to the shared copy when the app's own is missing. After
@@ -992,7 +989,7 @@ async function start() {
   clearSharedClerkToken();
   await clerk.load({
     ui: { ClerkUI: window.__internal_ClerkUICtor },
-    appearance: { variables: { colorPrimary: '#6D28FF', fontFamily: 'Inter, system-ui, sans-serif', borderRadius: '10px' } }
+    appearance: { variables: { colorPrimary: ACCENT, fontFamily: 'Inter, system-ui, sans-serif', borderRadius: '10px' } }
   });
   // Signing in swaps the sign-in screen for the chat. Signing out is handled by
   // logout(), which must let Clerk finish ending the session before reloading.
@@ -1014,13 +1011,15 @@ async function start() {
   try { sessionStorage.removeItem('proxi-sign-in'); } catch {}
   document.documentElement.classList.add('app-mode');
   trackViewport();
-  props.userName = clerk.user.fullName || clerk.user.primaryEmailAddress?.emailAddress || 'Signed in';
-  props.userImage = clerk.user.hasImage ? clerk.user.imageUrl : '';
+  const user = {
+    name: clerk.user.fullName || clerk.user.primaryEmailAddress?.emailAddress || 'Signed in',
+    image: clerk.user.hasImage ? clerk.user.imageUrl : ''
+  };
   createApp({
     template: '#tpl',
     setup() {
       const tick = ref(0);
-      const comp = new Component(props);
+      const comp = new Component(user);
       comp.tick = tick;
       const v = computed(() => (tick.value, comp.renderVals()));
       onMounted(() => comp.componentDidMount && comp.componentDidMount());
