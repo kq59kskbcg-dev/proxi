@@ -21,13 +21,13 @@ test('a long chat keeps the latest messages, starting from a user message', () =
 });
 
 test('the system prompt joins its parts in order, with instructions last', () => {
-  const text = buildSystemText({ prompt: 'BASE', locale: 'LOCALE', escalation: '', memories: ['likes tea'], summary: 'SUMMARY', instructions: 'BE BRIEF' });
+  const text = buildSystemText({ prompt: 'BASE', locale: 'LOCALE', intent: '', memories: ['likes tea'], summary: 'SUMMARY', instructions: 'BE BRIEF' });
   const at = (s) => text.indexOf(s);
   assert.ok(at('BASE') < at('LOCALE') && at('LOCALE') < at('likes tea') && at('likes tea') < at('SUMMARY') && at('SUMMARY') < at('BE BRIEF'));
 });
 
 test('empty parts add nothing', () => {
-  assert.equal(buildSystemText({ prompt: 'BASE', locale: '', escalation: '', memories: [], summary: '', instructions: '' }), 'BASE');
+  assert.equal(buildSystemText({ prompt: 'BASE', locale: '', intent: '', memories: [], summary: '', instructions: '' }), 'BASE');
   assert.equal(withSummary('P', ''), 'P');
   assert.equal(withInstructions('P', ''), 'P');
 });

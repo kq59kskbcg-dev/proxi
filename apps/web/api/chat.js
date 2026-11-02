@@ -11,7 +11,7 @@ import { savedMemories, remember } from '../lib/memories.js';
 import { getMcpTools } from '@proxi/agent/mcp';
 import { makeTitle } from '@proxi/agent/title';
 import { getLocale } from '@proxi/agent/locale';
-import { getEscalation } from '@proxi/agent/escalation';
+import { getIntent } from '@proxi/agent/intents';
 import { MEMORY_TOOL, getMemoryTool } from '@proxi/agent/memory';
 import { runAgentLoop } from '@proxi/agent/agent-loop';
 import { buildContext, splitHistory } from '@proxi/agent/context';
@@ -93,16 +93,15 @@ export async function POST(request) {
   }
   // The model sees the most recent messages word for word; older ones become a short summary.
   const { recent, older } = splitHistory(history, MAX_MESSAGES);
-  const latest = history[history.length - 1];
 
   client ??= new Anthropic();
   // Language comes from the chat's first message and is kept with the chat; if the latest message
-  // asks for a person, a reply prompt is added. Custom instructions come last.
+  // asks for a person or reports a missed redaction, a reply prompt is added. Custom instructions come last.
   const localeFor = async () => getLocale(client, history[0].content, conversationId ? (await conversationAttributes(user.userId, conversationId)).language : null);
   // Memory is off in incognito chats: nothing is saved and saved memories aren't used.
   const memoryOn = !temporary && hasDatabase();
-  const [prompt, instructions, locale, escalation, memories, memoryTool, route, summary] = await Promise.all([
-    getSystemPrompt(), customInstructions(user.userId), localeFor(), getEscalation(client, latest.content),
+  const [prompt, instructions, locale, intent, memories, memoryTool, route, summary] = await Promise.all([
+    getSystemPrompt(), customInstructions(user.userId), localeFor(), getIntent(client, history),
     memoryOn ? savedMemories(user.userId) : [], memoryOn ? getMemoryTool() : null,
     auto ? chooseModel(client, history) : { level: null, model: fixedModel },
     summarizeOlder(client, older),
@@ -110,7 +109,7 @@ export async function POST(request) {
   const model = route.model;
   const { messages, traced, system: systemText } = buildContext({
     recent, blocks: attached.blocks, maxReplyChars: MAX_REPLY_CHARS,
-    parts: { prompt: prompt.text, locale: locale.text, escalation: escalation.text, memories, summary, instructions },
+    parts: { prompt: prompt.text, locale: locale.text, intent: intent.text, memories, summary, instructions },
   });
   const system = { ...prompt, text: systemText };
   // Incognito chats aren't traced. No user ID in traces: Langfuse alone can't tell whose chat a
@@ -118,7 +117,7 @@ export async function POST(request) {
   const trace = temporary ? null : startTrace('chat', {
     sessionId: conversationId ?? undefined,
     input: traced,
-    metadata: { redactions, language: locale.code, escalated: escalation.escalated, summarized: older.length, ...(auto ? { route: route.level } : {}) },
+    metadata: { redactions, language: locale.code, escalated: intent.escalated, summarized: older.length, ...(auto ? { route: route.level } : {}) },
   });
   const generation = trace?.startObservation('reply', {
     model, input: [{ role: 'system', content: system.text }, ...traced], prompt: system.prompt,
@@ -202,7 +201,7 @@ export async function POST(request) {
         }
         if (conversationId && hasDatabase()) {
           const reply = text ? [{ role: 'assistant', content: text, model: servedBy, traceId: trace?.traceId ?? null }] : [];
-          await saveConversation(user.userId, conversationId, aiTitle || titleFrom(history), [...history, ...reply], { replaceTitle: Boolean(aiTitle), language: locale.code, escalated: escalation.escalated })
+          await saveConversation(user.userId, conversationId, aiTitle || titleFrom(history), [...history, ...reply], { replaceTitle: Boolean(aiTitle), language: locale.code, escalated: intent.escalated })
             .catch((e) => console.error('saving chat failed', e));
         }
         trace?.end();

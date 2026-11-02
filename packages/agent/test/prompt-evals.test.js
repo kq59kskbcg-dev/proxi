@@ -43,14 +43,14 @@ test('evalPrompt fails on an empty dataset and rejects prompts without an eval',
 test('evalLive runs the agent code with the production prompt and compares exactly', async () => {
   const lf = {
     prompt: { get: async () => ({ compile: ({ message }) => `Q: ${message}` }) },
-    api: { datasetItems: { list: async () => ({ data: [{ status: 'ACTIVE', input: { message: 'I want a human' }, expectedOutput: true }] }) } },
+    api: { datasetItems: { list: async () => ({ data: [{ status: 'ACTIVE', input: { message: 'I want a human' }, expectedOutput: 'escalation' }] }) } },
   };
   const { evalLive } = await import('../scripts/prompt-evals.js');
-  const ok = await evalLive(lf, answering({ 'Q: I want a human': 'true' }), 'classifiers/escalation');
+  const ok = await evalLive(lf, answering({ 'Q: I want a human': 'escalation' }), 'classifiers/intent-router');
   assert.equal(ok.ok, true);
   assert.equal(ok.version, 'production');
-  assert.match(report(ok), /classifiers\/escalation production on .*: 1\/1 passed/);
-  const bad = await evalLive(lf, answering({ 'Q: I want a human': 'false' }), 'classifiers/escalation');
+  assert.match(report(ok), /classifiers\/intent-router production on .*: 1\/1 passed/);
+  const bad = await evalLive(lf, answering({ 'Q: I want a human': 'none' }), 'classifiers/intent-router');
   assert.equal(bad.ok, false);
 });
 
