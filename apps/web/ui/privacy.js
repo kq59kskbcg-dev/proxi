@@ -1,18 +1,10 @@
 // The privacy page: turns the summary from /api/privacy into what the page shows.
 
 const TYPE_NAMES = { EMAIL: ['email', 'emails'], PHONE: ['phone number', 'phone numbers'], CARD: ['card number', 'card numbers'], IBAN: ['IBAN', 'IBANs'] };
-const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 const BAR_MAX = 80; // px, the tallest bar in the chart
 
 const plural = (type) => (TYPE_NAMES[type] || [type, type])[1];
 const capital = (text) => text.charAt(0).toUpperCase() + text.slice(1);
-
-// "November 3", with the year when it isn't this year's.
-export function sinceLabel(since, today) {
-  if (!since) return '';
-  const [y, m, d] = since.split('-').map(Number);
-  return `${MONTHS[m - 1]} ${d}${today && today.slice(0, 4) !== since.slice(0, 4) ? ', ' + y : ''}`;
-}
 
 // The line under the headline: what happened, then the two most common types.
 export function summaryLine(total, byType, period) {
@@ -23,7 +15,7 @@ export function summaryLine(total, byType, period) {
   return `Proxi removed them from your messages before sending them to Claude. ${mostly}`;
 }
 
-export function privacyView(summary, period, today) {
+export function privacyView(summary, period) {
   const part = summary[period];
   const max = Math.max(0, ...Object.values(part.byType));
   const barMax = Math.max(0, ...part.bars.map((b) => b.count));
@@ -35,7 +27,7 @@ export function privacyView(summary, period, today) {
   return {
     empty: summary.all.total === 0,
     count: `${part.total.toLocaleString('en-US')} personal ${part.total === 1 ? 'detail' : 'details'}`,
-    when: period === 'month' ? 'protected this month' : `protected since ${sinceLabel(summary.since, today)}`,
+    when: period === 'month' ? 'protected this month' : 'protected',
     line: summaryLine(part.total, part.byType, period),
     types,
     chartTitle: period === 'month' ? 'Each week' : 'Each month',

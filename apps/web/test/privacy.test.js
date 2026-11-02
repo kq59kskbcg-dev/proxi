@@ -4,7 +4,7 @@ import { generateKeyPairSync, createSign } from 'node:crypto';
 import { PGlite } from '@electric-sql/pglite';
 import { setDriver, recordRedactions, getRedactionCounts, saveConversation, deleteAccountData } from '../lib/db.js';
 import { summarizeRedactions } from '../lib/privacy.js';
-import { privacyView, summaryLine, sinceLabel } from '../ui/privacy.js';
+import { privacyView, summaryLine } from '../ui/privacy.js';
 import { GET } from '../api/privacy.js';
 
 let pg;
@@ -99,19 +99,18 @@ test('the page shows the headline, the types by count and the summary line', () 
     today: '2026-11-20',
     rows: [{ day: '2026-11-03', type: 'EMAIL', count: 40 }, { day: '2026-11-04', type: 'PHONE', count: 2 }],
   });
-  const v = privacyView(summary, 'month', summary.today);
+  const v = privacyView(summary, 'month');
   assert.equal(v.count, '42 personal details');
   assert.equal(v.when, 'protected this month');
   assert.equal(v.line, 'Proxi removed them from your messages before sending them to Claude. Mostly emails and phone numbers.');
   assert.deepEqual(v.types.map((t) => [t.label, t.n, t.width]), [['Emails', 40, '100%'], ['Phone numbers', 2, '5%'], ['Card numbers', 0, '0%'], ['IBANs', 0, '0%']]);
-  assert.equal(privacyView(summary, 'all', summary.today).when, 'protected since November 3');
+  assert.equal(privacyView(summary, 'all').when, 'protected');
 });
 
 test('the summary line covers one detail, one type and none', () => {
   assert.equal(summaryLine(0, {}, 'month'), 'Nothing removed this month.');
   assert.equal(summaryLine(1, { EMAIL: 1 }, 'month'), 'Proxi removed it from your message before sending it to Claude.');
   assert.match(summaryLine(3, { IBAN: 3, EMAIL: 0 }, 'all'), /All of them were IBANs\.$/);
-  assert.equal(sinceLabel('2025-12-01', '2026-11-20'), 'December 1, 2025');
 });
 
 function signJwt(privateKey, claims) {

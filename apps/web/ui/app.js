@@ -781,7 +781,7 @@ class Component extends DCLogic {
       privacyReady: !!s.privacy && s.privacy !== 'error',
       privacyEmpty: !!s.privacy && s.privacy !== 'error' && s.privacy.all.total === 0,
       privacyHasData: !!s.privacy && s.privacy !== 'error' && s.privacy.all.total > 0,
-      privacy: s.privacy && s.privacy !== 'error' ? privacyView(s.privacy, s.privacyPeriod, s.privacy.today) : null,
+      privacy: s.privacy && s.privacy !== 'error' ? privacyView(s.privacy, s.privacyPeriod) : null,
       privacyRetry: () => { this.setState({ privacy: null }); this.loadPrivacy(); },
       privacyTabs: [['month', 'This month'], ['all', 'All time']].map(([id, label]) => ({
         key: id, label, pressed: s.privacyPeriod === id ? 'true' : 'false',
