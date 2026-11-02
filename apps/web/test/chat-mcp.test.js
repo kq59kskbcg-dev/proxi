@@ -8,6 +8,10 @@ import { fileURLToPath } from 'node:url';
 
 const mcpDir = fileURLToPath(new URL('../../mcp/', import.meta.url));
 const ready = existsSync(new URL('../../mcp/node_modules/', import.meta.url));
+// Locally the tests skip without the MCP server's packages. In CI that would hide them, so fail.
+if (!ready && process.env.CI) {
+  throw new Error('apps/mcp/node_modules is missing: run npm ci in apps/mcp before these tests');
+}
 
 const requests = [];
 let script = [];
@@ -30,7 +34,7 @@ before(async () => {
     req.on('end', () => {
       const body = JSON.parse(raw);
       requests.push(body);
-      // A call the test didn't script fails at once, instead of leaving the request hanging.
+      // A call the test didn't script fails at once instead of leaving the request hanging.
       if (!script.length) {
         res.writeHead(500, { 'content-type': 'application/json', 'x-should-retry': 'false' });
         res.end(JSON.stringify({ type: 'error', error: { type: 'api_error', message: 'unscripted call' } }));
@@ -234,12 +238,12 @@ test('a message can be 20,000 characters, and one character more is refused', { 
 test('a chat holds 100 of the user\'s messages; the 101st is refused with the limit as plain text', { skip }, async () => {
   const chatOf = (users) => Array.from({ length: users * 2 - 1 }, (_, i) => ({ role: i % 2 ? 'assistant' : 'user', content: `message ${i}` }));
 
-  // The older messages are summarized first (a non-streamed call), then the reply is streamed.
-  script = [() => 'Earlier, the user counted messages.', () => textTurn('Still here.')];
+  // Messages older than the latest 40 are summarized first (a non-streamed call), then the reply.
+  script = [() => 'The user is counting messages.', () => textTurn('Still here.')];
   const full = await post({ model: 'Haiku 5.5', messages: chatOf(100) });
   assert.equal(full.status, 200);
   await full.text();
-  const reply = requests.find((r) => r.stream);
+  const reply = requests.find((body) => body.stream);
   assert.ok(reply.messages.length <= 40, 'the model is only sent the latest messages');
   assert.equal(reply.messages.at(-1).content, 'message 198');
 
