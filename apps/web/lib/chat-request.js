@@ -1,14 +1,11 @@
+import { SELECTABLE_MODELS } from '@proxi/agent/models';
 import { CONVERSATION_ID } from './db.js';
 import { KINDS, MAX_ATTACHMENTS } from './attachments.js';
 import { MAX_MESSAGE_CHARS, MAX_CHAT_MESSAGES } from './limits.js';
 
 // Only these models can be requested from the browser, plus "Auto", which picks one per
 // message with the routing classifier.
-export const MODELS = {
-  'Opus 5.5': 'claude-opus-5-5',
-  'Sonnet 5.5': 'claude-sonnet-5-5',
-  'Haiku 5.5': 'claude-haiku-5-5',
-};
+export const MODELS = SELECTABLE_MODELS;
 
 // Checks the body of a chat request. Returns { error: 'invalid' } for a malformed request,
 // { error: 'full' } for a chat over the message limit, or the parsed request.

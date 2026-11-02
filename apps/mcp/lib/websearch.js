@@ -4,6 +4,7 @@ import Anthropic from '@anthropic-ai/sdk';
 // search tool turned on. It returns a short answer and the pages it cited, so
 // the chat model (any model) gets sources it can cite in turn.
 
+// Keep in sync with SEARCH_MODEL in packages/agent/src/models.js (a test checks it).
 const SEARCH_MODEL = 'claude-sonnet-5-5';
 const MAX_SEARCHES = 3;
 const MAX_PASSAGE = 1500;

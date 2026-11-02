@@ -4,7 +4,7 @@
 
 import { createHash } from 'node:crypto';
 import { getLangfuse } from './langfuse.js';
-import { TITLE_MODEL } from './title.js';
+import { CLASSIFIER_MODEL } from './models.js';
 
 const MAX_PER_MESSAGE = 600; // characters kept of each older message
 const MAX_INPUT = 30_000; // characters of older messages sent to be summarized (the latest are kept)
@@ -55,10 +55,10 @@ export async function summarizeOlder(client, older, trace) {
   const key = createHash('sha256').update(input).digest('hex');
   if (cache.has(key)) return cache.get(key);
   const system = await getSummaryPrompt();
-  const generation = trace?.startObservation('summary', { model: TITLE_MODEL, input, prompt: system.prompt }, { asType: 'generation' });
+  const generation = trace?.startObservation('summary', { model: CLASSIFIER_MODEL, input, prompt: system.prompt }, { asType: 'generation' });
   try {
     const res = await client.messages.create({
-      model: TITLE_MODEL,
+      model: CLASSIFIER_MODEL,
       max_tokens: MAX_SUMMARY_TOKENS,
       thinking: { type: 'disabled' },
       system: system.text,

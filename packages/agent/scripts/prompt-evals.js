@@ -1,7 +1,7 @@
 // Runs a prompt version over its eval dataset in Langfuse. Used by `npm run eval` and
 // `npm run promote`, so a prompt only reaches production after it passes.
 
-import { TITLE_MODEL } from '../src/title.js';
+import { CLASSIFIER_MODEL } from '../src/models.js';
 import { detectLanguage } from '../src/locale.js';
 import { wantsPerson } from '../src/escalation.js';
 
@@ -36,7 +36,7 @@ export async function evalPrompt(langfuse, client, name, version) {
   const items = await activeItems(langfuse, datasetName);
   return score(name, version, datasetName, items, async (input) => {
     const res = await client.messages.create({
-      model: TITLE_MODEL,
+      model: CLASSIFIER_MODEL,
       max_tokens: 8,
       thinking: { type: 'disabled' },
       messages: [{ role: 'user', content: prompt.compile(input) }],

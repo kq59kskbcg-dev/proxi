@@ -3,7 +3,7 @@
 // system prompt. Without Langfuse, or if anything fails, the reply goes ahead without them.
 
 import { getLangfuse } from './langfuse.js';
-import { TITLE_MODEL } from './title.js';
+import { CLASSIFIER_MODEL } from './models.js';
 
 const TTL_MS = 60_000;
 const MAX_CACHED = 500;
@@ -18,7 +18,7 @@ export async function detectLanguage(langfuse, client, text) {
   if (detected.has(input)) return detected.get(input);
   const prompt = await langfuse.prompt.get('classifiers/language', options);
   const res = await client.messages.create({
-    model: TITLE_MODEL,
+    model: CLASSIFIER_MODEL,
     max_tokens: 8,
     thinking: { type: 'disabled' },
     messages: [{ role: 'user', content: prompt.compile({ message: input }) }],

@@ -3,13 +3,9 @@
 // built-in copy of the prompt is used; if the check fails, the reply uses the standard model.
 
 import { getLangfuse } from './langfuse.js';
-import { TITLE_MODEL } from './title.js';
+import { CLASSIFIER_MODEL, ROUTE_MODELS } from './models.js';
 
-export const ROUTES = {
-  simple: 'claude-haiku-5-5',
-  standard: 'claude-sonnet-5-5',
-  complex: 'claude-opus-5-5',
-};
+export const ROUTES = ROUTE_MODELS;
 const FALLBACK_LEVEL = 'standard';
 const CONTEXT_MESSAGES = 6; // earlier messages shown to the classifier
 const MAX_CONTEXT_CHARS = 500; // per earlier message
@@ -65,7 +61,7 @@ async function compileRoutingPrompt(variables) {
 export async function chooseModel(client, history) {
   try {
     const res = await client.messages.create({
-      model: TITLE_MODEL,
+      model: CLASSIFIER_MODEL,
       max_tokens: 8,
       thinking: { type: 'disabled' },
       messages: [{ role: 'user', content: await compileRoutingPrompt(routingVariables(history)) }],

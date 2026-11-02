@@ -1,8 +1,8 @@
 // Short chat titles, written by Haiku from the user's first (already redacted) message.
 
 import { getLangfuse } from './langfuse.js';
+import { CLASSIFIER_MODEL } from './models.js';
 
-export const TITLE_MODEL = 'claude-haiku-5-5';
 const MAX_TITLE = 40;
 const MAX_INPUT = 4000; // the opening of a long message is enough to name it
 
@@ -31,10 +31,10 @@ export async function makeTitle(client, text, trace) {
   const input = text?.trim().slice(0, MAX_INPUT);
   if (!input) return null;
   const system = await getTitlePrompt();
-  const generation = trace?.startObservation('title', { model: TITLE_MODEL, input, prompt: system.prompt }, { asType: 'generation' });
+  const generation = trace?.startObservation('title', { model: CLASSIFIER_MODEL, input, prompt: system.prompt }, { asType: 'generation' });
   try {
     const res = await client.messages.create({
-      model: TITLE_MODEL,
+      model: CLASSIFIER_MODEL,
       max_tokens: 64,
       thinking: { type: 'disabled' }, // a title needs no reasoning
       system: system.text,

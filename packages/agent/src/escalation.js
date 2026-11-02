@@ -3,7 +3,7 @@
 // for that reply. Without Langfuse, or if anything fails, the reply goes ahead without it.
 
 import { getLangfuse } from './langfuse.js';
-import { TITLE_MODEL } from './title.js';
+import { CLASSIFIER_MODEL } from './models.js';
 
 const options = { label: 'production', cacheTtlSeconds: 60, fetchTimeoutMs: 2000 };
 
@@ -12,7 +12,7 @@ export async function wantsPerson(langfuse, client, text) {
   if (!input) return false;
   const prompt = await langfuse.prompt.get('classifiers/escalation', options);
   const res = await client.messages.create({
-    model: TITLE_MODEL,
+    model: CLASSIFIER_MODEL,
     max_tokens: 8,
     thinking: { type: 'disabled' },
     messages: [{ role: 'user', content: prompt.compile({ message: input }) }],

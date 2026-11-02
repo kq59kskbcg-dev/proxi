@@ -17,12 +17,10 @@ import { runAgentLoop } from '@proxi/agent/agent-loop';
 import { buildContext, splitHistory } from '@proxi/agent/context';
 import { summarizeOlder } from '@proxi/agent/summary';
 import { chooseModel } from '@proxi/agent/routing';
+import { FALLBACK_MODELS } from '@proxi/agent/models';
 import { toolActivity } from '../lib/activity.js';
 import { cardResponse, replyError } from '../lib/errors.js';
 import { MAX_REPLY_CHARS, CHAT_FULL, CHAT_TOO_LARGE } from '../lib/limits.js';
-
-// Opus and Sonnet support server-side refusal fallbacks; Haiku does not.
-const FALLBACK_MODELS = new Set(['claude-opus-5-5', 'claude-sonnet-5-5']);
 
 const MAX_TOKENS = 8000; // cost cap per reply
 const MAX_MESSAGES = 40; // most recent messages sent to the model

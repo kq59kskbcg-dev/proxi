@@ -1,3 +1,5 @@
+import { JUDGE_MODEL } from '@proxi/agent/models';
+
 // The judge prompts live in Langfuse as "evals/<name>". Each one reads some of these variables:
 // input, output, reference, context, tool_calls. The runner fills in all of them.
 
@@ -15,7 +17,7 @@ export const JUDGES = {
   'context-recall': 'soft',
 };
 
-export const JUDGE_MODEL = 'claude-sonnet-5-5';
+export { JUDGE_MODEL };
 
 const FORMAT = '\n\nReply with JSON only, in this shape: {"score": <integer 1 to 5>, "reason": "<one sentence>"}';
 

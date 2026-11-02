@@ -63,6 +63,7 @@ export function maskCards(text) {
   });
 }
 
+// Keep in sync with MODEL_LABELS in packages/agent/src/models.js (a test checks it).
 const MODEL_LABELS = { 'claude-opus-5-5': 'Opus 5.5', 'claude-sonnet-5-5': 'Sonnet 5.5', 'claude-haiku-5-5': 'Haiku 5.5' };
 export function modelLabel(id) {
   return MODEL_LABELS[id] || id;
