@@ -5,6 +5,7 @@ import { renderMarkdown } from './markdown.js';
 import { highlight, groupOf, fullDate, shareUrl, maskCards, modelLabel } from './format.js';
 import { renderCitations, DOCS_URL } from './citations.js';
 import { toStep, stepIcon, redactionSteps, WORKING_VERBS } from './steps.js';
+import { privacyView } from './privacy.js';
 import { trackViewport, whenVisible, authHeaders } from './browser.js';
 import { MAX_MESSAGE_CHARS, MAX_CHAT_MESSAGES, MESSAGE_TOO_LONG, CHAT_FULL, CHAT_TOO_LARGE, RECOVER_MS, OWN_CARDS } from './limits.js';
 import { MAX_FILES, MAX_TOTAL, MAX_TEXT, ACCEPT, KIND_LABELS, classify, formatSize, readBase64, makeThumb } from './files.js';
@@ -64,6 +65,8 @@ class Component extends DCLogic {
       deletingAccount: false,
       instructionsDraft: '',
       memories: null,
+      privacy: null,
+      privacyPeriod: 'month',
       theme: window.proxiTheme?.get() || 'system',
       temporary: false,
       votes: {}
@@ -559,6 +562,18 @@ class Component extends DCLogic {
     }
   }
 
+  // ---- Privacy: what Proxi removed from the user's messages, this month and all time ----
+  async loadPrivacy() {
+    try {
+      const res = await fetch('/api/privacy', { headers: await authHeaders() });
+      if (!res.ok) throw new Error('privacy ' + res.status);
+      this.setState({ privacy: await res.json() });
+    } catch {
+      this.setState({ privacy: 'error' });
+      this.showToast("Couldn't load your privacy summary. Please try again.");
+    }
+  }
+
   // ---- Account: delete everything stored for this user, then sign out ----
   askDeleteAccount() {
     this.returnFocus = document.activeElement;
@@ -675,8 +690,8 @@ class Component extends DCLogic {
     const recents = list.slice(0, RECENTS_SHOWN).map(item);
 
     const nav = {};
-    ['new'].forEach((k) => {
-      const on = isNew;
+    ['new', 'privacy'].forEach((k) => {
+      const on = k === 'new' ? isNew : s.view === 'privacy';
       nav[k + 'Cls'] = on ? '' : 'hov';
       nav[k + 'Cur'] = on ? 'page' : 'false';
       nav[k + 'Bg'] = on ? 'var(--sunken)' : 'transparent';
@@ -759,6 +774,24 @@ class Component extends DCLogic {
       nav,
       newChat: () => { this.go({ view: 'new', activeId: null, draft: '' }); this.focusComposer(); },
       openSettings: () => { this.go({ view: 'settings' }); this.loadSettings(); },
+      openPrivacy: () => { this.go({ view: 'privacy', privacy: null }); this.loadPrivacy(); },
+      isPrivacy: s.view === 'privacy',
+      privacyLoading: s.view === 'privacy' && !s.privacy,
+      privacyError: s.privacy === 'error',
+      privacyReady: !!s.privacy && s.privacy !== 'error',
+      privacyEmpty: !!s.privacy && s.privacy !== 'error' && s.privacy.all.total === 0,
+      privacyHasData: !!s.privacy && s.privacy !== 'error' && s.privacy.all.total > 0,
+      privacy: s.privacy && s.privacy !== 'error' ? privacyView(s.privacy, s.privacyPeriod) : null,
+      privacyRetry: () => { this.setState({ privacy: null }); this.loadPrivacy(); },
+      privacyTabs: [['month', 'This month'], ['all', 'All time']].map(([id, label]) => ({
+        key: id, label, pressed: s.privacyPeriod === id ? 'true' : 'false',
+        bg: s.privacyPeriod === id ? 'var(--surface)' : 'transparent',
+        color: s.privacyPeriod === id ? 'var(--text)' : 'var(--text-muted-2)',
+        weight: s.privacyPeriod === id ? 600 : 500,
+        shadow: s.privacyPeriod === id ? '0 1px 2px rgba(24,24,27,0.08)' : 'none',
+        pick: () => this.setState({ privacyPeriod: id })
+      })),
+      privacyDocs: DOCS_URL + '/privacy',
       isSettings: s.view === 'settings',
       settingsBusy: !s.settings || s.settingsBusy,
       retentionValue: String(s.settings?.chatRetentionDays ?? 30),

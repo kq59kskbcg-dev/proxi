@@ -3,7 +3,7 @@ import { redact } from '@proxi/agent/redact';
 import { rateLimit } from '../lib/ratelimit.js';
 import { requireUser } from '../lib/auth.js';
 import { flushTraces, getSystemPrompt, startTrace } from '@proxi/agent/langfuse';
-import { hasDatabase, saveConversation, conversationAttributes } from '../lib/db.js';
+import { hasDatabase, saveConversation, conversationAttributes, recordRedactions } from '../lib/db.js';
 import { customInstructions } from '../lib/instructions.js';
 import { processAttachments, AttachmentError } from '../lib/attachments.js';
 import { parseChatRequest, label } from '../lib/chat-request.js';
@@ -86,6 +86,11 @@ export async function POST(request) {
     }
     return { role: m.role, content: text, model: label(m.model), traceId: label(m.traceId), attachments: kinds.map((kind) => ({ kind })), unavailable };
   });
+  // The privacy page's counts. Incognito chats have no conversation ID, so they aren't counted.
+  if (conversationId && hasDatabase()) {
+    await recordRedactions(user.userId, redactions, { conversationId, position: lastIndex, content: history[lastIndex].content })
+      .catch((e) => console.error('counting redactions failed', e?.code ?? e?.name));
+  }
   // The model sees the most recent messages word for word; older ones become a short summary.
   const { recent, older } = splitHistory(history, MAX_MESSAGES);
   const latest = history[history.length - 1];
