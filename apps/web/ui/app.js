@@ -17,6 +17,7 @@ import { shareState, createShare } from './share.js';
 import { settingsState, createSettings } from './settings.js';
 import { memoriesState, createMemories } from './memories.js';
 import { accountState, createAccount } from './account.js';
+import { privacyState, createPrivacyPage } from './privacy-page.js';
 import { startShared } from './shared-page.js';
 
 const { createApp, computed, onMounted, onUpdated, onBeforeUnmount } = Vue;
@@ -32,6 +33,7 @@ const AREAS = [
   [shareState, createShare],
   [settingsState, createSettings],
   [memoriesState, createMemories],
+  [privacyState, createPrivacyPage],
   [accountState, createAccount]
 ];
 

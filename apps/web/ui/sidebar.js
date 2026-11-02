@@ -1,4 +1,4 @@
-// The sidebar: New chat, the recent chats, and loading the saved chat list.
+// The sidebar: New chat, Privacy, the recent chats, and loading the saved chat list.
 
 import { api, ApiError } from './api.js';
 
@@ -58,13 +58,15 @@ export function createSidebar(app) {
         };
         // Incognito (temporary) chats are never listed: they exist only until the page reloads.
         const list = s.convs.filter((c) => !c.temporary);
+        const nav = {};
+        [['new', isNew], ['privacy', s.view === 'privacy']].forEach(([k, on]) => {
+          nav[k + 'Cls'] = on ? '' : 'hov';
+          nav[k + 'Cur'] = on ? 'page' : 'false';
+          nav[k + 'Bg'] = on ? 'var(--sunken)' : 'transparent';
+          nav[k + 'Shadow'] = 'none';
+        });
         return {
-          nav: {
-            newCls: isNew ? '' : 'hov',
-            newCur: isNew ? 'page' : 'false',
-            newBg: isNew ? 'var(--sunken)' : 'transparent',
-            newShadow: 'none'
-          },
+          nav,
           newChat: () => { app.go({ view: 'new', activeId: null, draft: '' }); app.focusComposer(); },
           navScroll: (e) => { e.currentTarget.previousElementSibling?.classList.toggle('scrolled', e.currentTarget.scrollTop > 0); },
           recents: list.slice(0, RECENTS_SHOWN).map(item),

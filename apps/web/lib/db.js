@@ -76,6 +76,14 @@ const SCHEMA = [
      content text NOT NULL,
      created_at timestamptz NOT NULL DEFAULT now(),
      PRIMARY KEY (user_id, id))`,
+  // Privacy page: how many details of each type were redacted from the user's messages, per day.
+  // Only counts: never the details themselves, and no link to a chat.
+  `CREATE TABLE IF NOT EXISTS redaction_counts (
+     user_id text NOT NULL,
+     day date NOT NULL,
+     type text NOT NULL,
+     count int NOT NULL CHECK (count > 0),
+     PRIMARY KEY (user_id, day, type))`,
 ];
 
 async function db() {
@@ -202,6 +210,7 @@ export async function deleteAccountData(userId) {
     ['DELETE FROM conversations WHERE user_id = $1', [userId]],
     ['DELETE FROM memories WHERE user_id = $1', [userId]],
     ['DELETE FROM user_settings WHERE user_id = $1', [userId]],
+    ['DELETE FROM redaction_counts WHERE user_id = $1', [userId]],
   ]);
   return rows.map((r) => r.trace_id);
 }
@@ -263,4 +272,32 @@ export async function addMemory(userId, id, content) {
 export async function deleteMemory(userId, id) {
   const d = await db();
   await d.query('DELETE FROM memories WHERE user_id = $1 AND id = $2', [userId, id]);
+}
+
+// Adds what was redacted from a message to today's counts. A message the chat already has
+// saved at that position, with the same text, was counted before (a regenerated reply), so
+// it is skipped.
+export async function recordRedactions(userId, counts, { conversationId, position, content }) {
+  const entries = Object.entries(counts || {}).filter(([, n]) => Number.isInteger(n) && n > 0);
+  if (!entries.length) return;
+  const d = await db();
+  await d.query(
+    `INSERT INTO redaction_counts (user_id, day, type, count)
+     SELECT $1, current_date, t, n FROM unnest($2::text[], $3::int[]) AS x(t, n)
+     WHERE NOT EXISTS (SELECT 1 FROM messages
+       WHERE user_id = $1 AND conversation_id = $4 AND position = $5 AND role = 'user' AND content = $6)
+     ON CONFLICT (user_id, day, type) DO UPDATE SET count = redaction_counts.count + EXCLUDED.count`,
+    [userId, entries.map(([t]) => t), entries.map(([, n]) => n), conversationId, position, content]);
+}
+
+// The user's redaction counts: per day this month, per month before that, and the first day counted.
+export async function getRedactionCounts(userId) {
+  const d = await db();
+  const rows = await d.query(
+    `SELECT to_char(CASE WHEN day >= date_trunc('month', current_date) THEN day ELSE date_trunc('month', day)::date END, 'YYYY-MM-DD') AS day,
+            type, sum(count)::int AS count
+     FROM redaction_counts WHERE user_id = $1 GROUP BY 1, 2 ORDER BY 1, 2`, [userId]);
+  const [first] = await d.query(`SELECT to_char(min(day), 'YYYY-MM-DD') AS day FROM redaction_counts WHERE user_id = $1`, [userId]);
+  const [today] = await d.query(`SELECT to_char(current_date, 'YYYY-MM-DD') AS day`, []);
+  return { rows, since: first?.day ?? null, today: today.day };
 }

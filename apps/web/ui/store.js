@@ -13,7 +13,7 @@ export const ACCENT = '#6D28FF'; // Proxi's brand color
 export const coreState = {
   convs: [],
   activeId: null,
-  view: 'new', // 'new', 'chat' or 'settings'
+  view: 'new', // 'new', 'chat', 'settings' or 'privacy'
   toast: ''
 };
 
