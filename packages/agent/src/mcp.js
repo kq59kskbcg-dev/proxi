@@ -1,5 +1,6 @@
 import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client';
 import { redact } from './redact.js';
+import { log } from './log.js';
 
 const DISCOVERY_TIMEOUT_MS = 5000;
 const CALL_TIMEOUT_MS = 60000; // a web search can take a while
@@ -11,7 +12,7 @@ export function getMcpTools() {
   if (!url) return Promise.resolve(null);
   connection ??= connect(url).catch((error) => {
     connection = null;
-    console.error('MCP connection failed', error);
+    log.error('mcp.connect_failed', { error });
     return null;
   });
   return connection;
