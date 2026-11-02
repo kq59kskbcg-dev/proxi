@@ -3,13 +3,13 @@
 
 import { TITLE_MODEL } from '../src/title.js';
 import { detectLanguage } from '../src/locale.js';
-import { wantsPerson } from '../src/escalation.js';
+import { classifyIntent } from '../src/intents.js';
 
 // Prompts that have an eval. Each dataset item has the prompt's variables as its input and
 // the exact expected reply as its expected output.
 export const DATASETS = {
   'classifiers/language': 'evals/classifier-language',
-  'classifiers/escalation': 'evals/classifier-escalation',
+  'classifiers/intent-router': 'evals/classifier-intent-router',
 };
 
 async function activeItems(langfuse, datasetName) {
@@ -49,7 +49,7 @@ export async function evalPrompt(langfuse, client, name, version) {
 // CI runs, so a change to the agent code is checked and not only a change to a prompt.
 const LIVE = {
   'classifiers/language': (langfuse, client, input) => detectLanguage(langfuse, client, input.message),
-  'classifiers/escalation': (langfuse, client, input) => wantsPerson(langfuse, client, input.message),
+  'classifiers/intent-router': async (langfuse, client, input) => (await classifyIntent(langfuse, client, [{ role: 'user', content: input.message }])) ?? 'none',
 };
 
 export async function evalLive(langfuse, client, name) {

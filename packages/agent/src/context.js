@@ -38,8 +38,8 @@ export function splitHistory(history, maxMessages) {
 }
 
 // The system prompt, from its parts. Custom instructions come last and the summary comes before them.
-export function buildSystemText({ prompt, locale, escalation, memories, summary, instructions }) {
-  const base = withMemories([prompt, locale, escalation].filter(Boolean).join('\n\n'), memories);
+export function buildSystemText({ prompt, locale, intent, memories, summary, instructions }) {
+  const base = withMemories([prompt, locale, intent].filter(Boolean).join('\n\n'), memories);
   return withInstructions(withSummary(base, summary), instructions);
 }
 
@@ -63,7 +63,7 @@ export function describe(message) {
 // Everything the reply call needs, in one place.
 //   recent: the messages the model sees word for word (from splitHistory), the latest last
 //   blocks: content blocks for files attached to the latest message
-//   parts: { prompt, locale, escalation, memories, summary, instructions } (texts, may be empty)
+//   parts: { prompt, locale, intent, memories, summary, instructions } (texts, may be empty)
 export function buildContext({ recent, blocks = [], maxReplyChars, parts }) {
   const latest = recent[recent.length - 1];
   return {

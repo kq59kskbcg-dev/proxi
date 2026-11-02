@@ -8,7 +8,7 @@ description: "How Proxi handles your data."
 </Card>
 
 <Card title="Sensitive data redaction" icon="eye-slash">
-  Names, addresses, card numbers, IBANs, emails and phone numbers are detected and removed before reaching the model.
+  Names, addresses, card numbers, IBANs, emails and phone numbers are detected and removed before reaching the model. Card numbers and IBANs are only recognized when they're valid. A made-up number that fails the check digits used by banks and card networks isn't removed.
 </Card>
 
 <Card title="No training on your data" icon="brain">
