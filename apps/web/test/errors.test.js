@@ -9,6 +9,7 @@ import {
 } from '../lib/limits.js';
 
 const page = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+const pageLimits = readFileSync(new URL('../ui/limits.js', import.meta.url), 'utf8');
 const apiError = (status) => Anthropic.APIError.generate(status, { error: { type: 'x', message: 'x' } }, 'x', new Headers());
 
 test('a card has a title, one sentence and a reference, and the same words as a line of text', () => {
@@ -43,15 +44,15 @@ test('one chat holds 100 of the user\'s messages and a reply to each', () => {
 
 // The page can't import from lib/, so it repeats these. They must not drift apart.
 test('the page repeats the same limits and words as the server', () => {
-  assert.ok(page.includes(`const MAX_MESSAGE_CHARS = ${MAX_MESSAGE_CHARS};`));
-  assert.ok(page.includes(`const MAX_CHAT_MESSAGES = ${MAX_CHAT_MESSAGES};`));
-  for (const text of [MESSAGE_TOO_LONG, CHAT_FULL, CHAT_TOO_LARGE]) assert.ok(page.includes(`'${text}'`), text);
+  assert.ok(pageLimits.includes(`export const MAX_MESSAGE_CHARS = ${MAX_MESSAGE_CHARS};`));
+  assert.ok(pageLimits.includes(`export const MAX_CHAT_MESSAGES = ${MAX_CHAT_MESSAGES};`));
+  for (const text of [MESSAGE_TOO_LONG, CHAT_FULL, CHAT_TOO_LARGE]) assert.ok(pageLimits.includes(`'${text}'`), text);
 });
 
 test('the page\'s own cards match the server\'s for "something went wrong", and a lost connection has its own', () => {
   const { title, body } = ERROR_COPY.error;
-  assert.ok(page.includes(`error: { title: '${title}', body: '${body}' }`));
-  assert.ok(page.includes(`network: { title: "Couldn't reach Proxi"`));
+  assert.ok(pageLimits.includes(`error: { title: '${title}', body: '${body}' }`));
+  assert.ok(pageLimits.includes(`network: { title: "Couldn't reach Proxi"`));
 });
 
 test('the message box stops at the limit and a card has a Try again button', () => {

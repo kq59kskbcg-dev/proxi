@@ -1,5 +1,5 @@
 // What one message and one chat can hold. The page checks these before sending and repeats the
-// numbers and texts in apps/web/index.html (a test keeps the two equal); the server checks again.
+// numbers and texts in apps/web/ui/limits.js (a test keeps the two equal); the server checks again.
 
 export const MAX_MESSAGE_CHARS = 20_000; // one message a person writes
 export const MAX_EXCHANGES = 100; // messages from the user in one chat; each gets one reply

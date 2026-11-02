@@ -7,7 +7,8 @@ AI chat assistant built on Claude, deployed on Vercel, with a Mintlify help cent
 | Path | What it is | Deployed by |
 |---|---|---|
 | `apps/web` | The chat app: page, API functions, tests and Vercel config | Vercel (Root Directory: `apps/web`) |
-| `apps/web/index.html` | The app itself (Vue 3 from a CDN, no build step) | |
+| `apps/web/index.html` | The page shell and Vue template (Vue 3 from a CDN, no build step) | |
+| `apps/web/style.css`, `apps/web/ui/` | The app's styles and browser code as native ES modules: `app.js` (the app), plus small helpers (`format.js`, `steps.js`, `files.js`, `citations.js`, `limits.js`) that have unit tests | |
 | `apps/web/api/` | Serverless functions: `chat.js` (streams replies from Claude), `conversations.js` (saved chats), `feedback.js` (thumbs up / down) | |
 | `apps/web/lib/` | Sign-in checks, attachment checks, rate limiting and chat storage | |
 | `packages/agent` | The agent: Langfuse prompts, language and escalation checks, titles, redaction, tool access, and the prompt evals (`npm run eval`, `npm run promote`). Shared by every channel | Imported by `apps/web` |

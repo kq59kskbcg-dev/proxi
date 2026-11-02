@@ -5,13 +5,15 @@ import { rateLimit } from '../lib/ratelimit.js';
 import { requireUser } from '../lib/auth.js';
 import { flushTraces, getSystemPrompt, startTrace } from '@proxi/agent/langfuse';
 import { CONVERSATION_ID, hasDatabase, saveConversation, conversationAttributes, listMemories, addMemory } from '../lib/db.js';
-import { customInstructions, withInstructions } from '../lib/instructions.js';
+import { customInstructions } from '../lib/instructions.js';
 import { processAttachments, AttachmentError, KINDS, MAX_ATTACHMENTS } from '../lib/attachments.js';
 import { getMcpTools } from '@proxi/agent/mcp';
 import { makeTitle } from '@proxi/agent/title';
 import { getLocale } from '@proxi/agent/locale';
 import { getEscalation } from '@proxi/agent/escalation';
-import { MEMORY_TOOL, getMemoryTool, memoryText, withMemories } from '@proxi/agent/memory';
+import { MEMORY_TOOL, getMemoryTool, memoryText } from '@proxi/agent/memory';
+import { buildContext, splitHistory } from '@proxi/agent/context';
+import { summarizeOlder } from '@proxi/agent/summary';
 import { chooseModel } from '@proxi/agent/routing';
 import { toolActivity } from '../lib/activity.js';
 import { cardResponse, replyError } from '../lib/errors.js';
@@ -96,13 +98,9 @@ export async function POST(request) {
     }
     return { role: m.role, content: text, model: label(m.model), traceId: label(m.traceId), attachments: kinds.map((kind) => ({ kind })), unavailable };
   });
-  // The model sees the most recent messages, starting from a user message.
-  let recent = history.slice(-MAX_MESSAGES);
-  while (recent.length && recent[0].role !== 'user') recent = recent.slice(1);
+  // The model sees the most recent messages word for word; older ones become a short summary.
+  const { recent, older } = splitHistory(history, MAX_MESSAGES);
   const latest = history[history.length - 1];
-  const messages = recent.map((m) => ({ role: m.role, content: toContent(m, m === latest ? attached.blocks : []) }));
-  // Traces keep the redacted text and the kinds of files, never the files themselves.
-  const traced = recent.map((m) => ({ role: m.role, content: m.content + describe(m) }));
 
   client ??= new Anthropic();
   // Language comes from the chat's first message and is kept with the chat; if the latest message
@@ -110,20 +108,24 @@ export async function POST(request) {
   const localeFor = async () => getLocale(client, history[0].content, conversationId ? (await conversationAttributes(user.userId, conversationId)).language : null);
   // Memory is off in incognito chats: nothing is saved and saved memories aren't used.
   const memoryOn = !temporary && hasDatabase();
-  const [prompt, instructions, locale, escalation, memories, memoryTool, route] = await Promise.all([
+  const [prompt, instructions, locale, escalation, memories, memoryTool, route, summary] = await Promise.all([
     getSystemPrompt(), customInstructions(user.userId), localeFor(), getEscalation(client, latest.content),
     memoryOn ? savedMemories(user.userId) : [], memoryOn ? getMemoryTool() : null,
     auto ? chooseModel(client, history) : { level: null, model: fixedModel },
+    summarizeOlder(client, older),
   ]);
   const model = route.model;
-  const base = withMemories([prompt.text, locale.text, escalation.text].filter(Boolean).join('\n\n'), memories);
-  const system = { ...prompt, text: withInstructions(base, instructions) };
+  const { messages, traced, system: systemText } = buildContext({
+    recent, blocks: attached.blocks, maxReplyChars: MAX_REPLY_CHARS,
+    parts: { prompt: prompt.text, locale: locale.text, escalation: escalation.text, memories, summary, instructions },
+  });
+  const system = { ...prompt, text: systemText };
   // Incognito chats aren't traced. No user ID in traces: Langfuse alone can't tell whose chat a
   // trace belongs to.
   const trace = temporary ? null : startTrace('chat', {
     sessionId: conversationId ?? undefined,
     input: traced,
-    metadata: { redactions, language: locale.code, escalated: escalation.escalated, ...(auto ? { route: route.level } : {}) },
+    metadata: { redactions, language: locale.code, escalated: escalation.escalated, summarized: older.length, ...(auto ? { route: route.level } : {}) },
   });
   const generation = trace?.startObservation('reply', {
     model, input: [{ role: 'system', content: system.text }, ...traced], prompt: system.prompt,
@@ -261,18 +263,6 @@ function titleFrom(history) {
   return first.length > 40 ? first.slice(0, 40).trim() + '...' : first;
 }
 
-// What the model receives for one message. Files that can't be re-sent (older
-// messages, or chats reloaded from storage) are mentioned so Claude doesn't guess.
-function toContent(message, blocks) {
-  const gone = message.unavailable;
-  const note = gone.length ? `[Attachment no longer available: ${gone.join(', ')}]` : '';
-  // Only what the model sees is cut; the chat is saved from the full text.
-  const written = message.role === 'assistant' ? message.content.slice(0, MAX_REPLY_CHARS) : message.content;
-  const text = [written, note].filter(Boolean).join('\n\n');
-  if (!blocks.length) return text;
-  return text ? [...blocks, { type: 'text', text }] : blocks;
-}
-
 function sourceNumber(sources, citation) {
   const url = typeof citation?.source === 'string' ? citation.source : '';
   if (!/^https?:\/\//i.test(url)) return 0;
@@ -284,10 +274,6 @@ function sourceNumber(sources, citation) {
 
 function escapeLinkText(text) {
   return String(text).replace(/[[\]\\]/g, '\\$&');
-}
-
-function describe(message) {
-  return message.attachments.length ? `\n[attachments: ${message.attachments.map((a) => a.kind).join(', ')}]` : '';
 }
 
 // Files with data are only accepted on the latest message; older ones are just a kind.
