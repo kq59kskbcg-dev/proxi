@@ -1,4 +1,4 @@
-// Helpers that talk to the browser or to Clerk.
+// Helpers that talk to the browser.
 
 // The visible viewport shrinks when the browser bar shows or the keyboard opens, and
 // on iOS it also pans. Tracking it keeps the app exactly the size of what is visible.
@@ -34,9 +34,4 @@ export function whenVisible() {
     };
     document.addEventListener('visibilitychange', on);
   });
-}
-
-export async function authHeaders() {
-  const token = await window.Clerk.session.getToken();
-  return { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token };
 }
