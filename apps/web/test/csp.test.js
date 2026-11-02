@@ -30,3 +30,21 @@ test('every jsDelivr script is pinned in the CSP and checked with an integrity h
     assert.match(s.attrs, /crossorigin="anonymous"/, `${src} needs crossorigin for its integrity check`);
   }
 });
+
+test("scripts can't be built from strings: no 'unsafe-eval', and Vue is the runtime-only build", () => {
+  assert.ok(!scriptSrc.includes("'unsafe-eval'"));
+  const vue = scripts.map((s) => s.attrs.match(/src="([^"]*\/vue@[^"]+)"/)?.[1]).filter(Boolean);
+  assert.deepEqual(vue, ['https://cdn.jsdelivr.net/npm/vue@3.4.38/dist/vue.runtime.global.prod.js']);
+});
+
+test('ui/template.js is compiled from the current #tpl (run `npm run build:template` in apps/web)', async () => {
+  const { buildTemplate } = await import('../scripts/build-template.js');
+  const compiled = readFileSync(new URL('../ui/template.js', import.meta.url), 'utf8');
+  assert.ok(compiled === buildTemplate(html), 'ui/template.js is out of date: run `npm run build:template` in apps/web');
+});
+
+test('the template compiler matches the Vue version the page loads', () => {
+  const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
+  const loaded = html.match(/\/npm\/vue@([\d.]+)\//)[1];
+  assert.equal(pkg.devDependencies['@vue/compiler-dom'], loaded);
+});

@@ -3,7 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --test"
+    "test": "node --test",
+    "build:template": "node scripts/build-template.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "1.3.0",
@@ -13,6 +14,7 @@
     "unpdf": "^1.9.1"
   },
   "devDependencies": {
-    "@electric-sql/pglite": "^0.5.12"
+    "@electric-sql/pglite": "^0.5.12",
+    "@vue/compiler-dom": "3.4.38"
   }
 }

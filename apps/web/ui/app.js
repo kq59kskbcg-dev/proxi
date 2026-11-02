@@ -1,7 +1,8 @@
 // The Proxi app: signs in with Clerk and mounts the chat UI, or shows a shared chat (/s/<id>).
 // Vue, Clerk and the theme helper are globals set up by index.html before this module runs.
 //
-// The UI is one Vue template (#tpl in index.html) that reads everything from `v`. Each area of the
+// The UI is one Vue template (#tpl in index.html, compiled into template.js by
+// `npm run build:template`) that reads everything from `v`. Each area of the
 // app (sidebar.js, chat.js, settings.js, ...) owns its state keys and actions, and provides views:
 // functions that return the values `v` shows. Every view is its own computed, so typing in the
 // message box, say, doesn't rebuild the chat's messages.
@@ -19,6 +20,7 @@ import { memoriesState, createMemories } from './memories.js';
 import { accountState, createAccount } from './account.js';
 import { privacyState, createPrivacyPage } from './privacy-page.js';
 import { startShared } from './shared-page.js';
+import { render } from './template.js';
 
 const { createApp, computed, onMounted, onUpdated, onBeforeUnmount } = Vue;
 
@@ -49,7 +51,7 @@ function mount(user) {
   const run = (hook) => areas.forEach((area) => area[hook] && area[hook]());
 
   createApp({
-    template: '#tpl',
+    render,
     setup() {
       // `v` reads each value from the view that provides it, so the template only depends on
       // the views it shows.
