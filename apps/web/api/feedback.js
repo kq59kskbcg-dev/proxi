@@ -7,7 +7,7 @@ import { requireUser } from '../lib/auth.js';
 export async function POST(request) {
   const user = await requireUser(request);
   if (!user.userId) return new Response(null, { status: user.status });
-  if (!rateLimit(user.userId).ok) return new Response(null, { status: 429 });
+  if (!rateLimit('feedback:' + user.userId).ok) return new Response(null, { status: 429 });
   let body;
   try { body = await request.json(); } catch { return new Response(null, { status: 400 }); }
   const { traceId, value } = body || {};
