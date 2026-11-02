@@ -26,12 +26,9 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: |
-            package-lock.json
-            apps/mcp/package-lock.json
+      # One install for every workspace. npm test runs each workspace's tests, apps/mcp's
+      # included, and the web chat tests start the MCP server.
       - run: npm ci
-      # The web chat tests start the MCP server, which has its own lockfile.
-      - run: npm ci --prefix apps/mcp
       - run: npm test
       - name: Evals
         run: npm run eval:ci -w @proxi/agent

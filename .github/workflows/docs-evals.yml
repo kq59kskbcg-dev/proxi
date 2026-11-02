@@ -29,7 +29,6 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npm ci --prefix apps/mcp
       - run: npm test -w @proxi/evals
       - name: Search docs evals
         run: npm run search-docs -w @proxi/evals

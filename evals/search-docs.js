@@ -6,7 +6,7 @@
 // Langfuse, and the gate decides pass or fail.
 //
 // Needs: LANGFUSE_PUBLIC_KEY, LANGFUSE_SECRET_KEY (and LANGFUSE_BASE_URL outside the EU cloud),
-// ANTHROPIC_API_KEY, MINTLIFY_API_KEY, and `npm ci` run in apps/mcp.
+// ANTHROPIC_API_KEY, MINTLIFY_API_KEY, and `npm ci` run at the repository root.
 // Optional: EVAL_MODEL (chat model, default "Sonnet 5.5"), EVAL_JUDGE_MODEL, EVAL_JUDGE_LABEL
 // (label of the judge prompts, default "latest"), EVAL_RUN_NAME.
 
@@ -138,7 +138,7 @@ async function startMcpServer() {
   const child = spawn(process.execPath, ['server.js'], { cwd: mcpDir, env: { ...process.env, PORT: String(port) } });
   await new Promise((resolve, reject) => {
     child.stdout.on('data', (chunk) => { if (String(chunk).includes('localhost')) resolve(); });
-    child.on('exit', () => reject(new Error('The MCP server stopped. Did you run `npm ci` in apps/mcp?')));
+    child.on('exit', () => reject(new Error('The MCP server stopped. Did you run `npm ci` at the repository root?')));
   });
   process.env.MCP_URL = `http://127.0.0.1:${port}/mcp`;
   return child;

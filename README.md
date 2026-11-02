@@ -11,6 +11,7 @@ AI chat assistant built on Claude, deployed on Vercel, with a Mintlify help cent
 | `apps/web/style.css`, `apps/web/ui/` | The app's styles and browser code as native ES modules: `app.js` (sign-in and mounting), `store.js` (shared state), one module per area (`layout.js`, `sidebar.js`, `search.js`, `composer.js`, `chat.js`, `share.js`, `settings.js`, `memories.js`, `account.js`, `privacy-page.js`, `shared-page.js`), `api.js` (the client for `/api/*`), plus small helpers (`format.js`, `steps.js`, `files.js`, `citations.js`, `limits.js`). `api.js` and the helpers have unit tests | |
 | `apps/web/api/` | Serverless functions: `chat.js` (streams replies from Claude), `conversations.js` (saved chats), `feedback.js` (thumbs up / down) | |
 | `apps/web/lib/` | Sign-in checks, attachment checks, rate limiting and chat storage | |
+| `apps/mcp` | The MCP server: the agent's tools (`get_status`, `search_docs`, `web_search`) | Vercel (Root Directory: `apps/mcp`, project `proxi-mcp`) |
 | `packages/agent` | The agent: Langfuse prompts, language and escalation checks, titles, redaction, tool access, and the prompt evals (`npm run eval`, `npm run promote`). Shared by every channel | Imported by `apps/web` |
 | `apps/web/test/` | Unit tests (`node --test`) | |
 | `apps/web/testing/` | Helpers shared by the tests | |
@@ -43,14 +44,16 @@ The system prompt can be edited in Langfuse as a text prompt named `main-system`
 
 ## Tests
 
-The tests cover redaction, attachment checks (including real PDF parsing) and chat storage, against an in-memory Postgres. Run them from the web app's folder:
+The tests cover redaction, attachment checks (including real PDF parsing) and chat storage, against an in-memory Postgres. `apps/web`, `apps/mcp`, `packages/agent` and `evals` are npm workspaces with one lockfile at the root, so one install covers them all. Run every workspace's tests from the root:
 
 ```
-cd apps/mcp && npm install && npm test
-cd ../web && npm install && npm test
+npm ci
+npm test
 ```
 
-The web tests include an end-to-end check: the chat endpoint discovers `get_status` from the MCP server, Claude (a scripted stand-in) calls it, and the result is routed back. It needs `npm install` in `apps/mcp` first.
+Or one workspace's, for example `npm test -w apps/mcp`.
+
+The web tests include an end-to-end check: the chat endpoint discovers `get_status` from the MCP server, Claude (a scripted stand-in) calls it, and the result is routed back. Locally it's skipped if the MCP server's packages aren't installed; in CI (`CI` set) it fails instead.
 
 ## MCP server
 
@@ -74,8 +77,8 @@ MCP server environment variables (set in the `proxi-mcp` Vercel project):
 Run it locally:
 
 ```
-cd apps/mcp
 npm install
+cd apps/mcp
 MCP_TOKEN=dev-token npm start
 ```
 

@@ -2,15 +2,20 @@ import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import http from 'node:http';
 import { spawn } from 'node:child_process';
-import { existsSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import { generateKeyPairSync, createSign } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 
 const mcpDir = fileURLToPath(new URL('../../mcp/', import.meta.url));
-const ready = existsSync(new URL('../../mcp/node_modules/', import.meta.url));
+// apps/mcp is a workspace, so its packages are usually hoisted to the root node_modules.
+// Check that the server's imports resolve from its folder instead of looking for a folder.
+const mcpRequire = createRequire(new URL('../../mcp/package.json', import.meta.url));
+const ready = ['@modelcontextprotocol/server', '@modelcontextprotocol/node'].every((name) => {
+  try { mcpRequire.resolve(name); return true; } catch { return false; }
+});
 // Locally the tests skip without the MCP server's packages. In CI that would hide them, so fail.
 if (!ready && process.env.CI) {
-  throw new Error('apps/mcp/node_modules is missing: run npm ci in apps/mcp before these tests');
+  throw new Error("The MCP server's packages are missing: run npm ci at the repository root before these tests");
 }
 
 const requests = [];
@@ -95,7 +100,7 @@ after(() => {
 });
 
 const PRIVACY_TEXT = 'Card numbers, IBANs, emails and phone numbers are masked before anything reaches the model or the logs.';
-const skip = !ready && 'run npm install in apps/mcp first';
+const skip = !ready && 'run npm install at the repository root first';
 
 async function chat(question, extra = {}) {
   requests.length = 0;

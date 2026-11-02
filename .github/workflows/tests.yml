@@ -22,14 +22,7 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: |
-            package-lock.json
-            apps/mcp/package-lock.json
+      # One install for every workspace, the MCP server included. The web chat tests start the
+      # MCP server and fail in CI (instead of skipping) when its packages are missing.
       - run: npm ci
-      # The MCP server is not an npm workspace: it has its own lockfile. Install it before the
-      # root tests, because the web chat tests start it (they fail in CI when it's missing).
-      - run: npm ci
-        working-directory: apps/mcp
       - run: npm test
-      - run: npm test
-        working-directory: apps/mcp
