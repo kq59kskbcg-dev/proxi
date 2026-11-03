@@ -48,8 +48,9 @@ test('if the database fails, the in-memory limit takes over', async () => {
 });
 
 test('the daily cleanup removes keys idle for longer than the window', async () => {
-  await rateLimit('old', Date.now() - WINDOW_MS - 60_000);
   await rateLimit('new', Date.now());
+  // A key no request has pruned yet (say, after a quiet night).
+  await rateLimit('old', Date.now() - WINDOW_MS - 60_000);
   assert.equal(await pruneRateLimits(WINDOW_MS), 1);
   assert.deepEqual((await pg.query('SELECT key FROM rate_limits')).rows, [{ key: 'new' }]);
 });
@@ -75,4 +76,11 @@ test('with RATE_LIMIT_SECRET the IP hash is keyed, so it differs from a plain ha
   assert.match(a, /^shared:[\w-]{22}$/);
   assert.notEqual(a, plain);
   assert.notEqual(a, b);
+});
+
+test('each request deletes other keys idle for longer than the window', async () => {
+  await rateLimit('idle', T0);
+  await rateLimit('active', T0 + WINDOW_MS - 1000);
+  await rateLimit('next', T0 + WINDOW_MS + 1);
+  assert.deepEqual((await pg.query('SELECT key FROM rate_limits ORDER BY key')).rows.map((r) => r.key), ['active', 'next']);
 });

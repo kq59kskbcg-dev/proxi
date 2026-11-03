@@ -64,8 +64,9 @@ export const MIGRATIONS = [
     version: 2,
     name: 'rate limits',
     // Shared rate limits: the times of each key's allowed requests in the last window (at most
-    // the limit's count), and whether the latest request was allowed. Keys are a user ID or a hashed IP address with a route prefix. Rows idle
-    // for longer than the window are deleted by the daily cleanup.
+    // the limit's count), and whether the latest request was allowed. Keys are a user ID or a
+    // hashed IP address, with a route prefix. Rows idle for longer than the window are deleted
+    // by later requests, or by the daily cleanup.
     statements: [
       `CREATE TABLE rate_limits (
          key text PRIMARY KEY,

@@ -266,13 +266,18 @@ export async function getRedactionCounts(userId) {
 }
 
 // Shared rate limit: records a request for the key, unless it already made `max` in the last
-// windowMs. One statement: ON CONFLICT DO UPDATE locks the key's row and works on its latest
+// windowMs, and deletes other keys that have been idle for longer than the window. One statement: ON CONFLICT DO UPDATE locks the key's row and works on its latest
 // version, so concurrent requests from any instance are counted one after another.
 // Returns { ok, oldest } with the time (ms) of the oldest request still in the window.
 export async function hitRateLimit(key, { now, windowMs, max }) {
   const d = await db();
   const [row] = await d.query(
-    `WITH input AS (SELECT $2::timestamptz AS now, $2::timestamptz - make_interval(secs => $3::float8 / 1000) AS since)
+    `WITH input AS (SELECT $2::timestamptz AS now, $2::timestamptz - make_interval(secs => $3::float8 / 1000) AS since),
+     -- Other keys idle for longer than the window go now, a few at a time. Locked rows are
+     -- skipped, so concurrent requests never wait on each other here.
+     pruned AS (DELETE FROM rate_limits WHERE key IN (
+       SELECT key FROM rate_limits, input WHERE updated_at < input.since AND key <> $1
+       ORDER BY updated_at LIMIT 50 FOR UPDATE SKIP LOCKED))
      INSERT INTO rate_limits AS r (key, hits, allowed, updated_at) SELECT $1, ARRAY[now], true, now FROM input
      ON CONFLICT (key) DO UPDATE SET
        allowed = (SELECT count(*) FROM unnest(r.hits) t, input WHERE t > input.since) < $4,
@@ -285,7 +290,8 @@ export async function hitRateLimit(key, { now, windowMs, max }) {
   return { ok: row.ok, oldest: Number(row.oldest) };
 }
 
-// Daily cleanup: removes rate limit rows with no request in the last window.
+// Daily cleanup: removes rate limit rows with no request in the last window that requests
+// haven't already pruned (for example after a quiet night).
 export async function pruneRateLimits(windowMs) {
   const d = await db();
   const [row] = await d.query(
