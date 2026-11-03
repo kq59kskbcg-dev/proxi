@@ -1,8 +1,8 @@
 name: Promote prompt
 
 # Moves the "production" label to a prompt version, but only if its eval passes (it runs
-# `npm run promote`). Start it from the Actions tab with Run workflow. There is no way to skip
-# the eval here: a prompt without one is refused.
+# `npm run promote`). Start it from the Actions tab with Run workflow. A prompt without an eval
+# is refused unless skip_eval is ticked, which is only for when the owner has asked for it.
 on:
   workflow_dispatch:
     inputs:
@@ -12,6 +12,10 @@ on:
       version:
         description: 'Version number to promote'
         required: true
+      skip_eval:
+        description: 'Promote a prompt that has no eval (only when the owner asked for it)'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -29,10 +33,11 @@ jobs:
       - run: npm ci
       # The inputs reach the command as environment variables, so a typed value can't run as shell.
       - name: Promote
-        run: npm run promote -w @proxi/agent -- "$PROMPT_NAME" "$PROMPT_VERSION"
+        run: npm run promote -w @proxi/agent -- "$PROMPT_NAME" "$PROMPT_VERSION" ${SKIP_EVAL:+--skip-eval}
         env:
           PROMPT_NAME: ${{ inputs.name }}
           PROMPT_VERSION: ${{ inputs.version }}
+          SKIP_EVAL: ${{ inputs.skip_eval && 'true' || '' }}
           LANGFUSE_PUBLIC_KEY: ${{ secrets.LANGFUSE_PUBLIC_KEY }}
           LANGFUSE_SECRET_KEY: ${{ secrets.LANGFUSE_SECRET_KEY }}
           LANGFUSE_BASE_URL: ${{ vars.LANGFUSE_BASE_URL }}
