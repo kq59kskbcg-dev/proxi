@@ -62,3 +62,17 @@ test('IP addresses are only stored as a hash', async () => {
   assert.equal(key, ipKey('shared:', new Request('http://localhost/', { headers: { 'x-forwarded-for': '203.0.113.7' } })));
   assert.notEqual(key, ipKey('shared:', new Request('http://localhost/', { headers: { 'x-forwarded-for': '203.0.113.8' } })));
 });
+
+test('with RATE_LIMIT_SECRET the IP hash is keyed, so it differs from a plain hash', () => {
+  const request = new Request('http://localhost/', { headers: { 'x-forwarded-for': '203.0.113.7' } });
+  delete process.env.RATE_LIMIT_SECRET;
+  const plain = ipKey('shared:', request);
+  process.env.RATE_LIMIT_SECRET = 'secret-a';
+  const a = ipKey('shared:', request);
+  process.env.RATE_LIMIT_SECRET = 'secret-b';
+  const b = ipKey('shared:', request);
+  delete process.env.RATE_LIMIT_SECRET;
+  assert.match(a, /^shared:[\w-]{22}$/);
+  assert.notEqual(a, plain);
+  assert.notEqual(a, b);
+});

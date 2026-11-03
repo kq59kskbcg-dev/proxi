@@ -36,6 +36,7 @@ AI chat assistant built on Claude, deployed on Vercel, with a Mintlify help cent
 | `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY` | Optional: tracing, prompts and feedback in Langfuse |
 | `LANGFUSE_BASE_URL` | `https://cloud.langfuse.com` (EU) |
 | `CRON_SECRET` | Random secret that lets Vercel's daily cron run `/api/cleanup`, which deletes chats inactive for longer than each user's "Delete chats after" setting (7, 30 or 90 days, default 30). Without it, cleanup refuses to run. |
+| `RATE_LIMIT_SECRET` | Random secret (`openssl rand -base64 32`) used to hash IP addresses for the shared-link rate limit, so the stored hashes can't be reversed. Without it, a plain hash is used and a warning is logged. Changing it only resets current limits. |
 | `MCP_URL` | Optional: the MCP server's address, e.g. `https://<mcp-project>.vercel.app/mcp` |
 | `MCP_TOKEN` | Shared secret sent to the MCP server as `Authorization: Bearer <token>`. Must match `MCP_TOKEN` on the `proxi-mcp` project, or the agent gets no tools. |
 

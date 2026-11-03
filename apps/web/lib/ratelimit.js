@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto';
+import { createHash, createHmac } from 'node:crypto';
 import { log } from '@proxi/agent/log';
 import { hasDatabase, hitRateLimit } from './db.js';
 
@@ -24,10 +24,19 @@ export async function rateLimit(key, now = Date.now()) {
   }
 }
 
-// IP addresses are personal data, so only a hash of one is used as a key.
+// IP addresses are personal data, so only a hash of one is used as a key. With
+// RATE_LIMIT_SECRET set it is an HMAC, which can't be reversed by hashing every possible
+// address; without it, a plain hash (and a warning, once).
+let warned = false;
 export function ipKey(prefix, request) {
   const ip = (request.headers.get('x-forwarded-for') || '').split(',')[0].trim() || 'unknown';
-  return prefix + createHash('sha256').update(ip).digest('base64url').slice(0, 22);
+  const secret = process.env.RATE_LIMIT_SECRET?.trim();
+  if (!secret && !warned) {
+    warned = true;
+    log.warn('ratelimit.no_secret');
+  }
+  const hash = secret ? createHmac('sha256', secret) : createHash('sha256');
+  return prefix + hash.update(ip).digest('base64url').slice(0, 22);
 }
 
 // key -> times of recent allowed requests. A Map keeps insertion order, and every request
