@@ -27,9 +27,11 @@ async function describe(pg) {
   return { columns, constraints, indexes };
 }
 
+const OLD_TABLES = ['conversations', 'messages', 'user_settings', 'memories', 'redaction_counts'];
+
 async function dump(pg) {
   const out = {};
-  for (const table of ['conversations', 'messages', 'user_settings', 'memories', 'redaction_counts']) {
+  for (const table of OLD_TABLES) {
     out[table] = (await pg.query(`SELECT * FROM ${table} ORDER BY 1, 2, 3`)).rows;
   }
   return out;
@@ -72,13 +74,16 @@ test('a database created by the old schema list upgrades with no change to its d
 
   const d = driverFor(old);
   assert.deepEqual(await migrate(d), MIGRATIONS.map((m) => m.version));
-  assert.deepEqual(await describe(old), before.schema);
+  // The old tables are untouched; later migrations only add.
+  const oldTables = (rows) => rows.filter((r) => OLD_TABLES.includes(r.table_name ?? r.tbl ?? r.tablename));
+  const after = await describe(old);
+  for (const part of ['columns', 'constraints', 'indexes']) assert.deepEqual(oldTables(after[part]), before.schema[part]);
   assert.deepEqual(await dump(old), before.data);
 
   // And it matches a database built from migrations alone.
   const fresh = new PGlite();
   await migrate(driverFor(fresh));
-  assert.deepEqual(await describe(fresh), before.schema);
+  assert.deepEqual(await describe(fresh), after);
 });
 
 test('a cold start on a current database runs one query before the first real one', async () => {

@@ -8,7 +8,7 @@ import { hasDatabase, deleteAccountData } from '../lib/db.js';
 // DELETE: deletes the signed-in user's chats, memories, settings and monitoring traces,
 // then their account. The account goes last, so a failure part-way can be retried.
 export const DELETE = withUser(async (request, user) => {
-  if (!rateLimit('account:' + user.userId).ok) return json({ error: 'Too many requests. Try again in a few minutes.' }, 429);
+  if (!(await rateLimit('account:' + user.userId)).ok) return json({ error: 'Too many requests. Try again in a few minutes.' }, 429);
   const secretKey = process.env.CLERK_SECRET_KEY?.trim();
   if (!secretKey) return json({ error: 'Account deletion is not set up yet.' }, 503);
 

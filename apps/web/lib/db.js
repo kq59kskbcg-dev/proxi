@@ -264,3 +264,32 @@ export async function getRedactionCounts(userId) {
   const [today] = await d.query(`SELECT to_char(current_date, 'YYYY-MM-DD') AS day`, []);
   return { rows, since: first?.day ?? null, today: today.day };
 }
+
+// Shared rate limit: records a request for the key, unless it already made `max` in the last
+// windowMs. One statement: ON CONFLICT DO UPDATE locks the key's row and works on its latest
+// version, so concurrent requests from any instance are counted one after another.
+// Returns { ok, oldest } with the time (ms) of the oldest request still in the window.
+export async function hitRateLimit(key, { now, windowMs, max }) {
+  const d = await db();
+  const [row] = await d.query(
+    `WITH input AS (SELECT $2::timestamptz AS now, $2::timestamptz - make_interval(secs => $3::float8 / 1000) AS since)
+     INSERT INTO rate_limits AS r (key, hits, allowed, updated_at) SELECT $1, ARRAY[now], true, now FROM input
+     ON CONFLICT (key) DO UPDATE SET
+       allowed = (SELECT count(*) FROM unnest(r.hits) t, input WHERE t > input.since) < $4,
+       hits = ARRAY(SELECT t FROM unnest(r.hits) t, input WHERE t > input.since ORDER BY t)
+         || CASE WHEN (SELECT count(*) FROM unnest(r.hits) t, input WHERE t > input.since) < $4
+                 THEN ARRAY[EXCLUDED.updated_at] ELSE ARRAY[]::timestamptz[] END,
+       updated_at = EXCLUDED.updated_at
+     RETURNING allowed AS ok, (extract(epoch FROM hits[1]) * 1000)::float8 AS oldest`,
+    [key, new Date(now).toISOString(), windowMs, max]);
+  return { ok: row.ok, oldest: Number(row.oldest) };
+}
+
+// Daily cleanup: removes rate limit rows with no request in the last window.
+export async function pruneRateLimits(windowMs) {
+  const d = await db();
+  const [row] = await d.query(
+    `WITH gone AS (DELETE FROM rate_limits WHERE updated_at < now() - make_interval(secs => $1::float8 / 1000) RETURNING 1)
+     SELECT count(*)::int AS removed FROM gone`, [windowMs]);
+  return row?.removed ?? 0;
+}

@@ -6,7 +6,7 @@ import { CONVERSATION_ID, hasDatabase, shareConversation, unshareConversation } 
 
 // POST { id }: shares one of the signed-in user's chats and returns its link ID.
 export const POST = withUser(async (request, user) => {
-  if (!rateLimit('share:' + user.userId).ok) return json({ error: 'Too many requests. Try again in a few minutes.' }, 429);
+  if (!(await rateLimit('share:' + user.userId)).ok) return json({ error: 'Too many requests. Try again in a few minutes.' }, 429);
   if (!hasDatabase()) return json({ error: 'Chat history is not set up yet.' }, 503);
 
   let body;

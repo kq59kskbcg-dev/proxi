@@ -1,13 +1,12 @@
 import { log } from '@proxi/agent/log';
 import { json as baseJson } from '../lib/http.js';
-import { rateLimit } from '../lib/ratelimit.js';
+import { rateLimit, ipKey } from '../lib/ratelimit.js';
 import { SHARE_ID, hasDatabase, getSharedConversation } from '../lib/db.js';
 
 // GET ?id=: a shared chat, for anyone with the link. No sign-in. Not cached, so
 // "Stop sharing" takes effect right away, and kept out of search engines.
 export async function GET(request) {
-  const ip = (request.headers.get('x-forwarded-for') || '').split(',')[0].trim() || 'unknown';
-  if (!rateLimit('shared:' + ip).ok) return json({ error: 'Too many requests. Try again in a few minutes.' }, 429);
+  if (!(await rateLimit(ipKey('shared:', request))).ok) return json({ error: 'Too many requests. Try again in a few minutes.' }, 429);
   if (!hasDatabase()) return json({ error: 'Not found.' }, 404);
 
   const id = new URL(request.url, 'http://localhost').searchParams.get('id');

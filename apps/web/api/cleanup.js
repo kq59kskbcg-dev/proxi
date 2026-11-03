@@ -1,7 +1,8 @@
 import { deleteTraces, listChatTraces } from '@proxi/agent/langfuse';
 import { log } from '@proxi/agent/log';
 import { json } from '../lib/http.js';
-import { hasDatabase, deleteInactiveConversations, existingConversationIds } from '../lib/db.js';
+import { hasDatabase, deleteInactiveConversations, existingConversationIds, pruneRateLimits } from '../lib/db.js';
+import { WINDOW_MS } from '../lib/ratelimit.js';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const MAX_TRACE_PAGES = 20; // up to 2,000 traces checked per run; a longer backlog drains over several days
@@ -23,6 +24,8 @@ export async function GET(request) {
     await deleteTraces(traceIds);
     log.info('retention.deleted_chats', { deleted });
     const orphanTraces = await deleteOrphanTraces();
+    // Rate limit rows of keys with no request in the last window.
+    log.info('retention.pruned_rate_limits', { removed: await pruneRateLimits(WINDOW_MS) });
     return json({ deleted, orphanTraces });
   } catch (error) {
     log.error('retention.failed', { error });

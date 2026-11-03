@@ -1,6 +1,6 @@
 import { test, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { rateLimit, resetRateLimits, trackedKeys, WINDOW_MS, MAX_REQUESTS, MAX_KEYS } from '../lib/ratelimit.js';
+import { memoryRateLimit as rateLimit, resetRateLimits, trackedKeys, WINDOW_MS, MAX_REQUESTS, MAX_KEYS } from '../lib/ratelimit.js';
 
 beforeEach(() => resetRateLimits());
 

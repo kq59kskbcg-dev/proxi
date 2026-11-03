@@ -60,6 +60,21 @@ export const MIGRATIONS = [
          PRIMARY KEY (user_id, day, type))`,
     ],
   },
+  {
+    version: 2,
+    name: 'rate limits',
+    // Shared rate limits: the times of each key's allowed requests in the last window (at most
+    // the limit's count), and whether the latest request was allowed. Keys are a user ID or a hashed IP address with a route prefix. Rows idle
+    // for longer than the window are deleted by the daily cleanup.
+    statements: [
+      `CREATE TABLE rate_limits (
+         key text PRIMARY KEY,
+         hits timestamptz[] NOT NULL,
+         allowed boolean NOT NULL,
+         updated_at timestamptz NOT NULL)`,
+      `CREATE INDEX rate_limits_idle ON rate_limits (updated_at)`,
+    ],
+  },
 ];
 
 export const LATEST_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version;

@@ -41,7 +41,7 @@ export async function POST(request) {
     return json(cardResponse(user.status === 401 ? 'session' : 'error', ref), user.status);
   }
 
-  const limit = rateLimit(user.userId);
+  const limit = await rateLimit(user.userId);
   if (!limit.ok) {
     return json(cardResponse('limit', '429 · limit'), 429, { 'Retry-After': String(limit.retryAfter) });
   }
