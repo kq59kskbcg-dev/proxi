@@ -1,7 +1,7 @@
 import { test, before } from 'node:test';
 import assert from 'node:assert/strict';
 import { PGlite } from '@electric-sql/pglite';
-import { setDriver, saveConversation, listConversations, getMessages, deleteConversation, deleteAccountData, deleteInactiveConversations, getSettings, saveSettings, conversationAttributes, listMemories, addMemory, deleteMemory, MEMORY_LIMIT } from '../lib/db.js';
+import { setDriver, saveConversation, listConversations, getMessages, deleteConversation, deleteAllConversations, deleteAccountData, deleteInactiveConversations, getSettings, saveSettings, conversationAttributes, listMemories, addMemory, deleteMemory, MEMORY_LIMIT } from '../lib/db.js';
 
 let pg;
 before(() => {
@@ -145,4 +145,18 @@ test('deleting an account removes the user\'s chats, memories and settings, and 
   assert.deepEqual(await getSettings('user_gone'), { chatRetentionDays: 30, customInstructions: '' });
   assert.equal((await listConversations('user_kept')).length, 1);
   assert.equal((await listMemories('user_kept')).length, 1);
+});
+
+test('deleting all chats removes only that user\'s chats and returns their trace IDs', async () => {
+  await saveConversation('user_all', 'a1', 'One', [{ role: 'user', content: 'Hi' }, { role: 'assistant', content: 'Hello', traceId: 'trace-a1' }]);
+  await saveConversation('user_all', 'a2', 'Two', [{ role: 'user', content: 'Hi' }, { role: 'assistant', content: 'Hello', traceId: 'trace-a2' }]);
+  await saveConversation('user_other', 'a1', 'Theirs', [{ role: 'user', content: 'Mine' }]);
+  await addMemory('user_all', 'm-all', 'Likes Lisbon');
+
+  assert.deepEqual((await deleteAllConversations('user_all')).sort(), ['trace-a1', 'trace-a2']);
+  assert.deepEqual(await listConversations('user_all'), []);
+  assert.deepEqual(await getMessages('user_all', 'a1'), []);
+  assert.equal((await listConversations('user_other')).length, 1);
+  assert.equal((await listMemories('user_all')).length, 1);
+  assert.deepEqual(await deleteAllConversations('user_all'), []);
 });
