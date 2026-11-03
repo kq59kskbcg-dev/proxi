@@ -12,7 +12,7 @@ export async function requireUser(request) {
   if (!token) return { error: 'Please sign in.', status: 401, reason: 'no-token' };
 
   try {
-    const payload = await verifyToken(token, { secretKey, jwtKey, authorizedParties: authorizedParties(request) });
+    const payload = await verify(token, { secretKey, jwtKey, authorizedParties: authorizedParties(request) });
     return { userId: payload.sub };
   } catch (error) {
     // Clerk's reason (e.g. token-expired, token-invalid-authorized-parties) says why, without revealing anything secret.
@@ -20,6 +20,10 @@ export async function requireUser(request) {
     return { error: 'Your session has expired. Please sign in again.', status: 401, reason };
   }
 }
+
+// Tests can swap in their own verifier to see how its errors are handled.
+let verify = verifyToken;
+export function setVerifier(fn) { verify = fn ?? verifyToken; }
 
 // Only accept tokens issued to this site, not to another app on the same Clerk instance.
 function authorizedParties(request) {

@@ -14,7 +14,7 @@ export async function POST(request) {
   if (typeof traceId !== 'string' || !/^[\w-]{8,64}$/.test(traceId) || ![1, 0, null].includes(value)) {
     return new Response(null, { status: 400 });
   }
-  const langfuse = getLangfuse();
+  const langfuse = fakeLangfuse ?? getLangfuse();
   if (langfuse && value !== null) {
     // A lost score isn't worth failing the click for, but it is logged.
     try {
@@ -26,3 +26,7 @@ export async function POST(request) {
   }
   return new Response(null, { status: 204 });
 }
+
+// Tests swap in a fake Langfuse client.
+let fakeLangfuse = null;
+export function setLangfuse(client) { fakeLangfuse = client; }
