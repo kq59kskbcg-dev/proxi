@@ -3,9 +3,9 @@ title: "Tools overview"
 description: "What tools are, when Proxi uses them, and how you can see what it did."
 ---
 
-Besides answering from what it already knows, Proxi can use tools. A tool is a small action the assistant can take while writing a reply. Proxi uses three:
+Besides answering from what it already knows, Proxi can use tools. A tool is a small action the assistant can take while writing a reply. Proxi uses four:
 
-<CardGroup cols={3}>
+<CardGroup cols={2}>
   <Card title="Search the web" icon="globe" href="/tools/web-search">
     For current information.
   </Card>
@@ -15,15 +15,18 @@ Besides answering from what it already knows, Proxi can use tools. A tool is a s
   <Card title="Check service status" icon="wave-pulse" href="/tools/service-status">
     Whether Proxi's tools are running.
   </Card>
+  <Card title="Talk to a person" icon="envelope" href="/tools/talk-to-a-person">
+    Send us a message.
+  </Card>
 </CardGroup>
 
 ## You don't have to ask
 
 Proxi decides when a tool helps. A simple question gets a direct answer with no tool.
 
-## Read-only
+## What tools can do
 
-All tools are read-only. They look things up and can't change anything for you.
+Most tools are read-only: they look things up and can't change anything for you. The exception is [Talk to a person](/tools/talk-to-a-person), which sends us an email, and only after you choose Send.
 
 ## See what Proxi did
 
@@ -37,4 +40,4 @@ When a tool finds pages, the reply links to them in numbered links and a Sources
 
 - Proxi can use tools in up to five rounds per reply.
 - When a tool fails, Proxi tells you.
-- What you type into a tool is redacted first, like your messages.
+- What Proxi types into a tool is redacted first, like your messages. The email address you enter in the Talk to a person card isn't, so we can reply to you.

@@ -15,6 +15,7 @@ const KNOWN = {
   }),
   get_status: () => ({ label: "Checking Proxi's status", done: "Checked Proxi's status", detail: "Checked Proxi's status" }),
   save_memory: () => ({ label: 'Saving to memory', done: 'Saved to memory', detail: 'Saved to memory' }),
+  offer_message_to_lisandro: () => ({ label: 'Writing a message for Lisandro', done: 'Wrote a message for Lisandro', detail: 'Wrote a message for Lisandro' }),
 };
 
 export function toolActivity(name, title, input) {

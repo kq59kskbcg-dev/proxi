@@ -47,12 +47,21 @@ export function buildSystemText({ prompt, locale, intent, memories, summary, ins
 // messages, or chats reloaded from storage) are mentioned so Claude doesn't guess.
 export function toContent(message, blocks, maxReplyChars) {
   const gone = message.unavailable;
-  const note = gone.length ? `[Attachment no longer available: ${gone.join(', ')}]` : '';
+  const note = gone?.length ? `[Attachment no longer available: ${gone.join(', ')}]` : '';
   // Only what the model sees is cut; the chat is saved from the full text.
   const written = message.role === 'assistant' ? message.content.slice(0, maxReplyChars) : message.content;
-  const text = [written, note].filter(Boolean).join('\n\n');
+  const text = [written, note, contactNote(message)].filter(Boolean).join('\n\n');
   if (!blocks.length) return text;
   return text ? [...blocks, { type: 'text', text }] : blocks;
+}
+
+// A reply that showed the "Message Lisandro" card says so, and whether the user sent it, so the
+// model doesn't offer it again or claim it was sent when it wasn't.
+export function contactNote(message) {
+  const c = message.contact;
+  if (message.role !== 'assistant' || !c?.summary) return '';
+  const outcome = c.sent ? 'The user sent it.' : 'The user has not sent it.';
+  return `[You showed the card for messaging Lisandro, with this summary: "${c.summary}". ${outcome}]`;
 }
 
 // The kinds of files on a message, as text for traces (the files themselves are never traced).
