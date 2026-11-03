@@ -8,7 +8,7 @@ description: "How Proxi handles your data."
 </Card>
 
 <Card title="Sensitive data redaction" icon="eye-slash">
-  Names, addresses, card numbers, IBANs, emails and phone numbers are detected and removed before reaching the model. Card numbers and IBANs are only recognized when they're valid. A made-up number that fails the check digits used by banks and card networks isn't removed.
+  Names, addresses, card numbers, IBANs, emails and phone numbers are detected and removed before reaching the model.
 </Card>
 
 <Card title="No training on your data" icon="brain">
@@ -63,11 +63,3 @@ These providers process data on Proxi's behalf.
 | Neon | Database for saved chats | Redacted chats | EU (Frankfurt) |
 | Langfuse | Monitoring, tracing and feedback | Redacted messages, usage and feedback | EU |
 | Vercel | Hosting | App requests | EU (Frankfurt) |
-
-## Limitations
-
-Proxi is a personal project. These are known tradeoffs made to keep it free to run.
-
-- **Source icons come from DuckDuckGo.** When you open a reply's sources, your browser asks DuckDuckGo's icon service for each site's icon. DuckDuckGo sees the site's domain and your IP address, but not your messages. A company could serve the icons itself.
-- **Observability runs on Langfuse Cloud.** Redacted conversations are stored by Langfuse in the EU. A company could self-host it to keep that data in its own infrastructure.
-- **Images and scanned documents aren't checked.** Proxi checks the text in PDFs and blocks files with card numbers or IBANs, but can't read text inside images or scans. A company could add OCR to check them before sending.
