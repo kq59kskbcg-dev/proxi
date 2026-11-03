@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { processAttachments, sniff, cleanName, AttachmentError, MAX_PDF_PAGES } from '../lib/attachments.js';
-import { makePdf, PNG_1X1 } from '../testing/pdf.js';
+import { makePdf, PNG_1X1 } from './helpers/pdf.js';
 
 const b64 = (buf) => Buffer.from(buf).toString('base64');
 const file = (name, content) => ({ name, data: b64(content) });
