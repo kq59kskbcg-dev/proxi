@@ -19,12 +19,22 @@ export const chatState = {
   verbTick: 0,
   copied: null, // the message whose Copy button shows a check
   votes: {},
-  chatMenu: false
+  chatMenu: false,
+  contactForms: {} // message id -> what's typed in its "Message Lisandro" card: { email, error, sending, sentTo, dismissed }
+};
+
+// The same check as the server's, so a typo is caught before sending.
+export const CONTACT_EMAIL = /^[^\s@<>,;"]{1,64}@[^\s@<>,;"]{1,190}\.[A-Za-z]{2,24}$/;
+export const CONTACT_ERRORS = {
+  email: 'Enter a full email address, like name@example.com.',
+  limit: "You've sent several messages in a short time. Try again later.",
+  unavailable: "Messaging Lisandro isn't available right now. Email dealing-lignite-1z@icloud.com instead.",
+  failed: "Couldn't send your message. Try again."
 };
 
 // The messages that are part of a chat. Error notices are shown to the user but never sent back.
 function liveMessages(conv) {
-  return conv.messages.filter((m) => !m.error && (m.text || (m.attachments || []).length));
+  return conv.messages.filter((m) => !m.error && (m.text || (m.attachments || []).length || m.contact));
 }
 
 // A message's rendered reply, kept until the message changes. Messages are replaced, never
@@ -70,6 +80,7 @@ export function createChat(app) {
     const live = liveMessages(conv);
     const messages = live.map((m, i) => ({
       role: m.role, content: m.text || '', model: m.model, traceId: m.traceId,
+      ...(m.contact ? { contact: { summary: m.contact.summary, sent: !!m.contact.sent } } : {}),
       attachments: (m.attachments || []).map((a) => (i === live.length - 1 && a.data ? { name: a.name, type: a.mediaType, data: a.data } : { kind: a.kind }))
     }));
     const controller = new AbortController();
@@ -80,6 +91,15 @@ export function createChat(app) {
     verbTimer = setInterval(() => app.setState((st) => ({ verbTick: st.verbTick + 1 })), 1800);
     let msgId = null;
     let traceId = null;
+    // The reply's message, made when its first text or card arrives.
+    const startReply = () => {
+      if (msgId) return;
+      msgId = addAssistant(convId, '');
+      const steps = s.activity.map(toStep);
+      patchMessage(convId, msgId, (m) => ({ ...m, traceId, steps }));
+      clearInterval(verbTimer);
+      app.setState({ replyStarted: true, activity: [] });
+    };
     const finish = () => {
       if (abort === controller) abort = null;
       clearInterval(verbTimer);
@@ -95,7 +115,7 @@ export function createChat(app) {
       else { const id = addAssistant(convId, text); patchMessage(convId, id, (m) => ({ ...m, error: true })); }
     };
     try {
-      const payload = JSON.stringify({ model: s.model, messages, conversationId: convId, temporary: !!conv.temporary });
+      const payload = JSON.stringify({ model: s.model, messages, conversationId: convId, temporary: !!conv.temporary, escalated: !!conv.escalated });
       // The host rejects request bodies over 4.5 MB, so say so before sending.
       if (payload.length > 4400000) {
         fail({ text: CHAT_TOO_LARGE });
@@ -120,6 +140,8 @@ export function createChat(app) {
           const event = JSON.parse(line);
           if (event.type === 'start') {
             traceId = event.traceId;
+            // Once someone asks for a person, later messages in the chat can still get the card.
+            if (event.escalated) app.setState((st) => ({ convs: st.convs.map((c) => c.id === convId ? { ...c, escalated: true } : c) }));
             // What Proxi did before sending goes in the reply's timeline, not a toast.
             const entries = redactionSteps(event.redactions).concat((event.notices || []).map((n) => ({ done: 'Checked attachments', detail: n, icon: 'file' })));
             if (entries.length) app.setState((st) => ({ activity: [...st.activity, ...entries] }));
@@ -128,14 +150,11 @@ export function createChat(app) {
             if (msgId) patchMessage(convId, msgId, (m) => ({ ...m, steps: [...(m.steps || []), toStep(event)] }));
             else app.setState((st) => ({ activity: [...st.activity, event] }));
           } else if (event.type === 'text') {
-            if (!msgId) {
-              msgId = addAssistant(convId, '');
-              const steps = s.activity.map(toStep);
-              patchMessage(convId, msgId, (m) => ({ ...m, traceId, steps }));
-              clearInterval(verbTimer);
-              app.setState({ replyStarted: true, activity: [] });
-            }
+            startReply();
             patchMessage(convId, msgId, (m) => ({ ...m, text: m.text + event.text }));
+          } else if (event.type === 'contact') {
+            startReply();
+            patchMessage(convId, msgId, (m) => ({ ...m, contact: { summary: event.summary, sent: false } }));
           } else if (event.type === 'done') {
             if (msgId) patchMessage(convId, msgId, (m) => ({ ...m, model: event.model }));
           } else if (event.type === 'title') {
@@ -188,7 +207,7 @@ export function createChat(app) {
     patch({ loading: true });
     try {
       const { messages } = await api.get('/api/conversations', { query: { id } });
-      patch({ loading: false, loaded: true, messages: messages.map((m) => ({ id: app.nextId(), role: m.role, text: m.content, model: m.model, traceId: m.traceId, attachments: (m.attachments || []).map((a) => ({ kind: a.kind })) })) });
+      patch({ loading: false, loaded: true, messages: messages.map((m) => ({ id: app.nextId(), role: m.role, text: m.content, model: m.model, traceId: m.traceId, attachments: (m.attachments || []).map((a) => ({ kind: a.kind })), ...(m.contact ? { contact: m.contact } : {}) })) });
     } catch (e) {
       patch({ loading: false });
       app.showToast("Couldn't open this chat. Try again.");
@@ -268,6 +287,31 @@ export function createChat(app) {
     if (m.traceId) {
       // Fire and forget: a vote that doesn't arrive isn't worth interrupting anyone for.
       api.post('/api/feedback', { traceId: m.traceId, value: next === 'up' ? 1 : next === 'down' ? 0 : null }).catch(() => {});
+    }
+  }
+
+  function setForm(msgId, fields) {
+    app.setState((st) => ({ contactForms: { ...st.contactForms, [msgId]: { ...(st.contactForms[msgId] || {}), ...fields } } }));
+  }
+
+  // The Send button of a "Message Lisandro" card.
+  async function sendContact(m) {
+    const conv = app.activeConv.value;
+    const form = s.contactForms[m.id] || {};
+    const email = (form.email || '').trim();
+    if (!conv || form.sending) return;
+    if (!CONTACT_EMAIL.test(email)) return setForm(m.id, { error: CONTACT_ERRORS.email });
+    setForm(m.id, { sending: true, error: '' });
+    // Where the reply is in the saved chat, so the server can mark its card as sent.
+    const position = liveMessages(conv).findIndex((x) => x.id === m.id);
+    const body = { summary: m.contact.summary, replyTo: email, ...(conv.temporary || position < 0 ? {} : { conversationId: conv.id, position }) };
+    try {
+      await api.post('/api/contact', body);
+      patchMessage(conv.id, m.id, (x) => ({ ...x, contact: { ...x.contact, sent: true } }));
+      setForm(m.id, { sending: false, sentTo: email });
+    } catch (e) {
+      const code = e && e.data && e.data.error;
+      setForm(m.id, { sending: false, error: CONTACT_ERRORS[code] || CONTACT_ERRORS.failed });
     }
   }
 
@@ -375,10 +419,37 @@ export function createChat(app) {
             cardBody: m.card ? m.card.body : '',
             cardRef: m.card ? m.card.ref : '',
             // Try again replaces the failed reply, the same as Regenerate.
-            onRetry: () => regen(m)
+            onRetry: () => regen(m),
+            ...contactView(m)
           };
         }) : [];
         return { msgRef, onMsgScroll, msgs };
+        // The reply's "Message Lisandro" card: a form until it's sent, then a confirmation.
+        function contactView(m) {
+          const form = s.contactForms[m.id] || {};
+          const show = !!(m.contact && m.contact.summary) && !(form.dismissed && !m.contact.sent);
+          const sent = show && !!m.contact.sent;
+          return {
+            hasContact: show,
+            contactSent: sent,
+            contactForm: show && !sent,
+            contactSummary: show ? m.contact.summary : '',
+            contactDone: form.sentTo ? 'He\'ll reply to ' + form.sentTo + '.' : 'He\'ll reply by email.',
+            contactInput: 'contact-email-' + m.id,
+            contactTitle: 'contact-title-' + m.id,
+            contactErrorId: 'contact-error-' + m.id,
+            contactEmail: form.email || '',
+            contactError: form.error || '',
+            contactInvalid: form.error ? 'true' : 'false',
+            // Not while the reply is still arriving: it's saved when it ends.
+            contactBusy: !!form.sending || (s.typing && s.typingConv === conv.id),
+            contactSendLabel: form.sending ? 'Sending...' : 'Send',
+            onContactEmail: (e) => setForm(m.id, { email: e.target.value, error: '' }),
+            onContactKey: (e) => { if (e.key === 'Enter') { e.preventDefault(); sendContact(m); } },
+            onContactSend: () => sendContact(m),
+            onContactDismiss: () => setForm(m.id, { dismissed: true })
+          };
+        }
       },
 
       // The "Thinking..." line, apart from the messages so its rotating label doesn't rebuild them.
