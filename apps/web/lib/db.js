@@ -1,5 +1,6 @@
 import { neon } from '@neondatabase/serverless';
 import { log } from '@proxi/agent/log';
+import { migrate } from './migrations.js';
 
 // Chat history in Postgres (Neon). Every query is scoped by the signed-in
 // user's Clerk ID, and that ID is part of each primary key, so one user can
@@ -10,6 +11,8 @@ export const CONVERSATION_ID = /^[\w-]{1,64}$/;
 export const SHARE_ID = /^[\w-]{22}$/;
 
 // "Delete chats after": the choices in Settings, and the default for users who never chose.
+// The user_settings CHECK constraint allows the same values (a test keeps the two equal); a
+// change here needs a migration that changes the constraint.
 export const RETENTION_OPTIONS = [7, 30, 90];
 export const DEFAULT_RETENTION_DAYS = 30;
 // Custom instructions: how long they may be, in characters.
@@ -37,60 +40,17 @@ function getDriver() {
 
 export function hasDatabase() { return !!getDriver(); }
 
-const SCHEMA = [
-  `CREATE TABLE IF NOT EXISTS conversations (
-     user_id text NOT NULL,
-     id text NOT NULL,
-     title text NOT NULL,
-     created_at timestamptz NOT NULL DEFAULT now(),
-     updated_at timestamptz NOT NULL DEFAULT now(),
-     PRIMARY KEY (user_id, id))`,
-  `CREATE INDEX IF NOT EXISTS conversations_recent ON conversations (user_id, updated_at DESC)`,
-  `CREATE INDEX IF NOT EXISTS conversations_inactive ON conversations (updated_at)`,
-  `CREATE TABLE IF NOT EXISTS messages (
-     user_id text NOT NULL,
-     conversation_id text NOT NULL,
-     position int NOT NULL,
-     role text NOT NULL CHECK (role IN ('user', 'assistant')),
-     content text NOT NULL,
-     model text,
-     trace_id text,
-     PRIMARY KEY (user_id, conversation_id, position),
-     FOREIGN KEY (user_id, conversation_id) REFERENCES conversations (user_id, id) ON DELETE CASCADE)`,
-  // Only the kinds of files that were attached, e.g. [{"kind":"image"}]. The files and their names are never stored.
-  `ALTER TABLE messages ADD COLUMN IF NOT EXISTS attachments jsonb`,
-  `CREATE TABLE IF NOT EXISTS user_settings (
-     user_id text PRIMARY KEY,
-     chat_retention_days int NOT NULL CHECK (chat_retention_days IN (7, 30, 90)),
-     updated_at timestamptz NOT NULL DEFAULT now())`,
-  `ALTER TABLE user_settings ADD COLUMN IF NOT EXISTS custom_instructions text NOT NULL DEFAULT ''`,
-  // Set while a chat is shared with a public link. Deleting the chat removes the link with it.
-  `ALTER TABLE conversations ADD COLUMN IF NOT EXISTS share_id text UNIQUE`,
-  // Two-letter language of the chat, found from its first message and kept once set.
-  `ALTER TABLE conversations ADD COLUMN IF NOT EXISTS language text`,
-  // True once any message in the chat asked for a person.
-  `ALTER TABLE conversations ADD COLUMN IF NOT EXISTS escalated boolean NOT NULL DEFAULT false`,
-  // Facts the user asked Proxi to remember, already redacted. Kept until the user deletes them.
-  `CREATE TABLE IF NOT EXISTS memories (
-     user_id text NOT NULL,
-     id text NOT NULL,
-     content text NOT NULL,
-     created_at timestamptz NOT NULL DEFAULT now(),
-     PRIMARY KEY (user_id, id))`,
-  // Privacy page: how many details of each type were redacted from the user's messages, per day.
-  // Only counts: never the details themselves, and no link to a chat.
-  `CREATE TABLE IF NOT EXISTS redaction_counts (
-     user_id text NOT NULL,
-     day date NOT NULL,
-     type text NOT NULL,
-     count int NOT NULL CHECK (count > 0),
-     PRIMARY KEY (user_id, day, type))`,
-];
-
 async function db() {
   const d = getDriver();
   if (!d) throw new Error('Database is not configured');
-  ready ??= (async () => { for (const stmt of SCHEMA) await d.query(stmt, []); })().catch((e) => { ready = null; throw e; });
+  // Once per cold start: one query when the schema is current, the missing migrations if not.
+  ready ??= migrate(d).then((applied) => {
+    if (applied.length) log.info('db.migrated', { from: applied[0] - 1, to: applied[applied.length - 1] });
+  }).catch((error) => {
+    ready = null;
+    log.error('db.migrate_failed', { error });
+    throw error;
+  });
   await ready;
   return d;
 }
@@ -174,6 +134,7 @@ export async function getSettings(userId) {
 
 // Saves the settings that are given and keeps the others as they are.
 export async function saveSettings(userId, { chatRetentionDays, customInstructions }) {
+  if (chatRetentionDays != null && !RETENTION_OPTIONS.includes(chatRetentionDays)) throw new RangeError('Unknown retention option');
   const d = await db();
   await d.query(
     `INSERT INTO user_settings (user_id, chat_retention_days, custom_instructions)
