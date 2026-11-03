@@ -21,6 +21,7 @@ Lisandro Vaccaro is the data controller for personal data processed through Prox
 | Usage and monitoring data | Redacted messages, the model used, token counts, errors. Monitoring traces don't include your account ID | Generated when you use Proxi, except in incognito chats |
 | Memories | Short facts Proxi saved to remember about you, after redaction | Your chats, when you ask Proxi to remember something or share a lasting preference |
 | Feedback | Thumbs up or down on a reply | You |
+| Messages to us | The summary shown in the card and the email address you enter | You, when you ask to talk to a person and choose Send, including in incognito chats |
 | Privacy page counts | How many emails, phone numbers, card numbers and IBANs were removed from your messages each day, not the details themselves | Generated when you use Proxi, except in incognito chats |
 | Technical data | IP address, browser details, request logs | Your device, when you visit |
 
@@ -35,6 +36,7 @@ Before a message is sent anywhere, Proxi automatically removes names, addresses,
 | Keeping Proxi secure, preventing abuse and rate limiting | Legitimate interests (security of the service) |
 | Monitoring errors and improving answer quality | Legitimate interests (operating and improving the service) |
 | Recording your feedback | Legitimate interests (improving the service) |
+| Answering you when you ask to talk to a person | Performance of a contract |
 
 We don't sell your data, use it for advertising, or make decisions about you that have legal or similarly significant effects.
 
@@ -48,6 +50,7 @@ We use these service providers (subprocessors) to run Proxi. They process data o
 | Clerk | Sign-in and account management | United States |
 | Neon | Database for saved chats | Cloud hosted |
 | Langfuse | Monitoring, tracing and feedback | European Union |
+| Resend | Sends us the messages you send from the chat | United States |
 | Vercel | Hosting | Functions run in Frankfurt, EU. Vercel is a US company |
 
 Under its commercial terms, Anthropic does not use data sent through its API to train its models.
@@ -66,7 +69,8 @@ Some providers are based in the United States, so your data may be transferred o
 | Privacy page counts | Until you delete your account |
 | Attachments | Not stored. Used for one request only |
 | Monitoring traces and feedback | Deleted with their chat, or with your account. Otherwise kept as long as needed to operate and debug Proxi, and deleted on request |
-| Incognito chats | Not stored and not traced |
+| Messages to us | Kept in our inbox as long as needed to answer you, and deleted on request. Resend keeps its own delivery logs |
+| Incognito chats | Not stored and not traced, except a message you choose to send us |
 | Technical logs | According to our hosting provider's standard log retention |
 
 ## Your rights
