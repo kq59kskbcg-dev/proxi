@@ -4,6 +4,14 @@ export const DOCS_URL = 'https://proxi.mintlify.site';
 
 // Citations arrive as Markdown: [[1]](url) after a sentence and a "Sources" list at the end.
 // Turn them into source name pills and a collapsible list. Runs on sanitized HTML.
+// A site icon that doesn't load is removed, so its letter shows. Error events don't bubble, so this
+// listens in the capture phase, once for the whole page.
+export function dropFailedIcon(e) {
+  const img = e.target;
+  if (img instanceof HTMLImageElement && img.parentElement?.matches('.src-tile, .src-ico')) img.remove();
+}
+if (typeof document !== 'undefined') document.addEventListener('error', dropFailedIcon, true);
+
 export function renderCitations(html) {
   if (!html.includes('<strong>Sources</strong>')) return html;
   const root = document.createElement('template');
@@ -13,17 +21,20 @@ export function renderCitations(html) {
   if (!list || list.tagName !== 'OL') return html;
   const host = (url) => { try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return ''; } };
   const label = (url) => url.startsWith(DOCS_URL) ? 'Help center' : host(url);
-  // Site icon from a public favicon service; the colored letter stays if it doesn't load.
+  // Site icon from a public favicon service, drawn over a colored letter. The image is part of
+  // the returned HTML; if it fails to load, dropFailedIcon removes it and the letter shows.
   const siteIcon = (name, url, cls) => {
     const el = document.createElement('span');
     el.className = cls + ' t' + ([...name].reduce((n, ch) => n + ch.charCodeAt(0), 0) % 5);
     el.textContent = name[0].toUpperCase();
     const h = host(url);
     if (h) {
-      const img = new Image();
-      img.alt = ''; img.referrerPolicy = 'no-referrer';
-      img.onload = () => { el.textContent = ''; el.classList.add('has-img'); el.append(img); };
+      const img = document.createElement('img');
+      img.alt = '';
+      img.setAttribute('referrerpolicy', 'no-referrer');
+      img.setAttribute('loading', 'lazy');
       img.src = 'https://icons.duckduckgo.com/ip3/' + encodeURIComponent(h) + '.ico';
+      el.append(img);
     }
     return el;
   };
