@@ -7,6 +7,7 @@ import { maskCards, modelLabel } from './format.js';
 import { renderCitations } from './citations.js';
 import { toStep, stepIcon, redactionSteps, WORKING_VERBS } from './steps.js';
 import { whenVisible } from './browser.js';
+import { createReveal, createFadeTracker, applyFades, prefersReducedMotion } from './reveal.js';
 import { ACCENT } from './store.js';
 import { KIND_LABELS } from './files.js';
 import { declinePending, memoryCard, MEMORY_ERRORS, MEMORY_MAX } from './memory-card.js';
@@ -60,6 +61,9 @@ export function createChat(app) {
   let opened = '';
   let messageCount = 0;
   let atBottom = true;
+  let reveal = null; // the buffer showing the reply on its way, word by word
+  let liveId = null; // that reply's message, whose new words fade in
+  const fades = createFadeTracker();
 
   function patchMessage(convId, msgId, fn) {
     app.setState((st) => ({
@@ -94,10 +98,21 @@ export function createChat(app) {
     verbTimer = setInterval(() => app.setState((st) => ({ verbTick: st.verbTick + 1 })), 1800);
     let msgId = null;
     let traceId = null;
+    // Reply text goes through this buffer, so it appears word by word at a steady pace.
+    const shown = createReveal({
+      instant: prefersReducedMotion(),
+      show: (text) => {
+        startReply();
+        patchMessage(convId, msgId, (m) => ({ ...m, text: m.text + text }));
+      }
+    });
+    reveal = shown;
+    fades.reset();
     // The reply's message, made when its first text or card arrives.
     const startReply = () => {
       if (msgId) return;
       msgId = addAssistant(convId, '');
+      liveId = msgId;
       const steps = s.activity.map(toStep);
       patchMessage(convId, msgId, (m) => ({ ...m, traceId, steps }));
       clearInterval(verbTimer);
@@ -105,6 +120,7 @@ export function createChat(app) {
     };
     const finish = () => {
       if (abort === controller) abort = null;
+      if (reveal === shown) { reveal = null; liveId = null; }
       clearInterval(verbTimer);
       app.setState({ typing: false, typingConv: null, replyStarted: false, activity: [] });
     };
@@ -153,9 +169,10 @@ export function createChat(app) {
             if (msgId) patchMessage(convId, msgId, (m) => ({ ...m, steps: [...(m.steps || []), toStep(event)] }));
             else app.setState((st) => ({ activity: [...st.activity, event] }));
           } else if (event.type === 'text') {
-            startReply();
-            patchMessage(convId, msgId, (m) => ({ ...m, text: m.text + event.text }));
+            shown.push(event.text);
           } else if (event.type === 'contact') {
+            // Cards come after the text before them has been shown.
+            await shown.idle();
             startReply();
             patchMessage(convId, msgId, (m) => ({ ...m, contact: { summary: event.summary, sent: false } }));
           } else if (event.type === 'memory') {
@@ -166,17 +183,20 @@ export function createChat(app) {
           } else if (event.type === 'title') {
             app.setState((st) => ({ convs: st.convs.map((c) => c.id === convId ? { ...c, title: event.title } : c) }));
           } else if (event.type === 'error') {
+            await shown.idle();
             fail(event.card ? { card: event.card } : { text: event.error });
           }
         }
       }
+      // The reply is finished once its last word is on screen; Stop stays until then.
+      await shown.idle();
     } catch (e) {
       if (!controller.signal.aborted) {
         // Switching tabs can make the browser drop the connection while Proxi keeps going and saves
         // the reply. In a saved chat, wait for that reply instead of showing an error.
         const saved = conv.temporary || !traceId ? null : await savedReply(convId, traceId, controller);
-        if (saved) placeReply(convId, msgId, saved);
-        else if (!controller.signal.aborted) fail({ card: { ...OWN_CARDS.network, ref: 'network' } });
+        if (saved) { shown.drop(); placeReply(convId, msgId, saved); }
+        else if (!controller.signal.aborted) { shown.flush(); fail({ card: { ...OWN_CARDS.network, ref: 'network' } }); }
       }
     }
     finish();
@@ -255,6 +275,8 @@ export function createChat(app) {
   }
 
   function stop() {
+    // Stop shows everything received so far at once.
+    if (reveal) reveal.flush();
     if (abort) { abort.abort(); abort = null; }
     app.setState({ typing: false, typingConv: null, replyStarted: false });
   }
@@ -392,6 +414,16 @@ export function createChat(app) {
     if (atBottom) el.scrollTop = el.scrollHeight;
   }
 
+  // The reply on its way is rendered again for each word; this fades in only the newest words.
+  function fadeLive() {
+    if (!liveId || !msgEl || prefersReducedMotion()) return;
+    const el = msgEl.querySelector('.md[data-mid="' + liveId + '"]');
+    // A marker at the end tells whether this render was already handled.
+    if (!el || (el._fadeMark && el._fadeMark === el.lastChild)) return;
+    applyFades(el, fades.update(el.textContent.length));
+    el._fadeMark = el.appendChild(document.createComment(''));
+  }
+
   const msgRef = (el) => {
     if (el === msgEl) return;
     msgEl = el;
@@ -408,7 +440,7 @@ export function createChat(app) {
 
   return {
     actions: { openConversation, send, stop },
-    updated: followBottom,
+    updated() { followBottom(); fadeLive(); },
     unmounted() {
       if (msgObserver) msgObserver.disconnect();
     },
@@ -433,6 +465,7 @@ export function createChat(app) {
           const copied = s.copied === key;
           const shown = m.role === 'user' ? maskCards(m.text || '') : m.text || '';
           return {
+            mid: m.id,
             text: shown,
             attachments: (m.attachments || []).map((a, i) => ({
               key: i, thumb: a.data ? a.thumb : '', muted: !a.data,
