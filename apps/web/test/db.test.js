@@ -1,7 +1,7 @@
 import { test, before } from 'node:test';
 import assert from 'node:assert/strict';
 import { PGlite } from '@electric-sql/pglite';
-import { setDriver, saveConversation, listConversations, getMessages, deleteConversation, deleteAllConversations, deleteAccountData, deleteInactiveConversations, getSettings, saveSettings, conversationAttributes, listMemories, addMemory, deleteMemory, MEMORY_LIMIT } from '../lib/db.js';
+import { setDriver, saveConversation, listConversations, getMessages, deleteConversation, deleteAllConversations, deleteAccountData, deleteInactiveConversations, getSettings, saveSettings, conversationAttributes, markContactSent, listMemories, addMemory, deleteMemory, MEMORY_LIMIT } from '../lib/db.js';
 
 let pg;
 before(() => {
@@ -22,8 +22,8 @@ const chat = [
 test('saves a chat and reads it back in order', async () => {
   await saveConversation('user_a', 'c1', 'Plan a trip to Lisbon', chat);
   assert.deepEqual(await getMessages('user_a', 'c1'), [
-    { role: 'user', content: 'Plan a trip to Lisbon', model: null, traceId: null, attachments: null },
-    { role: 'assistant', content: 'Day 1: Alfama.', model: 'claude-sonnet-5-5', traceId: 'trace-1', attachments: null },
+    { role: 'user', content: 'Plan a trip to Lisbon', model: null, traceId: null, attachments: null, contact: null },
+    { role: 'assistant', content: 'Day 1: Alfama.', model: 'claude-sonnet-5-5', traceId: 'trace-1', attachments: null, contact: null },
   ]);
   const list = await listConversations('user_a');
   assert.equal(list.length, 1);
@@ -159,4 +159,20 @@ test('deleting all chats removes only that user\'s chats and returns their trace
   assert.equal((await listConversations('user_other')).length, 1);
   assert.equal((await listMemories('user_all')).length, 1);
   assert.deepEqual(await deleteAllConversations('user_all'), []);
+});
+
+test('a reply keeps its Message Lisandro card, and Send marks only that card as sent', async () => {
+  const card = { summary: 'Their shared link stopped opening.', sent: false };
+  await saveConversation('user_card', 'c1', 'Help', [
+    { role: 'user', content: 'Can I talk to a person?' },
+    { role: 'assistant', content: 'Add your email in the card.', contact: card },
+  ]);
+  assert.deepEqual((await getMessages('user_card', 'c1'))[1].contact, card);
+  await markContactSent('user_other', 'c1', 1);
+  await markContactSent('user_card', 'c1', 0);
+  assert.equal((await getMessages('user_card', 'c1'))[1].contact.sent, false);
+  await markContactSent('user_card', 'c1', 1);
+  const messages = await getMessages('user_card', 'c1');
+  assert.deepEqual(messages[1].contact, { summary: card.summary, sent: true });
+  assert.equal(messages[0].contact, null);
 });

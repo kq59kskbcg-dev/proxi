@@ -85,7 +85,7 @@
           <template v-if="v.searchLabel"><div class="search-group">{{ v.searchLabel }}</div></template>
           <template v-for="r in v.searchResults" :key="r.key">
             <template v-if="r.group"><div class="search-group">{{ r.group }}</div></template>
-            <button type="button" class="search-row hov" role="option" :title="r.when" :aria-selected="r.selected" @click="r.open" @mousemove="r.hover" style="flex: none; border: 0; background: transparent; border-radius: 8px; padding: 10px 8px; display: flex; align-items: baseline; gap: 12px; text-align: left; font-size: 14px; color: var(--text); cursor: pointer">
+            <button type="button" class="search-row hov" role="option" :title="r.when" :aria-selected="r.selected" @click="r.open" @mousemove="r.hover" style="flex: none; border: 0; background: transparent; height: 44px; border-radius: 8px; padding: 0 8px; display: flex; align-items: center; gap: 12px; text-align: left; font-size: 14px; color: var(--text); cursor: pointer">
               <span style="flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap"><template v-for="(part, i_p) in r.parts" :key="i_p"><template v-if="part.hit"><mark class="search-hit">{{ part.text }}</mark></template><template v-if="!part.hit">{{ part.text }}</template></template></span>
             </button>
           </template>
@@ -136,10 +136,10 @@
         <span style="font-size: 12px; font-weight: 600; color: var(--text-muted-2); letter-spacing: 0.02em">Recents</span>
       </div>
       <template v-for="(c, i_c) in v.recents" :key="i_c">
-          <button :class="c.cls" :aria-current="c.current" @click="c.open" :style="`border: 0; text-align: left; cursor: pointer; color: ${c.color}; background: ${c.bg}; box-shadow: ${c.shadow}; border-radius: 8px; padding: 8px 10px; font-size: 14px; font-weight: ${c.weight}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis`">{{ c.title }}</button>
+          <button :class="c.cls" :aria-current="c.current" @click="c.open" :style="`border: 0; text-align: left; cursor: pointer; color: ${c.color}; background: ${c.bg}; box-shadow: ${c.shadow}; height: 44px; flex: none; border-radius: 8px; padding: 0 10px; font-size: 14px; font-weight: ${c.weight}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis`">{{ c.title }}</button>
       </template>
       <template v-if="v.hasMore">
-        <button class="hov" type="button" @click="v.openSearch" aria-haspopup="dialog" style="border: 0; background: transparent; text-align: left; cursor: pointer; border-radius: 8px; padding: 8px 10px; font-size: 14px; color: var(--text-muted-2)">View all</button>
+        <button class="hov" type="button" @click="v.openSearch" aria-haspopup="dialog" style="border: 0; background: transparent; text-align: left; cursor: pointer; height: 44px; flex: none; border-radius: 8px; padding: 0 10px; font-size: 14px; color: var(--text-muted-2)">View all</button>
       </template>
       <template v-if="v.historyNote">
         <p style="margin: 0; padding: 6px 10px; font-size: 13px; line-height: 1.45; color: var(--text-muted-2)">{{ v.historyNote }}
@@ -185,9 +185,11 @@
   <main :style="`flex: 1 1 auto; min-width: 0; min-height: 0; display: flex; flex-direction: column; background: var(--surface); overflow-y: ${v.isNew ? 'auto' : 'visible'}; overscroll-behavior: contain`">
     <header :style="`flex: none; ${v.isNew ? 'position: sticky; top: 0; z-index: 5;' : ''} background: var(--surface); height: 64px; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 20px; border-bottom: 1px solid ${v.headerBorder}`">
       <div style="display: flex; align-items: center; gap: 4px; min-width: 0; flex: 1 1 auto">
-        <button class="menu-btn hov" aria-label="Open sidebar" @click="v.openNav" :style="`display: ${v.menuBtnDisplay}; flex: none; width: 44px; height: 44px; border: 0; background: transparent; border-radius: 10px; color: var(--text-muted); align-items: center; justify-content: center; cursor: pointer`">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M9 4v16"></path></svg>
-        </button>
+        <template v-if="!v.isSettings">
+          <button class="menu-btn hov" aria-label="Open sidebar" @click="v.openNav" :style="`display: ${v.menuBtnDisplay}; flex: none; width: 44px; height: 44px; border: 0; background: transparent; border-radius: 10px; color: var(--text-muted); align-items: center; justify-content: center; cursor: pointer`">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M9 4v16"></path></svg>
+          </button>
+        </template>
         <template v-if="v.isChat">
           <div style="position: relative; min-width: 0">
             <button class="hov" :aria-label="`${v.chatTitle}, chat options`" :aria-expanded="v.chatMenuExpanded" @click="v.toggleChatMenu" style="max-width: 100%; height: 40px; border: 0; background: transparent; border-radius: 10px; padding: 0 10px; display: flex; align-items: center; gap: 6px; font-size: 15px; font-weight: 600; color: var(--text); cursor: pointer">
@@ -205,12 +207,22 @@
           </div>
         </template>
         <template v-if="v.isSettings">
+          <!-- On a phone the X sits top left, where the sidebar button is on other screens. -->
+          <button type="button" class="phone-only hov" aria-label="Close settings" @click="v.closeSettings" style="flex: none; width: 44px; height: 44px; border: 0; background: transparent; border-radius: 10px; color: var(--text-muted); display: flex; align-items: center; justify-content: center; cursor: pointer">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"></path></svg>
+          </button>
           <h1 style="margin: 0; padding: 0 10px; font-size: 15px; font-weight: 600">Settings</h1>
         </template>
         <template v-if="v.isPrivacy">
           <h1 style="margin: 0; padding: 0 10px; font-size: 15px; font-weight: 600">Privacy</h1>
         </template>
       </div>
+      <template v-if="v.isSettings">
+        <!-- On a computer the X sits top right. -->
+        <button type="button" class="desk-only hov" aria-label="Close settings" @click="v.closeSettings" style="flex: none; width: 44px; height: 44px; border: 0; background: transparent; border-radius: 10px; color: var(--text-muted); display: flex; align-items: center; justify-content: center; cursor: pointer">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"></path></svg>
+          </button>
+      </template>
       <template v-if="v.isChat">
         <template v-if="v.canShare">
           <div style="position: relative; flex: none">
@@ -288,6 +300,24 @@
                   </details>
                 </template>
                 <div v-if="m.html" class="md" v-html="m.html"></div>
+                <div v-if="m.contactForm" class="contact-card" role="group" :aria-labelledby="m.contactTitle">
+                  <div class="contact-head" :id="m.contactTitle"><span class="contact-ic" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="m3 7 9 6 9-6"></path></svg></span>Message Lisandro</div>
+                  <div class="contact-field"><span class="contact-label">What will be sent</span><div class="contact-summary">{{ m.contactSummary }}</div></div>
+                  <div class="contact-field">
+                    <label class="contact-label" :for="m.contactInput">Your email, for the reply</label>
+                    <input :id="m.contactInput" class="contact-input" :class="{ 'contact-bad': m.contactError }" type="email" inputmode="email" autocomplete="email" enterkeyhint="send" maxlength="254" placeholder="you@example.com" :value="m.contactEmail" @input="m.onContactEmail" @keydown="m.onContactKey" :aria-invalid="m.contactInvalid" :aria-describedby="m.contactErrorId">
+                    <span v-if="m.contactError" class="contact-error" :id="m.contactErrorId" role="alert">{{ m.contactError }}</span>
+                    <span v-else class="contact-hint" :id="m.contactErrorId">Only used so Lisandro can reply to you.</span>
+                  </div>
+                  <div class="contact-acts">
+                    <button type="button" class="contact-send" :disabled="m.contactBusy" @click="m.onContactSend">{{ m.contactSendLabel }}</button>
+                    <button type="button" class="contact-later hov" @click="m.onContactDismiss">Not now</button>
+                  </div>
+                </div>
+                <div v-if="m.contactSent" class="contact-card contact-done" role="status">
+                  <span class="contact-ic contact-ok" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"></path></svg></span>
+                  <div><div class="contact-head">Sent to Lisandro</div><div class="contact-muted">{{ m.contactDone }}</div></div>
+                </div>
                 <div v-if="m.isErrorCard" class="err-card" role="alert">
                   <span class="err-ic" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v5"></path><path d="M12 16.5h.01"></path></svg></span>
                   <span class="err-t">{{ m.cardTitle }}</span>
