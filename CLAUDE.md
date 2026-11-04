@@ -19,6 +19,14 @@ Every pull request follows `.github/pull_request_template.md`, with these requir
 - **Docs:** before opening the pull request, check the help center (`apps/docs`, published by Mintlify from `main`) for anything the change makes missing or outdated. Search the docs for the feature's names, labels and terms, including old names that were replaced. Update or add pages in the same pull request, and add new pages to `docs.json`. List what changed, or say why nothing needed to.
 - **Wording approval:** Put the exact docs and release note wording in the design preview or plan, and wait for the user's approval before committing it. Approving a design, or asking to ship or merge, does not approve wording.
 
+## After the user approves
+
+Once the user has approved the plan, don't stop to ask before each step:
+
+- Commit, push to a new branch (never overwrite a branch that already exists on the remote), open the pull request and watch it.
+- Fix merge conflicts and red CI. If a conflict needs new docs or release note wording, such as one summary line for two release notes on the same date, show it to the user first (see Wording approval).
+- Merge the pull request once CI is green, it has no merge conflict or open review comments, and the user approved the design, the product change and the docs change. Without all three approvals, ask first.
+
 ## Help center content
 
 The help center (`apps/docs`) is public. Write it for people who use Proxi, or want to.

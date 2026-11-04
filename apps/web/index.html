@@ -41,6 +41,20 @@
   </template>
   <button aria-label="Close sidebar" tabindex="-1" :class="v.narrowNav ? 'scrim on' : 'scrim'" @click="v.collapse"></button>
 
+  <!-- Confirm deleting all chats: a window on a computer, a sheet from the bottom on a phone. -->
+  <template v-if="v.deleteChatsOpen">
+    <div class="confirm-layer" @click="v.deleteChatsBackdrop" @keydown="v.deleteChatsKey">
+      <div class="confirm-panel pop" role="dialog" aria-modal="true" aria-labelledby="delete-chats-title">
+        <h2 id="delete-chats-title" style="margin: 0; font-size: 18px; font-weight: 600">Delete all chats?</h2>
+        <p style="margin: 0; font-size: 14px; line-height: 1.5; color: var(--text-2)">This deletes every chat in your history and their monitoring traces. Shared links stop working. Your memories and settings stay. You can't undo this.</p>
+        <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px">
+          <button type="button" :ref="v.cancelDeleteChatsRef" :disabled="v.deletingChats" @click="v.cancelDeleteChats" style="flex: 1 1 120px; height: 44px; border: 1px solid var(--border); border-radius: 10px; padding: 0 16px; font-size: 14px; font-weight: 500; background: var(--surface); color: var(--text); cursor: pointer">Cancel</button>
+          <button type="button" :disabled="v.deletingChats" @click="v.confirmDeleteChats" style="flex: 1 1 160px; height: 44px; border: 0; border-radius: 10px; padding: 0 16px; font-size: 14px; font-weight: 600; background: var(--danger); color: #FFFFFF; cursor: pointer">{{ v.deleteChatsLabel }}</button>
+        </div>
+      </div>
+    </div>
+  </template>
+
   <!-- Confirm deleting the account: a window on a computer, a sheet from the bottom on a phone. -->
   <template v-if="v.deleteAccountOpen">
     <div class="confirm-layer" @click="v.deleteAccountBackdrop" @keydown="v.deleteAccountKey">
@@ -71,7 +85,7 @@
           <template v-if="v.searchLabel"><div class="search-group">{{ v.searchLabel }}</div></template>
           <template v-for="r in v.searchResults" :key="r.key">
             <template v-if="r.group"><div class="search-group">{{ r.group }}</div></template>
-            <button type="button" class="search-row hov" role="option" :title="r.when" :aria-selected="r.selected" @click="r.open" @mousemove="r.hover" style="flex: none; border: 0; background: transparent; border-radius: 8px; padding: 10px 8px; display: flex; align-items: baseline; gap: 12px; text-align: left; font-size: 14px; color: var(--text); cursor: pointer">
+            <button type="button" class="search-row hov" role="option" :title="r.when" :aria-selected="r.selected" @click="r.open" @mousemove="r.hover" style="flex: none; border: 0; background: transparent; height: 44px; border-radius: 8px; padding: 0 8px; display: flex; align-items: center; gap: 12px; text-align: left; font-size: 14px; color: var(--text); cursor: pointer">
               <span style="flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap"><template v-for="(part, i_p) in r.parts" :key="i_p"><template v-if="part.hit"><mark class="search-hit">{{ part.text }}</mark></template><template v-if="!part.hit">{{ part.text }}</template></template></span>
             </button>
           </template>
@@ -122,10 +136,13 @@
         <span style="font-size: 12px; font-weight: 600; color: var(--text-muted-2); letter-spacing: 0.02em">Recents</span>
       </div>
       <template v-for="(c, i_c) in v.recents" :key="i_c">
-          <button :class="c.cls" :aria-current="c.current" @click="c.open" :style="`border: 0; text-align: left; cursor: pointer; color: ${c.color}; background: ${c.bg}; box-shadow: ${c.shadow}; border-radius: 8px; padding: 8px 10px; font-size: 14px; font-weight: ${c.weight}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis`">{{ c.title }}</button>
+          <button :class="c.cls" :aria-current="c.current" @click="c.open" :style="`border: 0; text-align: left; cursor: pointer; color: ${c.color}; background: ${c.bg}; box-shadow: ${c.shadow}; height: 44px; flex: none; border-radius: 8px; padding: 0 10px; font-size: 14px; font-weight: ${c.weight}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis`">{{ c.title }}</button>
       </template>
       <template v-if="v.hasMore">
-        <button class="hov" type="button" @click="v.openSearch" aria-haspopup="dialog" style="border: 0; background: transparent; text-align: left; cursor: pointer; border-radius: 8px; padding: 8px 10px; font-size: 14px; color: var(--text-muted-2)">View all</button>
+        <button class="hov" type="button" @click="v.openSearch" aria-haspopup="dialog" style="border: 0; background: transparent; text-align: left; cursor: pointer; height: 44px; flex: none; border-radius: 8px; padding: 0 10px; font-size: 14px; color: var(--text-muted-2)">View all</button>
+      </template>
+      <template v-if="v.historyLoading">
+        <p class="load-in" role="status" style="margin: 0; padding: 6px 10px; display: flex; align-items: center; gap: 8px; font-size: 13px; line-height: 1.45; color: var(--text-muted-2)"><span class="load-spinner sm spinner" aria-hidden="true"></span>Loading your chats</p>
       </template>
       <template v-if="v.historyNote">
         <p style="margin: 0; padding: 6px 10px; font-size: 13px; line-height: 1.45; color: var(--text-muted-2)">{{ v.historyNote }}
@@ -366,59 +383,81 @@
       <section style="flex: 1; min-height: 0; overflow-y: auto; padding: 40px 24px">
         <div style="max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px">
           <h2 style="margin: 0; font-size: 28px; font-weight: 600; letter-spacing: -0.02em">Settings</h2>
-          <div style="border: 1px solid var(--border); border-radius: 16px; padding: 20px; background: var(--surface); display: flex; flex-direction: column; gap: 12px">
-            <div style="display: flex; flex-direction: column; gap: 4px">
-              <label for="instructions" style="font-weight: 600">Custom instructions</label>
+          <template v-if="v.settingsLoading">
+            <div class="load-in" role="status" style="display: flex; justify-content: center; padding: 120px 0"><span class="load-spinner spinner" aria-hidden="true"></span><span class="sr-only">Loading</span></div>
+          </template>
+          <template v-if="v.settingsError">
+            <div style="border: 1px solid var(--border); border-radius: 16px; padding: 20px; background: var(--surface); display: flex; flex-direction: column; gap: 12px; align-items: flex-start">
+              <p style="margin: 0; font-size: 14px; line-height: 1.5; color: var(--text-2)">Couldn't load your settings.</p>
+              <button type="button" @click="v.settingsRetry" style="height: 44px; border: 1px solid var(--border); border-radius: 10px; padding: 0 16px; font-size: 14px; font-weight: 500; background: var(--surface); color: var(--text); cursor: pointer">Try again</button>
             </div>
-            <textarea id="instructions" rows="5" :maxlength="v.instructionsMax" :disabled="v.settingsBusy" :value="v.instructionsDraft" @input="v.onInstructions" placeholder="For example: I'm a product designer. Keep answers short and use bullet points." style="width: 100%; box-sizing: border-box; min-height: 132px; resize: vertical; border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; font: inherit; font-size: 15px; line-height: 1.55; background: var(--surface); color: var(--text)"></textarea>
-            <div style="display: flex; align-items: center; justify-content: flex-end; gap: 12px">
-              <span style="font-size: 13px; color: var(--text-muted-2)">{{ v.instructionsCount }}</span>
-              <button type="button" :disabled="v.noSaveInstructions" @click="v.saveInstructions" :style="`height: 40px; border: 0; border-radius: 10px; padding: 0 18px; font-size: 14px; font-weight: 600; background: ${v.saveInstructionsBg}; color: ${v.saveInstructionsColor}; cursor: ${v.noSaveInstructions ? 'default' : 'pointer'}`">Save</button>
+          </template>
+          <template v-if="v.settingsReady">
+            <div style="border: 1px solid var(--border); border-radius: 16px; padding: 20px; background: var(--surface); display: flex; flex-direction: column; gap: 12px">
+              <div style="display: flex; flex-direction: column; gap: 4px">
+                <label for="instructions" style="font-weight: 600">Custom instructions</label>
+              </div>
+              <textarea id="instructions" rows="5" :maxlength="v.instructionsMax" :disabled="v.settingsBusy" :value="v.instructionsDraft" @input="v.onInstructions" placeholder="For example: I'm a product designer. Keep answers short and use bullet points." style="width: 100%; box-sizing: border-box; min-height: 132px; resize: vertical; border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; font: inherit; font-size: 15px; line-height: 1.55; background: var(--surface); color: var(--text)"></textarea>
+              <div style="display: flex; align-items: center; justify-content: flex-end; gap: 12px">
+                <span style="font-size: 13px; color: var(--text-muted-2)">{{ v.instructionsCount }}</span>
+                <button type="button" :disabled="v.noSaveInstructions" @click="v.saveInstructions" :style="`height: 40px; border: 0; border-radius: 10px; padding: 0 18px; font-size: 14px; font-weight: 600; background: ${v.saveInstructionsBg}; color: ${v.saveInstructionsColor}; cursor: ${v.noSaveInstructions ? 'default' : 'pointer'}`">Save</button>
+              </div>
             </div>
-          </div>
-          <div style="border: 1px solid var(--border); border-radius: 16px; padding: 20px; background: var(--surface); display: flex; flex-direction: column; gap: 12px">
-            <div style="display: flex; flex-direction: column; gap: 4px">
-              <h3 style="margin: 0; font-size: 16px; font-weight: 600">Memory</h3>
-            </div>
-            <template v-if="v.noMemories">
-              <p style="margin: 0; font-size: 14px; color: var(--text-muted-2); line-height: 1.5">Nothing saved yet.</p>
-            </template>
-            <ul style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px">
-              <template v-for="mem in v.memoryItems" :key="mem.key">
-                <li style="display: flex; align-items: center; gap: 12px; border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px">
-                  <span style="flex: 1; min-width: 0; font-size: 14px; line-height: 1.5; overflow-wrap: anywhere">{{ mem.text }}</span>
-                  <button type="button" @click="mem.remove" aria-label="Delete memory" style="flex: none; height: 32px; border: 1px solid var(--border); border-radius: 8px; padding: 0 12px; font-size: 13px; font-weight: 500; background: var(--surface); color: var(--text-2); cursor: pointer">Delete</button>
-                </li>
+            <div style="border: 1px solid var(--border); border-radius: 16px; padding: 20px; background: var(--surface); display: flex; flex-direction: column; gap: 12px">
+              <div style="display: flex; flex-direction: column; gap: 4px">
+                <h3 style="margin: 0; font-size: 16px; font-weight: 600">Memory</h3>
+              </div>
+              <template v-if="v.noMemories">
+                <p style="margin: 0; font-size: 14px; color: var(--text-muted-2); line-height: 1.5">Nothing saved yet.</p>
               </template>
-            </ul>
-          </div>
-          <div style="border: 1px solid var(--border); border-radius: 16px; padding: 20px; background: var(--surface); display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px">
-            <div style="flex: 1 1 260px; min-width: 0; display: flex; flex-direction: column; gap: 4px">
-              <label for="theme" style="font-weight: 600">Theme</label>
+              <ul style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px">
+                <template v-for="mem in v.memoryItems" :key="mem.key">
+                  <li style="display: flex; align-items: center; gap: 12px; border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px">
+                    <span style="flex: 1; min-width: 0; font-size: 14px; line-height: 1.5; overflow-wrap: anywhere">{{ mem.text }}</span>
+                    <button type="button" @click="mem.remove" aria-label="Delete memory" style="flex: none; height: 32px; border: 1px solid var(--border); border-radius: 8px; padding: 0 12px; font-size: 13px; font-weight: 500; background: var(--surface); color: var(--text-2); cursor: pointer">Delete</button>
+                  </li>
+                </template>
+              </ul>
             </div>
-            <select id="theme" :value="v.themeValue" @change="v.changeTheme" style="height: 44px; min-width: 140px; border: 1px solid var(--border); border-radius: 10px; padding: 0 12px; font-size: 15px; background: var(--surface); color: var(--text); cursor: pointer">
-              <template v-for="(o, i_o) in v.themeChoices" :key="i_o"><option :value="o.value">{{ o.label }}</option></template>
-            </select>
-          </div>
-          <div style="border: 1px solid var(--border); border-radius: 16px; padding: 20px; background: var(--surface); display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px">
-            <div style="flex: 1 1 260px; min-width: 0; display: flex; flex-direction: column; gap: 4px">
-              <label for="retention" style="font-weight: 600">Delete chats after</label>
+            <div style="border: 1px solid var(--border); border-radius: 16px; padding: 20px; background: var(--surface); display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px">
+              <div style="flex: 1 1 260px; min-width: 0; display: flex; flex-direction: column; gap: 4px">
+                <label for="theme" style="font-weight: 600">Theme</label>
+              </div>
+              <select id="theme" :value="v.themeValue" @change="v.changeTheme" style="height: 44px; min-width: 140px; border: 1px solid var(--border); border-radius: 10px; padding: 0 12px; font-size: 15px; background: var(--surface); color: var(--text); cursor: pointer">
+                <template v-for="(o, i_o) in v.themeChoices" :key="i_o"><option :value="o.value">{{ o.label }}</option></template>
+              </select>
             </div>
-            <select id="retention" :disabled="v.settingsBusy" :value="v.retentionValue" @change="v.changeRetention" style="height: 44px; min-width: 140px; border: 1px solid var(--border); border-radius: 10px; padding: 0 12px; font-size: 15px; background: var(--surface); color: var(--text); cursor: pointer">
-              <template v-for="(o, i_o) in v.retentionChoices" :key="i_o"><option :value="o.value">{{ o.label }}</option></template>
-            </select>
-          </div>
-          <div style="border: 1px solid var(--border); border-radius: 16px; padding: 20px; background: var(--surface); display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px">
-            <div style="flex: 1 1 260px; min-width: 0; display: flex; flex-direction: column; gap: 4px">
-              <h3 style="margin: 0; font-size: 16px; font-weight: 600">Account</h3>
-              <p style="margin: 0; font-size: 14px; color: var(--text-muted-2)">Delete your account and its data.</p>
+            <div style="border: 1px solid var(--border); border-radius: 16px; padding: 20px; background: var(--surface); display: flex; flex-direction: column; gap: 16px">
+              <h3 style="margin: 0; font-size: 16px; font-weight: 600">Chats</h3>
+              <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px">
+                <div style="flex: 1 1 260px; min-width: 0; display: flex; flex-direction: column; gap: 4px">
+                  <label for="retention" style="font-weight: 600">Delete chats after</label>
+                </div>
+                <select id="retention" :disabled="v.settingsBusy" :value="v.retentionValue" @change="v.changeRetention" style="height: 44px; min-width: 140px; border: 1px solid var(--border); border-radius: 10px; padding: 0 12px; font-size: 15px; background: var(--surface); color: var(--text); cursor: pointer">
+                  <template v-for="(o, i_o) in v.retentionChoices" :key="i_o"><option :value="o.value">{{ o.label }}</option></template>
+                </select>
+              </div>
+              <div style="height: 1px; background: var(--border); margin: 0 -20px"></div>
+              <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px">
+                <div style="flex: 1 1 260px; min-width: 0; display: flex; flex-direction: column; gap: 4px">
+                  <span style="font-weight: 600">Delete all chats</span>
+                  <p style="margin: 0; font-size: 14px; color: var(--text-muted-2)">Your memories and settings stay.</p>
+                </div>
+                <button type="button" :disabled="!v.hasChats" @click="v.askDeleteChats" aria-haspopup="dialog" :style="`height: 44px; border: 1px solid ${v.hasChats ? 'var(--danger)' : 'var(--border)'}; border-radius: 10px; padding: 0 16px; font-size: 14px; font-weight: 500; background: var(--surface); color: ${v.hasChats ? 'var(--danger)' : 'var(--text-disabled)'}; cursor: ${v.hasChats ? 'pointer' : 'default'}`">Delete all</button>
+              </div>
             </div>
-            <button type="button" @click="v.askDeleteAccount" style="height: 44px; border: 1px solid var(--danger); border-radius: 10px; padding: 0 16px; font-size: 14px; font-weight: 500; background: var(--surface); color: var(--danger); cursor: pointer">Delete</button>
-          </div>
-          <nav aria-label="Legal" style="display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 20px; padding: 8px 0 16px; font-size: 13px">
-            <a class="foot-link" :href="v.privacyPolicy" target="_blank" rel="noopener noreferrer">Privacy policy</a>
-            <a class="foot-link" :href="v.terms" target="_blank" rel="noopener noreferrer">Terms of service</a>
-          </nav>
+            <div style="border: 1px solid var(--border); border-radius: 16px; padding: 20px; background: var(--surface); display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px">
+              <div style="flex: 1 1 260px; min-width: 0; display: flex; flex-direction: column; gap: 4px">
+                <h3 style="margin: 0; font-size: 16px; font-weight: 600">Account</h3>
+                <p style="margin: 0; font-size: 14px; color: var(--text-muted-2)">Delete your account and its data.</p>
+              </div>
+              <button type="button" @click="v.askDeleteAccount" style="height: 44px; border: 1px solid var(--danger); border-radius: 10px; padding: 0 16px; font-size: 14px; font-weight: 500; background: var(--surface); color: var(--danger); cursor: pointer">Delete</button>
+            </div>
+            <nav aria-label="Legal" style="display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 20px; padding: 8px 0 16px; font-size: 13px">
+              <a class="foot-link" :href="v.privacyPolicy" target="_blank" rel="noopener noreferrer">Privacy policy</a>
+              <a class="foot-link" :href="v.terms" target="_blank" rel="noopener noreferrer">Terms of service</a>
+            </nav>
+          </template>
         </div>
       </section>
     </template>
@@ -428,8 +467,13 @@
       <section style="flex: 1; min-height: 0; overflow-y: auto; padding: 40px 24px">
         <div style="max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px">
           <h2 style="margin: 0; font-size: 28px; font-weight: 600; letter-spacing: -0.02em">Your privacy</h2>
+          <div role="group" aria-label="Period" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; padding: 4px; border-radius: 12px; background: var(--sunken); max-width: 360px">
+            <template v-for="tab in v.privacyTabs" :key="tab.key">
+              <button type="button" :aria-pressed="tab.pressed" @click="tab.pick" :style="`height: 44px; border: 0; border-radius: 8px; font-size: 14px; font-weight: ${tab.weight}; background: ${tab.bg}; color: ${tab.color}; box-shadow: ${tab.shadow}; cursor: pointer`">{{ tab.label }}</button>
+            </template>
+          </div>
           <template v-if="v.privacyLoading">
-            <p style="margin: 0; font-size: 14px; color: var(--text-muted-2)">Loading...</p>
+            <div class="load-in" role="status" style="display: flex; justify-content: center; padding: 48px 0"><span class="load-spinner spinner" aria-hidden="true"></span><span class="sr-only">Loading</span></div>
           </template>
           <template v-if="v.privacyError">
             <div style="border: 1px solid var(--border); border-radius: 16px; padding: 20px; background: var(--surface); display: flex; flex-direction: column; gap: 12px; align-items: flex-start">
@@ -444,11 +488,6 @@
             </div>
           </template>
           <template v-if="v.privacyHasData">
-            <div role="group" aria-label="Period" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; padding: 4px; border-radius: 12px; background: var(--sunken); max-width: 360px">
-              <template v-for="tab in v.privacyTabs" :key="tab.key">
-                <button type="button" :aria-pressed="tab.pressed" @click="tab.pick" :style="`height: 44px; border: 0; border-radius: 8px; font-size: 14px; font-weight: ${tab.weight}; background: ${tab.bg}; color: ${tab.color}; box-shadow: ${tab.shadow}; cursor: pointer`">{{ tab.label }}</button>
-              </template>
-            </div>
             <div style="display: flex; flex-direction: column; gap: 8px">
               <p style="margin: 0; font-size: 24px; font-weight: 600; line-height: 1.3; letter-spacing: -0.02em"><span style="color: var(--link)">{{ v.privacy.count }}</span> {{ v.privacy.when }}</p>
               <p style="margin: 0; font-size: 14px; line-height: 1.5; color: var(--text-muted-2)">{{ v.privacy.line }}</p>
@@ -476,9 +515,10 @@
                 </template>
               </div>
             </div>
-            <p style="margin: 0; font-size: 13px; line-height: 1.5; text-align: center; color: var(--text-muted-2)">Incognito chats aren't counted.</p>
           </template>
-          <a class="foot-link" :href="v.privacyDocs" target="_blank" rel="noopener noreferrer" style="align-self: center; margin-top: -16px; font-size: 14px; color: var(--link)">How Proxi protects your data</a>
+          <template v-if="!v.privacyLoading">
+            <a class="foot-link" :href="v.privacyDocs" target="_blank" rel="noopener noreferrer" style="align-self: center; margin-top: -16px; font-size: 14px; color: var(--link)">How Proxi protects your data</a>
+          </template>
         </div>
       </section>
     </template>

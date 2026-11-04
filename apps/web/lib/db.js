@@ -225,6 +225,17 @@ export async function deleteConversation(userId, conversationId) {
   return rows.map((r) => r.trace_id);
 }
 
+// Deletes all of the user's chats. Returns the monitoring trace IDs of their messages,
+// so the caller can delete those too. Memories, settings and privacy counts are kept.
+export async function deleteAllConversations(userId) {
+  const d = await db();
+  const rows = await d.query(
+    `WITH traces AS (SELECT trace_id FROM messages WHERE user_id = $1 AND trace_id IS NOT NULL),
+          gone AS (DELETE FROM conversations WHERE user_id = $1 RETURNING id)
+     SELECT DISTINCT trace_id FROM traces`, [userId]);
+  return rows.map((r) => r.trace_id);
+}
+
 // Account deletion: removes everything stored for the user. Returns the monitoring trace IDs
 // of their messages, so the caller can delete those too.
 export async function deleteAccountData(userId) {
