@@ -2,7 +2,7 @@
 // this decides what it is shown: Proxi's prompt, the user's memories and instructions, a summary
 // of older messages, and the most recent messages word for word.
 
-import { withMemories } from './memory.js';
+import { withMemories, memoryNote } from './memory.js';
 
 // Custom instructions go after Proxi's own prompt, marked off so they can shape
 // tone and format but not override the rules above them.
@@ -50,7 +50,7 @@ export function toContent(message, blocks, maxReplyChars) {
   const note = gone?.length ? `[Attachment no longer available: ${gone.join(', ')}]` : '';
   // Only what the model sees is cut; the chat is saved from the full text.
   const written = message.role === 'assistant' ? message.content.slice(0, maxReplyChars) : message.content;
-  const text = [written, note, contactNote(message)].filter(Boolean).join('\n\n');
+  const text = [written, note, contactNote(message), memoryNote(message)].filter(Boolean).join('\n\n');
   if (!blocks.length) return text;
   return text ? [...blocks, { type: 'text', text }] : blocks;
 }

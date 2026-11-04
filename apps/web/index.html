@@ -304,6 +304,36 @@
                   <span class="contact-ic contact-ok" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"></path></svg></span>
                   <div><div class="contact-head">Sent to Lisandro</div><div class="contact-muted">{{ m.contactDone }}</div></div>
                 </div>
+                <div v-if="m.memoryAsk" class="contact-card" role="group" :aria-labelledby="m.memoryTitle">
+                  <div class="contact-head" :id="m.memoryTitle"><span class="contact-ic" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0-6 6c0 2 1 3 2 4v3h8v-3c1-1 2-2 2-4a6 6 0 0 0-6-6z"></path><path d="M9 20h6"></path></svg></span>Save to memory</div>
+                  <div class="contact-field">
+                    <label class="contact-label" :for="m.memoryInput">What will be saved</label>
+                    <textarea :id="m.memoryInput" class="contact-input memory-input" :class="{ 'contact-bad': m.memoryError }" rows="2" :maxlength="m.memoryMax" :value="m.memoryText" @input="m.onMemoryText" :aria-invalid="m.memoryInvalid" :aria-describedby="m.memoryHintId"></textarea>
+                    <span v-if="m.memoryError" class="contact-error" :id="m.memoryHintId" role="alert">{{ m.memoryError }}</span>
+                    <span v-else class="contact-hint" :id="m.memoryHintId">You can change it before saving, and delete it later in Settings.</span>
+                  </div>
+                  <div class="contact-acts">
+                    <button type="button" class="contact-send" :disabled="m.memoryBusy" @click="m.onMemorySave">{{ m.memorySaveLabel }}</button>
+                    <button type="button" class="contact-later hov" :disabled="m.memoryBusy" @click="m.onMemoryDismiss">Not now</button>
+                  </div>
+                </div>
+                <div v-if="m.memorySaved" class="contact-card contact-done" role="status">
+                  <span class="contact-ic contact-ok" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"></path></svg></span>
+                  <div><div class="contact-head">Saved to memory</div><div class="contact-muted">{{ m.memoryDone }}</div></div>
+                </div>
+                <div v-if="m.memoryDeclined" class="memory-note" role="status"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M8 12h8"></path></svg>Not saved to memory</div>
+                <div v-if="m.memoryExpired" class="contact-card memory-off" role="group" aria-disabled="true" :aria-labelledby="m.memoryTitle">
+                  <div class="contact-head" :id="m.memoryTitle"><span class="contact-ic" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0-6 6c0 2 1 3 2 4v3h8v-3c1-1 2-2 2-4a6 6 0 0 0-6-6z"></path><path d="M9 20h6"></path></svg></span>Save to memory</div>
+                  <div class="contact-field">
+                    <span class="contact-label">What would have been saved</span>
+                    <div class="contact-summary">{{ m.memoryText }}</div>
+                    <span class="contact-hint">Not saved. You sent a new message before saving.</span>
+                  </div>
+                  <div class="contact-acts">
+                    <button type="button" class="contact-send" disabled>Save</button>
+                    <button type="button" class="contact-later" disabled>Not now</button>
+                  </div>
+                </div>
                 <div v-if="m.isErrorCard" class="err-card" role="alert">
                   <span class="err-ic" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v5"></path><path d="M12 16.5h.01"></path></svg></span>
                   <span class="err-t">{{ m.cardTitle }}</span>
