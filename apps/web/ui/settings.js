@@ -10,6 +10,7 @@ const THEMES = [{ value: 'system', label: 'System' }, { value: 'light', label: '
 export const settingsState = {
   settings: null, // null until loaded
   settingsBusy: false,
+  settingsFailed: false, // true when loading the settings failed
   instructionsDraft: '',
   settingsReturn: 'new', // the screen the close button goes back to
   theme: window.proxiTheme?.get() || 'system',
@@ -22,6 +23,7 @@ export function createSettings(app) {
   let cancelDeleteChatsEl = null;
 
   async function loadSettings() {
+    app.setState({ settingsFailed: false });
     app.loadMemories();
     try {
       const data = await api.get('/api/settings');
@@ -30,6 +32,7 @@ export function createSettings(app) {
         instructionsDraft: data.customInstructions || ''
       });
     } catch {
+      app.setState({ settingsFailed: true });
       app.showToast("Couldn't load your settings. Please try again.");
     }
   }
@@ -142,6 +145,11 @@ export function createSettings(app) {
         return {
           openSettings,
           closeSettings,
+          // The page shows one spinner until both the settings and the memories have loaded.
+          settingsReady: !!s.settings && s.memories !== null,
+          settingsLoading: !(s.settings && s.memories !== null) && !(s.settingsFailed && !s.settings),
+          settingsError: s.settingsFailed && !s.settings,
+          settingsRetry: () => loadSettings(),
           settingsBusy: !s.settings || s.settingsBusy,
           retentionValue: String(s.settings?.chatRetentionDays ?? 30),
           retentionChoices: (s.settings?.options || [7, 30, 90]).map((d) => ({ value: String(d), label: d + ' days' })),
