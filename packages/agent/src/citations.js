@@ -52,3 +52,12 @@ export function blockCitations(sources) {
     },
   };
 }
+
+// A saved reply without the citation markers and "Sources" list added above, for sending it back
+// as chat history. Left in, the model copies the format and writes a list of its own, so the
+// reply shows two.
+export function stripCitations(text) {
+  return String(text)
+    .replace(/\n\n\*\*Sources\*\*\n(?:\d+\. \[.*\]\(\S+\)(?:\n|$))+\s*$/, '')
+    .replace(/ ?(?:\[\[\d+\]\]\(\S+?\))+/g, '');
+}

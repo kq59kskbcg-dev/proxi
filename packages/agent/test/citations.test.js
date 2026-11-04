@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { sourceNumber, escapeLinkText, citationMarker, sourcesList, blockCitations } from '../src/citations.js';
+import { sourceNumber, escapeLinkText, citationMarker, sourcesList, blockCitations, stripCitations } from '../src/citations.js';
 
 const cite = (source, title) => ({ type: 'search_result_location', source, title });
 
@@ -66,4 +66,11 @@ test('a citation without a URL adds no marker', () => {
   const blocks = blockCitations([]);
   blocks.cite(cite('not a url', 'x'));
   assert.equal(blocks.endBlock(true), '');
+});
+
+test('replies sent back as history lose their markers and Sources list', () => {
+  const sources = [{ url: 'https://a.example/x', title: 'A [1]' }, { url: 'https://b.example/y%28z%29', title: 'B' }];
+  const reply = 'First point. ' + citationMarker(sources, [1, 2]) + '\n\nSecond point. ' + citationMarker(sources, [2]) + sourcesList(sources);
+  assert.equal(stripCitations(reply), 'First point.\n\nSecond point.');
+  assert.equal(stripCitations('No sources here.\n\n**Sources** are good.'), 'No sources here.\n\n**Sources** are good.');
 });
