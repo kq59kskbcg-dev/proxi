@@ -9,9 +9,9 @@ import { redact } from './redact.js';
 export const MEMORY_TOOL = 'save_memory';
 export const MEMORY_MAX = 300; // characters per memory
 
-// What a suggestion's card can be: waiting for an answer, saved, declined with Not now, or
-// declined by sending another message without saving (shown greyed out).
-export const MEMORY_STATUSES = new Set(['pending', 'saved', 'declined', 'expired']);
+// What a suggestion's card can be: waiting for an answer, saved, or declined (Not now, or another
+// message sent without saving).
+export const MEMORY_STATUSES = new Set(['pending', 'saved', 'declined']);
 
 export const DEFAULT_MEMORY_TOOL_DESCRIPTION = `Suggest one short fact about the user to remember in future chats. It is shown in a card under your reply, where the user can edit it and press Save. Nothing is saved until they do.
 Use it when the user asks you to remember something, or shares a lasting preference or fact about themselves: how they want replies written, their role or field, or a project they keep working on.

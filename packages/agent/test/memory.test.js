@@ -34,7 +34,7 @@ test('the built-in description asks for approval and never claims a save', () =>
 test('a card sent back by the page is tidied, redacted and given a known status', () => {
   assert.equal(cleanMemory('  Uses   metric '), 'Uses metric');
   assert.deepEqual(memoryField({ text: 'Email is jane@example.com', status: 'saved', extra: 1 }), { text: 'Email is [EMAIL]', status: 'saved' });
-  assert.deepEqual(memoryField({ text: 'Uses metric', status: 'hacked' }), { text: 'Uses metric', status: 'pending' });
+  assert.deepEqual(memoryField({ text: 'Uses metric', status: 'expired' }), { text: 'Uses metric', status: 'pending' });
   assert.equal(memoryField({ text: '' }), null);
   assert.equal(memoryField('Uses metric'), null);
 });
@@ -43,7 +43,6 @@ test('the model is told what happened to each suggestion', () => {
   const reply = (status) => ({ role: 'assistant', content: 'Check the card.', memory: { text: 'Uses metric units', status } });
   assert.match(memoryNote(reply('saved')), /"Uses metric units"\. The user saved it\.\]$/);
   assert.match(memoryNote(reply('declined')), /The user declined it/);
-  assert.match(memoryNote(reply('expired')), /The user declined it/);
   assert.match(memoryNote(reply('pending')), /not answered yet/);
   assert.equal(memoryNote({ role: 'user', content: 'x', memory: { text: 'x', status: 'saved' } }), '');
   assert.match(toContent(reply('declined'), [], 1000), /^Check the card\.\n\n\[You suggested saving this memory/);

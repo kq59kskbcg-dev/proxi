@@ -122,11 +122,6 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 .contact-later:disabled{opacity:.6;cursor:default}
 .memory-note{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-muted)}
 .memory-note svg{flex:none}
-.memory-off{background:var(--sunken)}
-.memory-off .contact-head,.memory-off .contact-label{color:var(--text-muted)}
-.memory-off .contact-ic{background:var(--border);color:var(--text-muted)}
-.memory-off .contact-summary{background:var(--bg);color:var(--text-muted)}
-.memory-off .contact-send,.memory-off .contact-later{background:var(--border);color:var(--text-muted);opacity:1;cursor:default}
 .err-retry{font:inherit;font-size:13px;font-weight:500;height:32px;padding:0 14px;border:0;border-radius:8px;background:var(--sunken);color:var(--text);cursor:pointer}
 .err-ref{font-size:12px;color:var(--text-muted-3);font-variant-numeric:tabular-nums}
 .md .sources{margin-top:14px}

@@ -87,7 +87,7 @@ export async function POST(request) {
     }
     // A memory card still waiting when the user sends another message counts as declined.
     const memory = memoryOf(m);
-    if (memory?.status === 'pending') memory.status = 'expired';
+    if (memory?.status === 'pending') memory.status = 'declined';
     return { role: m.role, content: text, model: label(m.model), traceId: label(m.traceId), attachments: kinds.map((kind) => ({ kind })), unavailable, contact: contactOf(m), memory };
   });
   // The privacy page's counts. Incognito chats have no conversation ID, so they aren't counted.

@@ -5,7 +5,7 @@ import { memoryOffer } from '../lib/memories.js';
 import { parseChatRequest, memoryOf } from '../lib/chat-request.js';
 import { MEMORY_LIMIT } from '../lib/db.js';
 import { MEMORY_MAX as SERVER_MAX } from '@proxi/agent/memory';
-import { MEMORY_MAX, expirePending, memoryCard, MEMORY_DUPLICATE } from '../ui/memory-card.js';
+import { MEMORY_MAX, declinePending, memoryCard, MEMORY_DUPLICATE } from '../ui/memory-card.js';
 import { toolActivity } from '../lib/activity.js';
 
 test('the page and the server allow the same memory length', () => {
@@ -42,19 +42,19 @@ test('chat requests keep a reply\'s memory card, and a card-only reply is valid'
   assert.equal(memoryOf({ role: 'user', memory: { text: 'x' } }), null);
 });
 
-test('the chat API marks a card left unanswered as expired when another message arrives', () => {
+test('the chat API marks a card left unanswered as declined when another message arrives', () => {
   const source = readFileSync(new URL('../api/chat.js', import.meta.url), 'utf8');
-  assert.match(source, /memory\?\.status === 'pending'\) memory\.status = 'expired'/);
+  assert.match(source, /memory\?\.status === 'pending'\) memory\.status = 'declined'/);
 });
 
-test('sending a message greys out only cards still waiting', () => {
+test('sending a message declines only cards still waiting', () => {
   const messages = [
     { id: 1, role: 'assistant', memory: { text: 'A', status: 'pending' } },
     { id: 2, role: 'assistant', memory: { text: 'B', status: 'saved' } },
     { id: 3, role: 'assistant', text: 'No card' },
   ];
-  const after = expirePending(messages);
-  assert.equal(after[0].memory.status, 'expired');
+  const after = declinePending(messages);
+  assert.equal(after[0].memory.status, 'declined');
   assert.equal(after[1], messages[1]);
   assert.equal(after[2], messages[2]);
   assert.equal(messages[0].memory.status, 'pending');
@@ -63,13 +63,12 @@ test('sending a message greys out only cards still waiting', () => {
 test('each state of the card shows one version of it', () => {
   const shown = (status, form, busy) => {
     const v = memoryCard(status ? { text: 'Uses metric units', status } : null, form, busy);
-    return { v, which: ['memoryAsk', 'memorySaved', 'memoryDeclined', 'memoryExpired'].filter((k) => v[k]) };
+    return { v, which: ['memoryAsk', 'memorySaved', 'memoryDeclined'].filter((k) => v[k]) };
   };
   assert.deepEqual(shown(null).which, []);
   assert.deepEqual(shown('pending').which, ['memoryAsk']);
   assert.deepEqual(shown('saved').which, ['memorySaved']);
   assert.deepEqual(shown('declined').which, ['memoryDeclined']);
-  assert.deepEqual(shown('expired').which, ['memoryExpired']);
   assert.equal(shown('pending', { text: 'Uses metric units for cooking' }).v.memoryText, 'Uses metric units for cooking');
   assert.equal(shown('pending', { saving: true }).v.memorySaveLabel, 'Saving...');
   assert.equal(shown('pending', {}, true).v.memoryBusy, true);

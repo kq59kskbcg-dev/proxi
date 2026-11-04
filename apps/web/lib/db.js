@@ -70,7 +70,7 @@ const SCHEMA = [
   // A reply's "Message Lisandro" card: {"summary": "...", "sent": true}. The address typed in the
   // card is never stored.
   `ALTER TABLE messages ADD COLUMN IF NOT EXISTS contact jsonb`,
-  // A reply's "Save to memory" card: {"text": "...", "status": "pending" | "saved" | "declined" | "expired"}.
+  // A reply's "Save to memory" card: {"text": "...", "status": "pending" | "saved" | "declined"}.
   `ALTER TABLE messages ADD COLUMN IF NOT EXISTS memory jsonb`,
   // True once any message in the chat asked for a person.
   `ALTER TABLE conversations ADD COLUMN IF NOT EXISTS escalated boolean NOT NULL DEFAULT false`,

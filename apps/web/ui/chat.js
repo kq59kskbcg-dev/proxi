@@ -9,7 +9,7 @@ import { toStep, stepIcon, redactionSteps, WORKING_VERBS } from './steps.js';
 import { whenVisible } from './browser.js';
 import { ACCENT } from './store.js';
 import { KIND_LABELS } from './files.js';
-import { expirePending, memoryCard, MEMORY_ERRORS, MEMORY_MAX } from './memory-card.js';
+import { declinePending, memoryCard, MEMORY_ERRORS, MEMORY_MAX } from './memory-card.js';
 import { MAX_MESSAGE_CHARS, MAX_CHAT_MESSAGES, MESSAGE_TOO_LONG, CHAT_FULL, CHAT_TOO_LARGE, RECOVER_MS, OWN_CARDS } from './limits.js';
 
 export const chatState = {
@@ -248,7 +248,7 @@ export function createChat(app) {
         activeId: convId,
         modelMenu: false,
         // A "Save to memory" card left unanswered counts as declined once another message is sent.
-        convs: base.map((c) => c.id === convId ? { ...c, messages: [...expirePending(c.messages), { id, role: 'user', text, attachments: files }] } : c)
+        convs: base.map((c) => c.id === convId ? { ...c, messages: [...declinePending(c.messages), { id, role: 'user', text, attachments: files }] } : c)
       };
     });
     ask(convId);
