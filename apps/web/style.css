@@ -84,6 +84,9 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 @media (prefers-reduced-motion: reduce){.side,.scrim{transition:none !important}}
 .resizing .side,.resizing .scrim{transition:none !important}
 .md{overflow-wrap:anywhere}
+.fade-w{animation:fade-w 150ms ease-out both}
+@keyframes fade-w{from{opacity:0}to{opacity:1}}
+@media (prefers-reduced-motion: reduce){.fade-w{animation:none}}
 .md>:first-child{margin-top:0}.md>:last-child{margin-bottom:0}
 .md p,.md ul,.md ol,.md pre,.md blockquote,.md table{margin:0 0 14px}
 .md h1,.md h2,.md h3,.md h4{margin:20px 0 10px;font-size:16px;font-weight:600;line-height:1.4}
