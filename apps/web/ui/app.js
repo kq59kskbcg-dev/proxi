@@ -19,6 +19,7 @@ import { memoriesState, createMemories } from './memories.js';
 import { accountState, createAccount } from './account.js';
 import { privacyState, createPrivacyPage } from './privacy-page.js';
 import { startShared } from './shared-page.js';
+import { setupSources } from './citations.js';
 
 const { createApp, computed, onMounted, onUpdated, onBeforeUnmount } = Vue;
 
@@ -86,6 +87,7 @@ function clearSharedClerkToken() {
 }
 
 async function start() {
+  setupSources();
   const shared = location.pathname.match(/^\/s\/([\w-]{22})\/?$/);
   if (shared) return startShared(shared[1]);
   const clerk = window.Clerk;
