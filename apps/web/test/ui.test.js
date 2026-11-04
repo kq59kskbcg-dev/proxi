@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { highlight, groupOf, whenLabel, fullDate, shareUrl, maskCards, modelLabel } from '../ui/format.js';
 import { redactionSteps, toStep, stepIcon } from '../ui/steps.js';
 import { classify, formatSize, ACCEPT } from '../ui/files.js';
+import { opensAbove } from '../ui/citations.js';
 
 const daysAgo = (n) => new Date(Date.now() - n * 86400000).toISOString();
 
@@ -63,4 +64,10 @@ test('formatSize uses B, KB and MB', () => {
   assert.equal(formatSize(500), '500 B');
   assert.equal(formatSize(2048), '2 KB');
   assert.equal(formatSize(3 * 1048576), '3.0 MB');
+});
+
+test('the sources card opens above the button only when it fits better there', () => {
+  assert.equal(opensAbove(400, 100, 220), false);
+  assert.equal(opensAbove(120, 500, 220), true);
+  assert.equal(opensAbove(120, 80, 220), false);
 });
