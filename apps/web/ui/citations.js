@@ -3,17 +3,19 @@
 export const DOCS_URL = 'https://proxi.mintlify.site';
 
 // Citations arrive as Markdown: [[1]](url) after a sentence and a "Sources" list at the end.
-// Turn them into source name pills and a collapsible list. Runs on sanitized HTML.
+// Turn them into number pills and a collapsible list. Runs on sanitized HTML, on every render,
+// so the pills show while a reply streams, before the Sources list arrives.
 export function renderCitations(html) {
-  if (!html.includes('<strong>Sources</strong>')) return html;
+  const hasCites = /<a [^>]*>\[\d+\]<\/a>/.test(html);
+  const hasList = html.includes('<strong>Sources</strong>');
+  if (!hasCites && !hasList) return html;
   const root = document.createElement('template');
   root.innerHTML = html;
   // Proxi's list is the last one. A model sometimes writes its own as well: drop those copies.
   const lists = [...root.content.querySelectorAll('p')]
     .filter((p) => p.textContent.trim() === 'Sources' && p.querySelector('strong') && p.nextElementSibling?.tagName === 'OL');
-  if (!lists.length) return html;
   const heading = lists.at(-1);
-  const list = heading.nextElementSibling;
+  const list = heading?.nextElementSibling;
   for (const p of lists.slice(0, -1)) { p.nextElementSibling.remove(); p.remove(); }
   const host = (url) => { try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return ''; } };
   const label = (url) => url.startsWith(DOCS_URL) ? 'Help center' : host(url);
@@ -31,27 +33,25 @@ export function renderCitations(html) {
     }
     return el;
   };
-  const sources = [...list.querySelectorAll('a')].map((a) => ({ url: a.getAttribute('href'), title: a.textContent }));
+  const sources = list ? [...list.querySelectorAll('a')].map((a) => ({ url: a.getAttribute('href'), title: a.textContent })) : [];
   const link = (url, cls) => {
     const a = document.createElement('a');
     a.href = url; a.className = cls; a.target = '_blank'; a.rel = 'noopener noreferrer';
     return a;
   };
-  // Consecutive [n] links become one pill: "Help center +1".
-  const cites = [...root.content.querySelectorAll('a')].filter((a) => /^\[\d+\]$/.test(a.textContent));
-  const groups = [];
+  // Each [n] link becomes a number pill, with the page's title (or site) as its tooltip.
+  const cites = [...root.content.querySelectorAll('a')].filter((a) => /^\[\d+\]$/.test(a.textContent) && !a.closest('ol'));
   for (const a of cites) {
-    const last = groups.at(-1);
-    if (last && last.at(-1).nextSibling === a) last.push(a); else groups.push([a]);
-  }
-  for (const group of groups) {
-    const url = group[0].getAttribute('href');
+    const url = a.getAttribute('href');
+    const n = a.textContent.slice(1, -1);
     const pill = link(url, 'cite');
-    pill.textContent = label(url) + (group.length > 1 ? ' +' + (group.length - 1) : '');
-    pill.title = group.map((a) => sources.find((s) => s.url === a.getAttribute('href'))?.title || label(a.getAttribute('href'))).join('\n');
-    group[0].replaceWith(pill);
-    group.slice(1).forEach((a) => a.remove());
+    pill.textContent = n;
+    const title = sources.find((s) => s.url === url)?.title || label(url);
+    pill.title = title;
+    pill.setAttribute('aria-label', 'Source ' + n + (title ? ': ' + title : ''));
+    a.replaceWith(pill);
   }
+  if (!list) return root.innerHTML;
   const details = document.createElement('details');
   details.className = 'sources';
   const summary = document.createElement('summary');
