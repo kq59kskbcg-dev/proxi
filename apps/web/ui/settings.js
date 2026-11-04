@@ -1,4 +1,5 @@
-// Settings: custom instructions, theme and "Delete chats after" (7, 30 or 90 days).
+// Settings: custom instructions, theme, "Delete chats after" (7, 30 or 90 days) and
+// "Delete all chats".
 // Settings opens on its own screen, without the sidebar; the X (or Esc) goes back to where you were.
 // The Memory and Account sections are in memories.js and account.js.
 
@@ -12,11 +13,14 @@ export const settingsState = {
   settingsFailed: false, // true when loading the settings failed
   instructionsDraft: '',
   settingsReturn: 'new', // the screen the close button goes back to
-  theme: window.proxiTheme?.get() || 'system'
+  theme: window.proxiTheme?.get() || 'system',
+  deleteChatsOpen: false,
+  deletingChats: false
 };
 
 export function createSettings(app) {
   const s = app.state;
+  let cancelDeleteChatsEl = null;
 
   async function loadSettings() {
     app.setState({ settingsFailed: false });
@@ -62,6 +66,42 @@ export function createSettings(app) {
     app.setState({ settingsBusy: false });
   }
 
+  function askDeleteChats() {
+    app.returnFocus = document.activeElement;
+    app.setState({ deleteChatsOpen: true });
+    app.later(() => { if (cancelDeleteChatsEl) cancelDeleteChatsEl.focus(); }, 0);
+  }
+
+  function closeDeleteChats() {
+    if (s.deletingChats) return;
+    app.setState({ deleteChatsOpen: false });
+    const back = app.returnFocus;
+    app.returnFocus = null;
+    if (back && back.focus) app.later(() => back.focus(), 0);
+  }
+
+  // Deletes every saved chat. Incognito chats aren't saved, so they stay until the page reloads.
+  async function deleteAllChats() {
+    if (s.deletingChats) return;
+    app.setState({ deletingChats: true });
+    try {
+      await api.delete('/api/conversations', { query: { all: '1' } });
+    } catch {
+      app.setState({ deletingChats: false });
+      app.showToast("Couldn't delete your chats. Please try again.");
+      return;
+    }
+    const active = s.convs.find((c) => c.id === s.activeId);
+    if (active && !active.temporary) app.stop();
+    app.setState((st) => ({
+      convs: st.convs.filter((c) => c.temporary),
+      activeId: active && !active.temporary ? null : st.activeId,
+      deletingChats: false,
+      deleteChatsOpen: false
+    }));
+    app.showToast('All chats deleted');
+  }
+
   function openSettings() {
     if (s.view !== 'settings') app.setState({ settingsReturn: s.view });
     app.go({ view: 'settings' });
@@ -75,7 +115,7 @@ export function createSettings(app) {
   // Esc closes Settings, unless a dialog or menu is open or the key was meant for a field.
   const onKey = (e) => {
     if (e.key !== 'Escape' || e.defaultPrevented || s.view !== 'settings') return;
-    if (s.searchOpen || s.deleteAccountOpen || s.userMenu) return;
+    if (s.searchOpen || s.deleteAccountOpen || s.deleteChatsOpen || s.userMenu) return;
     if (e.target && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
     e.preventDefault();
     closeSettings();
@@ -86,6 +126,19 @@ export function createSettings(app) {
     unmounted() { window.removeEventListener('keydown', onKey); },
 
     views: {
+      deleteChats: () => ({
+        hasChats: s.convs.some((c) => !c.temporary),
+        askDeleteChats,
+        deleteChatsOpen: s.deleteChatsOpen,
+        deletingChats: s.deletingChats,
+        deleteChatsLabel: s.deletingChats ? 'Deleting...' : 'Delete all chats',
+        cancelDeleteChats: closeDeleteChats,
+        confirmDeleteChats: deleteAllChats,
+        deleteChatsBackdrop: (e) => { if (e.target === e.currentTarget) closeDeleteChats(); },
+        deleteChatsKey: (e) => { if (e.key === 'Escape') { e.preventDefault(); closeDeleteChats(); } },
+        cancelDeleteChatsRef: (el) => { cancelDeleteChatsEl = el; }
+      }),
+
       settings: () => {
         const max = s.settings?.instructionsMax || 1500;
         const unchanged = !s.settings || s.settingsBusy || s.instructionsDraft.trim() === s.settings.customInstructions;
