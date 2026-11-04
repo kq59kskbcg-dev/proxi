@@ -20,7 +20,7 @@ export const chatState = {
   copied: null, // the message whose Copy button shows a check
   votes: {},
   chatMenu: false,
-  contactForms: {} // message id -> what's typed in its "Message Lisandro" card: { email, error, sending, sentTo, dismissed }
+  contactForms: {} // message id -> what's typed in its "Message Lisandro" card: { email, error, sending, sentTo }
 };
 
 // The same check as the server's, so a typo is caught before sending.
@@ -80,7 +80,7 @@ export function createChat(app) {
     const live = liveMessages(conv);
     const messages = live.map((m, i) => ({
       role: m.role, content: m.text || '', model: m.model, traceId: m.traceId,
-      ...(m.contact ? { contact: { summary: m.contact.summary, sent: !!m.contact.sent } } : {}),
+      ...(m.contact ? { contact: { summary: m.contact.summary, sent: !!m.contact.sent, ...(m.contact.skipped ? { skipped: true } : {}) } } : {}),
       attachments: (m.attachments || []).map((a) => (i === live.length - 1 && a.data ? { name: a.name, type: a.mediaType, data: a.data } : { kind: a.kind }))
     }));
     const controller = new AbortController();
@@ -315,6 +315,16 @@ export function createChat(app) {
     }
   }
 
+  // The "Not now" button: the card becomes a short note, saved with the reply in a saved chat.
+  function skipContact(m) {
+    const conv = app.activeConv.value;
+    if (!conv || !m.contact || m.contact.sent) return;
+    patchMessage(conv.id, m.id, (x) => ({ ...x, contact: { ...x.contact, skipped: true } }));
+    const position = liveMessages(conv).findIndex((x) => x.id === m.id);
+    // Fire and forget: if it doesn't arrive, the page sends the card as skipped with the next message.
+    if (!conv.temporary && position >= 0) api.patch('/api/contact', { conversationId: conv.id, position }).catch(() => {});
+  }
+
   async function deleteChat() {
     const id = s.activeId;
     stop();
@@ -427,12 +437,14 @@ export function createChat(app) {
         // The reply's "Message Lisandro" card: a form until it's sent, then a confirmation.
         function contactView(m) {
           const form = s.contactForms[m.id] || {};
-          const show = !!(m.contact && m.contact.summary) && !(form.dismissed && !m.contact.sent);
+          const show = !!(m.contact && m.contact.summary);
           const sent = show && !!m.contact.sent;
+          const skipped = show && !sent && !!m.contact.skipped;
           return {
             hasContact: show,
             contactSent: sent,
-            contactForm: show && !sent,
+            contactSkipped: skipped,
+            contactForm: show && !sent && !skipped,
             contactSummary: show ? m.contact.summary : '',
             contactDone: form.sentTo ? 'He\'ll reply to ' + form.sentTo + '.' : 'He\'ll reply by email.',
             contactInput: 'contact-email-' + m.id,
@@ -447,7 +459,7 @@ export function createChat(app) {
             onContactEmail: (e) => setForm(m.id, { email: e.target.value, error: '' }),
             onContactKey: (e) => { if (e.key === 'Enter') { e.preventDefault(); sendContact(m); } },
             onContactSend: () => sendContact(m),
-            onContactDismiss: () => setForm(m.id, { dismissed: true })
+            onContactDismiss: () => skipContact(m)
           };
         }
       },

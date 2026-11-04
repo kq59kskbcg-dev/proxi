@@ -115,6 +115,9 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 .contact-send:hover:not(:disabled){background:var(--inverse-hover)}
 .contact-send:disabled{opacity:.6;cursor:default}
 .contact-later{background:var(--sunken);color:var(--text)}
+.contact-later:disabled{opacity:.6;cursor:default}
+.contact-skipped{display:flex;align-items:center;gap:6px;font-size:13px;line-height:1.5;color:var(--text-muted)}
+.contact-skipped svg{flex:none}
 .contact-send:focus-visible,.contact-later:focus-visible{outline:2px solid var(--link);outline-offset:2px}
 .contact-done{flex-direction:row;align-items:flex-start;gap:10px}
 .contact-ok{background:var(--sunken);color:var(--ok)}

@@ -38,11 +38,14 @@ export function contactSummary(value) {
   return redact(raw).text;
 }
 
-// A card stored with a reply: { summary, sent }. Anything else is dropped.
+// A card stored with a reply: { summary, sent }, plus skipped: true after "Not now" on a card
+// that wasn't sent. Anything else is dropped.
 export function contactField(value) {
   if (!value || typeof value !== 'object') return null;
   const summary = contactSummary(value.summary);
-  return summary ? { summary, sent: value.sent === true } : null;
+  if (!summary) return null;
+  const sent = value.sent === true;
+  return { summary, sent, ...(!sent && value.skipped === true ? { skipped: true } : {}) };
 }
 
 // Whether the card can be offered in this chat: Proxi's email tool is reachable and someone asked
