@@ -15,9 +15,13 @@ export function renderCitations(html) {
   if (!html.includes('<strong>Sources</strong>')) return html;
   const root = document.createElement('template');
   root.innerHTML = html;
-  const heading = [...root.content.querySelectorAll('p')].find((p) => p.textContent.trim() === 'Sources' && p.querySelector('strong'));
-  const list = heading?.nextElementSibling;
-  if (!list || list.tagName !== 'OL') return html;
+  // Proxi's list is the last one. A model sometimes writes its own as well: drop those copies.
+  const lists = [...root.content.querySelectorAll('p')]
+    .filter((p) => p.textContent.trim() === 'Sources' && p.querySelector('strong') && p.nextElementSibling?.tagName === 'OL');
+  if (!lists.length) return html;
+  const heading = lists.at(-1);
+  const list = heading.nextElementSibling;
+  for (const p of lists.slice(0, -1)) { p.nextElementSibling.remove(); p.remove(); }
   const host = (url) => { try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return ''; } };
   const label = (url) => url.startsWith(DOCS_URL) ? 'Help center' : host(url);
   // Site icon, fetched through Proxi's own server so the icon service never sees the visitor's IP address.
