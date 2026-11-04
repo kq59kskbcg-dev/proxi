@@ -54,7 +54,8 @@
           "tools/overview",
           "tools/web-search",
           "tools/help-center-search",
-          "tools/service-status"
+          "tools/service-status",
+          "tools/talk-to-a-person"
         ]
       },
       {

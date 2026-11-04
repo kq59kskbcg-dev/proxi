@@ -35,11 +35,12 @@ export function createLayout(app) {
     views: {
       layout: () => {
         const isNew = app.isNew.value;
+        const isSettings = s.view === 'settings'; // Settings is its own screen, without the sidebar
         return {
           accent: ACCENT,
           anyMenu: s.modelMenu || s.chatMenu || s.shareMenu || s.userMenu,
           closeMenus: () => app.setState({ modelMenu: false, chatMenu: false, shareMenu: false, userMenu: false }),
-          showNav: true,
+          showNav: !isSettings,
           navClass: s.narrowNav ? 'side open' : (s.collapsed ? 'side collapsed' : 'side'),
           narrowNav: s.narrowNav,
           menuBtnDisplay: s.collapsed ? 'flex' : 'none',
@@ -47,7 +48,7 @@ export function createLayout(app) {
           openNav: () => (app.isNarrow() ? app.setState({ narrowNav: true, collapsed: false }) : app.setState({ collapsed: false })),
           isChat: app.isChat.value,
           isNew,
-          isSettings: s.view === 'settings',
+          isSettings,
           headerBorder: isNew ? 'var(--surface)' : 'var(--divider)',
           hasToast: !!s.toast,
           toast: s.toast

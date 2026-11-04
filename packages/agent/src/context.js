@@ -38,8 +38,8 @@ export function splitHistory(history, maxMessages) {
 }
 
 // The system prompt, from its parts. Custom instructions come last and the summary comes before them.
-export function buildSystemText({ prompt, locale, escalation, memories, summary, instructions }) {
-  const base = withMemories([prompt, locale, escalation].filter(Boolean).join('\n\n'), memories);
+export function buildSystemText({ prompt, locale, intent, memories, summary, instructions }) {
+  const base = withMemories([prompt, locale, intent].filter(Boolean).join('\n\n'), memories);
   return withInstructions(withSummary(base, summary), instructions);
 }
 
@@ -47,12 +47,21 @@ export function buildSystemText({ prompt, locale, escalation, memories, summary,
 // messages, or chats reloaded from storage) are mentioned so Claude doesn't guess.
 export function toContent(message, blocks, maxReplyChars) {
   const gone = message.unavailable;
-  const note = gone.length ? `[Attachment no longer available: ${gone.join(', ')}]` : '';
+  const note = gone?.length ? `[Attachment no longer available: ${gone.join(', ')}]` : '';
   // Only what the model sees is cut; the chat is saved from the full text.
   const written = message.role === 'assistant' ? message.content.slice(0, maxReplyChars) : message.content;
-  const text = [written, note].filter(Boolean).join('\n\n');
+  const text = [written, note, contactNote(message)].filter(Boolean).join('\n\n');
   if (!blocks.length) return text;
   return text ? [...blocks, { type: 'text', text }] : blocks;
+}
+
+// A reply that showed the "Message Lisandro" card says so, and whether the user sent it, so the
+// model doesn't offer it again or claim it was sent when it wasn't.
+export function contactNote(message) {
+  const c = message.contact;
+  if (message.role !== 'assistant' || !c?.summary) return '';
+  const outcome = c.sent ? 'The user sent it.' : 'The user has not sent it.';
+  return `[You showed the card for messaging Lisandro, with this summary: "${c.summary}". ${outcome}]`;
 }
 
 // The kinds of files on a message, as text for traces (the files themselves are never traced).
@@ -63,7 +72,7 @@ export function describe(message) {
 // Everything the reply call needs, in one place.
 //   recent: the messages the model sees word for word (from splitHistory), the latest last
 //   blocks: content blocks for files attached to the latest message
-//   parts: { prompt, locale, escalation, memories, summary, instructions } (texts, may be empty)
+//   parts: { prompt, locale, intent, memories, summary, instructions } (texts, may be empty)
 export function buildContext({ recent, blocks = [], maxReplyChars, parts }) {
   const latest = recent[recent.length - 1];
   return {

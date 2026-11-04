@@ -88,7 +88,7 @@ Use web_search only when the answer depends on current or changing information, 
 
 // Prompts added to every reply, after main-system, in this order. Each one is a text
 // prompt in Langfuse with the label "production"; one that is missing or unreachable is skipped.
-export const SNIPPETS = ['snippets/tone-format', 'snippets/privacy-redaction'];
+export const SNIPPETS = ['snippets/tone-format'];
 
 const options = (fallback) => ({ label: 'production', fallback, cacheTtlSeconds: 60, fetchTimeoutMs: 2000 });
 

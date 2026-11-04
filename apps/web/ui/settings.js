@@ -1,4 +1,5 @@
 // Settings: custom instructions, theme and "Delete chats after" (7, 30 or 90 days).
+// Settings opens on its own screen, without the sidebar; the X (or Esc) goes back to where you were.
 // The Memory and Account sections are in memories.js and account.js.
 
 import { api } from './api.js';
@@ -10,6 +11,7 @@ export const settingsState = {
   settingsBusy: false,
   settingsFailed: false, // true when loading the settings failed
   instructionsDraft: '',
+  settingsReturn: 'new', // the screen the close button goes back to
   theme: window.proxiTheme?.get() || 'system'
 };
 
@@ -60,13 +62,36 @@ export function createSettings(app) {
     app.setState({ settingsBusy: false });
   }
 
+  function openSettings() {
+    if (s.view !== 'settings') app.setState({ settingsReturn: s.view });
+    app.go({ view: 'settings' });
+    loadSettings();
+  }
+
+  function closeSettings() {
+    app.go({ view: s.settingsReturn || 'new' });
+  }
+
+  // Esc closes Settings, unless a dialog or menu is open or the key was meant for a field.
+  const onKey = (e) => {
+    if (e.key !== 'Escape' || e.defaultPrevented || s.view !== 'settings') return;
+    if (s.searchOpen || s.deleteAccountOpen || s.userMenu) return;
+    if (e.target && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
+    e.preventDefault();
+    closeSettings();
+  };
+
   return {
+    mounted() { window.addEventListener('keydown', onKey); },
+    unmounted() { window.removeEventListener('keydown', onKey); },
+
     views: {
       settings: () => {
         const max = s.settings?.instructionsMax || 1500;
         const unchanged = !s.settings || s.settingsBusy || s.instructionsDraft.trim() === s.settings.customInstructions;
         return {
-          openSettings: () => { app.go({ view: 'settings' }); loadSettings(); },
+          openSettings,
+          closeSettings,
           // The page shows one spinner until both the settings and the memories have loaded.
           settingsReady: !!s.settings && s.memories !== null,
           settingsLoading: !(s.settings && s.memories !== null) && !(s.settingsFailed && !s.settings),

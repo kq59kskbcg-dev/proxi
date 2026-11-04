@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { splitHistory, buildContext, buildSystemText, withSummary, withInstructions } from '../src/context.js';
+import { splitHistory, buildContext, buildSystemText, withSummary, withInstructions, contactNote } from '../src/context.js';
 
 const msg = (role, content, extra = {}) => ({ role, content, attachments: [], unavailable: [], ...extra });
 const chat = (n) => Array.from({ length: n }, (_, i) => msg(i % 2 === 0 ? 'user' : 'assistant', `m${i}`));
@@ -21,13 +21,13 @@ test('a long chat keeps the latest messages, starting from a user message', () =
 });
 
 test('the system prompt joins its parts in order, with instructions last', () => {
-  const text = buildSystemText({ prompt: 'BASE', locale: 'LOCALE', escalation: '', memories: ['likes tea'], summary: 'SUMMARY', instructions: 'BE BRIEF' });
+  const text = buildSystemText({ prompt: 'BASE', locale: 'LOCALE', intent: '', memories: ['likes tea'], summary: 'SUMMARY', instructions: 'BE BRIEF' });
   const at = (s) => text.indexOf(s);
   assert.ok(at('BASE') < at('LOCALE') && at('LOCALE') < at('likes tea') && at('likes tea') < at('SUMMARY') && at('SUMMARY') < at('BE BRIEF'));
 });
 
 test('empty parts add nothing', () => {
-  assert.equal(buildSystemText({ prompt: 'BASE', locale: '', escalation: '', memories: [], summary: '', instructions: '' }), 'BASE');
+  assert.equal(buildSystemText({ prompt: 'BASE', locale: '', intent: '', memories: [], summary: '', instructions: '' }), 'BASE');
   assert.equal(withSummary('P', ''), 'P');
   assert.equal(withInstructions('P', ''), 'P');
 });
@@ -50,4 +50,13 @@ test('files that are gone are mentioned', () => {
   const recent = [msg('user', 'see this', { unavailable: ['pdf'] })];
   const { messages } = buildContext({ recent, maxReplyChars: 100, parts: { prompt: 'P' } });
   assert.match(messages[0].content, /Attachment no longer available: pdf/);
+});
+
+test('a reply that showed the Message Lisandro card tells the model, and whether it was sent', () => {
+  const card = (sent) => msg('assistant', 'Add your email in the card.', { contact: { summary: 'Their link broke.', sent } });
+  const { messages } = buildContext({ recent: [msg('user', 'help'), card(false), msg('user', 'thanks')], maxReplyChars: 100, parts: {} });
+  assert.match(messages[1].content, /Their link broke\..*has not sent it/);
+  assert.match(contactNote(card(true)), /The user sent it\./);
+  assert.equal(contactNote(msg('assistant', 'Hi')), '');
+  assert.equal(contactNote(msg('user', 'Hi', { contact: { summary: 'x', sent: true } })), '');
 });
