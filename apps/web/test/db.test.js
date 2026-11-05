@@ -1,7 +1,7 @@
 import { test, before } from 'node:test';
 import assert from 'node:assert/strict';
 import { PGlite } from '@electric-sql/pglite';
-import { setDriver, saveConversation, listConversations, getMessages, deleteConversation, deleteAllConversations, deleteAccountData, deleteInactiveConversations, getSettings, saveSettings, conversationAttributes, markContactSent, markMemory, listMemories, addMemory, deleteMemory, MEMORY_LIMIT } from '../lib/db.js';
+import { setDriver, saveConversation, listConversations, getMessages, deleteConversation, deleteAllConversations, deleteAccountData, deleteInactiveConversations, getSettings, saveSettings, conversationAttributes, markContactSent, markContactSkipped, markMemory, listMemories, addMemory, deleteMemory, MEMORY_LIMIT } from '../lib/db.js';
 
 let pg;
 before(() => {
@@ -174,6 +174,25 @@ test('a reply keeps its Message Lisandro card, and Send marks only that card as 
   await markContactSent('user_card', 'c1', 1);
   const messages = await getMessages('user_card', 'c1');
   assert.deepEqual(messages[1].contact, { summary: card.summary, sent: true });
+  assert.equal(messages[0].contact, null);
+});
+
+test('Not now marks only that card as skipped, and a sent card stays sent', async () => {
+  const card = { summary: 'They want to export their memories.', sent: false };
+  await saveConversation('user_skip', 'c1', 'Help', [
+    { role: 'user', content: 'Can I talk to a person?' },
+    { role: 'assistant', content: 'Add your email in the card.', contact: card },
+    { role: 'user', content: 'And again?' },
+    { role: 'assistant', content: 'Here it is.', contact: { ...card, sent: true } },
+  ]);
+  await markContactSkipped('user_other', 'c1', 1);
+  await markContactSkipped('user_skip', 'c1', 0);
+  assert.deepEqual((await getMessages('user_skip', 'c1'))[1].contact, card);
+  await markContactSkipped('user_skip', 'c1', 1);
+  await markContactSkipped('user_skip', 'c1', 3);
+  const messages = await getMessages('user_skip', 'c1');
+  assert.deepEqual(messages[1].contact, { ...card, skipped: true });
+  assert.deepEqual(messages[3].contact, { ...card, sent: true });
   assert.equal(messages[0].contact, null);
 });
 
