@@ -157,7 +157,8 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 .md .sources li a{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:10px;text-decoration:none;color:var(--text)}
 .md .sources li a:hover{background:var(--sunken)}
 .src-ico{width:20px;height:20px;border-radius:5px;flex:none;margin-top:1px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#FFFFFF;overflow:hidden}
-.src-ico img,.src-tile img{width:100%;height:100%;object-fit:cover;display:block}
+.src-ico img,.src-tile img{width:100%;height:100%;object-fit:cover;display:none}
+.has-img img{display:block}.has-img .site-letter{display:none}
 .src-tile.has-img,.src-ico.has-img{background:var(--surface)}
 .src-text{display:flex;flex-direction:column;gap:2px;min-width:0}
 .src-title{font-size:14px;font-weight:500;line-height:1.35;color:var(--text);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}

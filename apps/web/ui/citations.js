@@ -2,6 +2,13 @@
 
 export const DOCS_URL = 'https://proxi.mintlify.site';
 
+// Shows a source's site icon once it loads. Load events don't bubble, so this listens in the capture phase.
+if (typeof document !== 'undefined') {
+  document.addEventListener('load', (e) => {
+    if (e.target instanceof HTMLImageElement && e.target.classList.contains('site-img')) e.target.parentElement?.classList.add('has-img');
+  }, true);
+}
+
 // Citations arrive as Markdown: [[1]](url) after a sentence and a "Sources" list at the end.
 // Turn them into number pills and a collapsible list. Runs on sanitized HTML, on every render,
 // so the pills show while a reply streams, before the Sources list arrives.
@@ -19,17 +26,22 @@ export function renderCitations(html) {
   for (const p of lists.slice(0, -1)) { p.nextElementSibling.remove(); p.remove(); }
   const host = (url) => { try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return ''; } };
   const label = (url) => url.startsWith(DOCS_URL) ? 'Help center' : host(url);
-  // Site icon from a public favicon service; the colored letter stays if it doesn't load.
+  // Site icon, fetched through Proxi's own server so the icon service never sees the visitor's IP address.
+  // This returns HTML text, so the icon is in the markup, hidden until the page-wide listener
+  // below sees it load. The colored letter stays if it doesn't.
   const siteIcon = (name, url, cls) => {
     const el = document.createElement('span');
     el.className = cls + ' t' + ([...name].reduce((n, ch) => n + ch.charCodeAt(0), 0) % 5);
-    el.textContent = name[0].toUpperCase();
+    const letter = document.createElement('span');
+    letter.className = 'site-letter';
+    letter.textContent = name[0].toUpperCase();
+    el.append(letter);
     const h = host(url);
     if (h) {
-      const img = new Image();
-      img.alt = ''; img.referrerPolicy = 'no-referrer';
-      img.onload = () => { el.textContent = ''; el.classList.add('has-img'); el.append(img); };
-      img.src = 'https://icons.duckduckgo.com/ip3/' + encodeURIComponent(h) + '.ico';
+      const img = document.createElement('img');
+      img.className = 'site-img'; img.alt = ''; img.setAttribute('referrerpolicy', 'no-referrer');
+      img.src = '/api/icon?host=' + encodeURIComponent(h);
+      el.append(img);
     }
     return el;
   };

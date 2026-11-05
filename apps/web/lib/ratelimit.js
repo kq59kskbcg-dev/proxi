@@ -5,10 +5,10 @@ const WINDOW_MS = 10 * 60 * 1000;
 const MAX_REQUESTS = 20;
 const hits = new Map();
 
-export function rateLimit(key) {
+export function rateLimit(key, max = MAX_REQUESTS) {
   const now = Date.now();
   const recent = (hits.get(key) || []).filter((t) => now - t < WINDOW_MS);
-  if (recent.length >= MAX_REQUESTS) {
+  if (recent.length >= max) {
     hits.set(key, recent);
     return { ok: false, retryAfter: Math.ceil((recent[0] + WINDOW_MS - now) / 1000) };
   }
