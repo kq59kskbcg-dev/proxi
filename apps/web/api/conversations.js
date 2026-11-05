@@ -1,6 +1,6 @@
 import { deleteTraces } from '@proxi/agent/langfuse';
 import { requireUser } from '../lib/auth.js';
-import { CONVERSATION_ID, hasDatabase, listConversations, getMessages, deleteConversation } from '../lib/db.js';
+import { CONVERSATION_ID, hasDatabase, listConversations, getMessages, deleteConversation, deleteAllConversations } from '../lib/db.js';
 
 // GET: the signed-in user's chats, or one chat's messages with ?id=
 export async function GET(request) {
@@ -19,13 +19,17 @@ export async function GET(request) {
   }
 }
 
-// DELETE ?id=: removes one of the signed-in user's chats.
+// DELETE ?id=: removes one of the signed-in user's chats. DELETE ?all=1: removes all of them.
 export async function DELETE(request) {
   const user = await requireUser(request);
   if (!user.userId) return json({ error: user.error, code: user.reason }, user.status);
   if (!hasDatabase()) return json({ error: 'Chat history is not set up yet.' }, 503);
 
   try {
+    if (param(request, 'all') === '1') {
+      await deleteTraces(await deleteAllConversations(user.userId));
+      return new Response(null, { status: 204 });
+    }
     const id = chatId(request);
     if (!id || !CONVERSATION_ID.test(id)) return json({ error: 'Invalid chat.' }, 400);
     await deleteTraces(await deleteConversation(user.userId, id));
@@ -37,8 +41,12 @@ export async function DELETE(request) {
 }
 
 // request.url can be a bare path on some hosts, so give it a base.
+function param(request, name) {
+  return new URL(request.url, 'http://localhost').searchParams.get(name);
+}
+
 function chatId(request) {
-  return new URL(request.url, 'http://localhost').searchParams.get('id');
+  return param(request, 'id');
 }
 
 // Enough to tell what went wrong without exposing anything sensitive: the

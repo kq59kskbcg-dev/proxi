@@ -4,6 +4,11 @@ import { redact } from './redact.js';
 const DISCOVERY_TIMEOUT_MS = 5000;
 const CALL_TIMEOUT_MS = 60000; // a web search can take a while
 
+// Tools the web app calls itself and never offers to the model.
+// send_escalation_email takes the address someone typed, which the model must not see.
+export const ESCALATION_EMAIL_TOOL = 'send_escalation_email';
+const APP_ONLY_TOOLS = new Set([ESCALATION_EMAIL_TOOL]);
+
 let connection = null;
 
 export function getMcpTools() {
@@ -30,11 +35,29 @@ async function connect(url) {
     tools.push(...page.tools);
     cursor = page.nextCursor;
   } while (cursor);
+  const forModel = tools.filter((tool) => !APP_ONLY_TOOLS.has(tool.name));
+  const names = new Set(tools.map((tool) => tool.name));
   return {
-    tools: tools.map(toClaudeTool),
-    titles: Object.fromEntries(tools.map((tool) => [tool.name, tool.title || tool.name])),
-    call: (block) => callTool(client, block),
+    tools: forModel.map(toClaudeTool),
+    titles: Object.fromEntries(forModel.map((tool) => [tool.name, tool.title || tool.name])),
+    call: (block) => (APP_ONLY_TOOLS.has(block.name)
+      ? { type: 'tool_result', tool_use_id: block.id, content: 'This tool is not available.', is_error: true }
+      : callTool(client, block)),
+    has: (name) => names.has(name),
+    callDirect: (name, args) => callDirect(client, name, args),
   };
+}
+
+// A call the web app makes itself, with its arguments as they are (not redacted).
+// Resolves to { ok, text }.
+async function callDirect(client, name, args) {
+  try {
+    const result = await client.callTool({ name, arguments: args }, { timeout: CALL_TIMEOUT_MS });
+    const text = (result.content ?? []).filter((c) => c.type === 'text').map((c) => c.text).join(' ');
+    return { ok: result.isError !== true, text };
+  } catch (error) {
+    return { ok: false, text: error?.message || 'unknown error' };
+  }
 }
 
 export function toClaudeTool(tool) {
