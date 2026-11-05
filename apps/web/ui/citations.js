@@ -173,18 +173,25 @@ export function setupSources() {
   document.addEventListener('touchstart', (e) => {
     const head = e.target.closest?.('.src-head');
     if (!head || !matchMedia(PHONE).matches) return;
-    drag = { panel: head.parentElement, y: e.touches[0].clientY, dy: 0 };
+    const panel = head.parentElement;
+    // Follow the finger directly: the sheet's transform transition would make it lag and stutter.
+    panel.style.transition = 'none';
+    drag = { panel, y: e.touches[0].clientY, dy: 0 };
   }, { passive: true });
   document.addEventListener('touchmove', (e) => {
     if (!drag) return;
     drag.dy = Math.max(0, e.touches[0].clientY - drag.y);
     drag.panel.style.transform = `translateY(${drag.dy}px)`;
   }, { passive: true });
-  document.addEventListener('touchend', () => {
+  const endDrag = (e) => {
     if (!drag) return;
     const { panel, dy } = drag;
     drag = null;
+    // Hide the sheet before resetting its position, so it doesn't jump back up as it closes.
+    if (e.type === 'touchend' && dy > 60) closeSources(panel.closest('details.sources'), false);
     panel.style.transform = '';
-    if (dy > 60) closeSources(panel.closest('details.sources'), false);
-  });
+    panel.style.transition = '';
+  };
+  document.addEventListener('touchend', endDrag);
+  document.addEventListener('touchcancel', endDrag);
 }
