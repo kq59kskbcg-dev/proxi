@@ -2,6 +2,17 @@
 
 export const DOCS_URL = 'https://proxi.mintlify.site';
 
+// A source that is one of the user's own chats (from search_chats) links to /?chat=<id> on this site.
+// Returns the chat's ID, or null for any other link.
+export function chatLinkId(url, origin) {
+  let u;
+  try { u = new URL(url); } catch { return null; }
+  const id = u.searchParams.get('chat');
+  return u.origin === origin && u.pathname === '/' && id && /^[\w-]{1,64}$/.test(id) ? id : null;
+}
+
+const CHAT_ICON = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"></path></svg>';
+
 // Shows a source's site icon once it loads. Load events don't bubble, so this listens in the capture phase.
 if (typeof document !== 'undefined') {
   document.addEventListener('load', (e) => {
@@ -12,7 +23,9 @@ if (typeof document !== 'undefined') {
 // Citations arrive as Markdown: [[1]](url) after a sentence and a "Sources" list at the end.
 // Turn them into number pills and a collapsible list. Runs on sanitized HTML, on every render,
 // so the pills show while a reply streams, before the Sources list arrives.
-export function renderCitations(html) {
+// Options: chatDate(id) gives the date a cited chat was last used (or ''); linkChats: false shows
+// cited chats without links (on a shared page, where they're someone else's).
+export function renderCitations(html, { chatDate = () => '', linkChats = true } = {}) {
   const hasCites = /<a [^>]*>\[\d+\]<\/a>/.test(html);
   const hasList = html.includes('<strong>Sources</strong>');
   if (!hasCites && !hasList) return html;
@@ -25,12 +38,18 @@ export function renderCitations(html) {
   const list = heading?.nextElementSibling;
   for (const p of lists.slice(0, -1)) { p.nextElementSibling.remove(); p.remove(); }
   const host = (url) => { try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return ''; } };
-  const label = (url) => url.startsWith(DOCS_URL) ? 'Help center' : host(url);
+  const chatOf = (url) => chatLinkId(url, location.origin);
+  const label = (url) => url.startsWith(DOCS_URL) ? 'Help center' : chatOf(url) ? (linkChats ? 'Your chat' : 'Earlier chat') : host(url);
   // Site icon, fetched through Proxi's own server so the icon service never sees the visitor's IP address.
   // This returns HTML text, so the icon is in the markup, hidden until the page-wide listener
   // below sees it load. The colored letter stays if it doesn't.
   const siteIcon = (name, url, cls) => {
     const el = document.createElement('span');
+    if (chatOf(url)) {
+      el.className = cls + ' src-chat';
+      el.innerHTML = CHAT_ICON;
+      return el;
+    }
     el.className = cls + ' t' + ([...name].reduce((n, ch) => n + ch.charCodeAt(0), 0) % 5);
     const letter = document.createElement('span');
     letter.className = 'site-letter';
@@ -46,9 +65,18 @@ export function renderCitations(html) {
     return el;
   };
   const sources = list ? [...list.querySelectorAll('a')].map((a) => ({ url: a.getAttribute('href'), title: a.textContent })) : [];
+  // A cited chat opens in Proxi itself (chat.js handles the click), not in a new tab.
   const link = (url, cls) => {
+    const chat = chatOf(url);
+    if (chat && !linkChats) {
+      const span = document.createElement('span');
+      span.className = cls;
+      return span;
+    }
     const a = document.createElement('a');
-    a.href = url; a.className = cls; a.target = '_blank'; a.rel = 'noopener noreferrer';
+    a.href = url; a.className = cls;
+    if (chat) a.dataset.chat = chat;
+    else { a.target = '_blank'; a.rel = 'noopener noreferrer'; }
     return a;
   };
   // Each [n] link becomes a number pill, with the page's title (or site) as its tooltip.
@@ -110,7 +138,9 @@ export function renderCitations(html) {
     const title = document.createElement('span');
     title.className = 'src-title'; title.textContent = src.title;
     const site = document.createElement('span');
-    site.className = 'src-site'; site.textContent = host(src.url);
+    const chat = chatOf(src.url);
+    const when = chat && linkChats ? chatDate(chat) : '';
+    site.className = 'src-site'; site.textContent = chat ? label(src.url) + (when ? ' · ' + when : '') : host(src.url);
     text.append(title, site);
     a.append(siteIcon(name, src.url, 'src-ico'), text);
     const li = document.createElement('li');

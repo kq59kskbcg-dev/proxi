@@ -25,6 +25,12 @@ export function createSidebar(app) {
         }));
         return { convs: [...st.convs, ...saved], history: 'ok' };
       });
+      // A cited chat opened in a new tab arrives as /?chat=<id>.
+      const linked = new URLSearchParams(location.search).get('chat');
+      if (linked) {
+        window.history.replaceState(null, '', '/');
+        app.openCitedChat(linked);
+      }
     } catch (e) {
       if (e instanceof ApiError && e.status === 503) return app.setState({ history: 'off' });
       // A short, safe reference (status and database error code) to help find the cause.

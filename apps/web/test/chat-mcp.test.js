@@ -114,12 +114,12 @@ after(() => {
 const PRIVACY_TEXT = 'Card numbers, IBANs, emails and phone numbers are masked before anything reaches the model or the logs.';
 const skip = !ready && 'run npm install in apps/mcp first';
 
-async function chat(question, extra = {}) {
+async function chat(question, extra = {}, bearer = token) {
   requests.length = 0;
   const { POST } = await import('../api/chat.js');
   const response = await POST(new Request('http://localhost/api/chat', {
     method: 'POST',
-    headers: { authorization: `Bearer ${token}`, host: 'localhost', 'content-type': 'application/json' },
+    headers: { authorization: `Bearer ${bearer}`, host: 'localhost', 'content-type': 'application/json' },
     body: JSON.stringify({ model: 'Haiku 5.5', messages: [{ role: 'user', content: question }], ...extra }),
   }));
   assert.equal(response.status, 200);
@@ -293,6 +293,61 @@ test('an attachment that can\'t be used keeps its own plain message', { skip }, 
   const body = await response.json();
   assert.match(body.error, /report\.pdf could not be read as a PDF/);
   assert.equal(body.card, undefined);
+});
+
+// Its own user, so these requests don't count towards user_e2e's rate limit.
+const searchToken = () => signJwt(signing, { sub: 'user_search', azp: 'https://localhost' });
+
+// The chat API reads saved chats from a local Postgres for these tests, then goes back to none.
+async function withDatabase(fn) {
+  const { PGlite } = await import('@electric-sql/pglite');
+  const { setDriver } = await import('../lib/db.js');
+  const pg = new PGlite();
+  setDriver({
+    query: async (text, params) => (await pg.query(text, params)).rows,
+    transaction: (steps) => pg.transaction(async (tx) => { for (const [text, params] of steps) await tx.query(text, params); }),
+  });
+  try { await fn(); } finally { setDriver(null); await pg.close(); }
+}
+
+test('search_chats finds only the signed-in user\'s saved chats and cites them as links to the chat', { skip }, async () => {
+  await withDatabase(async () => {
+    const { saveConversation } = await import('../lib/db.js');
+    await saveConversation('user_search', 'lisbon-1', 'Lisbon trip planning', [
+      { role: 'user', content: 'Which hotel should we book in Lisbon?' },
+      { role: 'assistant', content: 'Casa do Largo in Alfama has a rooftop.' },
+    ]);
+    await saveConversation('user_search', 'pasta-1', 'Pasta dinner', [{ role: 'user', content: 'Carbonara for four' }]);
+    await saveConversation('user_other', 'theirs-1', 'Lisbon hotel secrets', [{ role: 'user', content: 'My Lisbon hotel is a secret' }]);
+
+    script = [() => toolUseTurn('search_chats', { query: 'Lisbon hotel' }), (body) => citedTextTurn(body)];
+    const events = await chat('What was the hotel we picked for Lisbon?', {}, searchToken());
+
+    assert.ok(requests[0].tools.some((tool) => tool.name === 'search_chats'));
+    const result = requests[1].messages.at(-1).content[0];
+    assert.equal(result.type, 'tool_result');
+    assert.equal(result.content.length, 1, 'only the user\'s own matching chat');
+    const hit = result.content[0];
+    assert.equal(hit.type, 'search_result');
+    assert.equal(hit.source, 'http://localhost/?chat=lisbon-1');
+    assert.equal(hit.title, 'Lisbon trip planning');
+    const passages = hit.content.map((c) => c.text).join('\n');
+    assert.match(passages, /User: Which hotel should we book in Lisbon\?/);
+    assert.doesNotMatch(passages, /secret/);
+
+    const activity = events.find((e) => e.type === 'activity');
+    assert.equal(activity.label, 'Searching your chats for "Lisbon hotel"');
+    const text = events.filter((e) => e.type === 'text').map((e) => e.text).join('');
+    assert.match(text, /\*\*Sources\*\*\n1\. \[Lisbon trip planning\]\(http:\/\/localhost\/\?chat=lisbon-1\)$/);
+  });
+});
+
+test('search_chats is not offered in incognito chats', { skip }, async () => {
+  await withDatabase(async () => {
+    script = [() => textTurn('Sure.')];
+    await chat('What did we talk about?', { temporary: true }, searchToken());
+    assert.ok(!(requests[0].tools ?? []).some((tool) => tool.name === 'search_chats'));
+  });
 });
 
 test('a temporary chat is not titled, saved or traced', { skip }, async () => {

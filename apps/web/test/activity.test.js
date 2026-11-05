@@ -22,3 +22,8 @@ test('long queries are shortened and missing ones are left out', () => {
 test('other tools fall back to their MCP title', () => {
   assert.deepEqual(toolActivity('mystery', undefined, {}), { label: 'Using mystery', done: 'Used mystery', detail: 'Used mystery' });
 });
+
+test('searching past chats is described with its query', () => {
+  assert.deepEqual(toolActivity('search_chats', undefined, { query: 'Lisbon hotel' }),
+    { label: 'Searching your chats for "Lisbon hotel"', done: 'Searched your chats', detail: 'Searched your chats for "Lisbon hotel"' });
+});
