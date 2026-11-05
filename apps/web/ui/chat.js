@@ -176,6 +176,7 @@ export function createChat(app) {
             startReply();
             patchMessage(convId, msgId, (m) => ({ ...m, contact: { summary: event.summary, sent: false } }));
           } else if (event.type === 'memory') {
+            await shown.idle();
             startReply();
             patchMessage(convId, msgId, (m) => ({ ...m, memory: { text: event.text, status: 'pending' } }));
           } else if (event.type === 'done') {
