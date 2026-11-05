@@ -1,7 +1,7 @@
 // The "Save to memory" card under a reply: what it shows for each state of its suggestion.
 //   pending: the card, with the text editable, Save and Not now
 //   saved: "Saved to memory" with the text that was saved
-//   declined (Not now, or another message sent without saving): a quiet "Not saved to memory" line
+//   declined (Not now, or another message sent without saving): "Not saved to memory" with the text that wasn't saved
 
 export const MEMORY_MAX = 300; // the same as packages/agent/src/memory.js
 
