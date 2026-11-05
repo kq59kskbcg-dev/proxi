@@ -1,7 +1,7 @@
 import { test, before } from 'node:test';
 import assert from 'node:assert/strict';
 import { PGlite } from '@electric-sql/pglite';
-import { setDriver, saveConversation, listConversations, getMessages, deleteConversation, deleteAccountData, deleteInactiveConversations, getSettings, saveSettings, conversationAttributes, listMemories, addMemory, deleteMemory, MEMORY_LIMIT } from '../lib/db.js';
+import { setDriver, saveConversation, listConversations, getMessages, deleteConversation, deleteAllConversations, deleteAccountData, deleteInactiveConversations, getSettings, saveSettings, conversationAttributes, markContactSent, markContactSkipped, markMemory, listMemories, addMemory, deleteMemory, MEMORY_LIMIT } from '../lib/db.js';
 
 let pg;
 before(() => {
@@ -22,8 +22,8 @@ const chat = [
 test('saves a chat and reads it back in order', async () => {
   await saveConversation('user_a', 'c1', 'Plan a trip to Lisbon', chat);
   assert.deepEqual(await getMessages('user_a', 'c1'), [
-    { role: 'user', content: 'Plan a trip to Lisbon', model: null, traceId: null, attachments: null },
-    { role: 'assistant', content: 'Day 1: Alfama.', model: 'claude-sonnet-5-5', traceId: 'trace-1', attachments: null },
+    { role: 'user', content: 'Plan a trip to Lisbon', model: null, traceId: null, attachments: null, contact: null, memory: null },
+    { role: 'assistant', content: 'Day 1: Alfama.', model: 'claude-sonnet-5-5', traceId: 'trace-1', attachments: null, contact: null, memory: null },
   ]);
   const list = await listConversations('user_a');
   assert.equal(list.length, 1);
@@ -145,4 +145,76 @@ test('deleting an account removes the user\'s chats, memories and settings, and 
   assert.deepEqual(await getSettings('user_gone'), { chatRetentionDays: 30, customInstructions: '' });
   assert.equal((await listConversations('user_kept')).length, 1);
   assert.equal((await listMemories('user_kept')).length, 1);
+});
+
+test('deleting all chats removes only that user\'s chats and returns their trace IDs', async () => {
+  await saveConversation('user_all', 'a1', 'One', [{ role: 'user', content: 'Hi' }, { role: 'assistant', content: 'Hello', traceId: 'trace-a1' }]);
+  await saveConversation('user_all', 'a2', 'Two', [{ role: 'user', content: 'Hi' }, { role: 'assistant', content: 'Hello', traceId: 'trace-a2' }]);
+  await saveConversation('user_other', 'a1', 'Theirs', [{ role: 'user', content: 'Mine' }]);
+  await addMemory('user_all', 'm-all', 'Likes Lisbon');
+
+  assert.deepEqual((await deleteAllConversations('user_all')).sort(), ['trace-a1', 'trace-a2']);
+  assert.deepEqual(await listConversations('user_all'), []);
+  assert.deepEqual(await getMessages('user_all', 'a1'), []);
+  assert.equal((await listConversations('user_other')).length, 1);
+  assert.equal((await listMemories('user_all')).length, 1);
+  assert.deepEqual(await deleteAllConversations('user_all'), []);
+});
+
+test('a reply keeps its Message Lisandro card, and Send marks only that card as sent', async () => {
+  const card = { summary: 'Their shared link stopped opening.', sent: false };
+  await saveConversation('user_card', 'c1', 'Help', [
+    { role: 'user', content: 'Can I talk to a person?' },
+    { role: 'assistant', content: 'Add your email in the card.', contact: card },
+  ]);
+  assert.deepEqual((await getMessages('user_card', 'c1'))[1].contact, card);
+  await markContactSent('user_other', 'c1', 1);
+  await markContactSent('user_card', 'c1', 0);
+  assert.equal((await getMessages('user_card', 'c1'))[1].contact.sent, false);
+  await markContactSent('user_card', 'c1', 1);
+  const messages = await getMessages('user_card', 'c1');
+  assert.deepEqual(messages[1].contact, { summary: card.summary, sent: true });
+  assert.equal(messages[0].contact, null);
+});
+
+test('Not now marks only that card as skipped, and a sent card stays sent', async () => {
+  const card = { summary: 'They want to export their memories.', sent: false };
+  await saveConversation('user_skip', 'c1', 'Help', [
+    { role: 'user', content: 'Can I talk to a person?' },
+    { role: 'assistant', content: 'Add your email in the card.', contact: card },
+    { role: 'user', content: 'And again?' },
+    { role: 'assistant', content: 'Here it is.', contact: { ...card, sent: true } },
+  ]);
+  await markContactSkipped('user_other', 'c1', 1);
+  await markContactSkipped('user_skip', 'c1', 0);
+  assert.deepEqual((await getMessages('user_skip', 'c1'))[1].contact, card);
+  await markContactSkipped('user_skip', 'c1', 1);
+  await markContactSkipped('user_skip', 'c1', 3);
+  const messages = await getMessages('user_skip', 'c1');
+  assert.deepEqual(messages[1].contact, { ...card, skipped: true });
+  assert.deepEqual(messages[3].contact, { ...card, sent: true });
+  assert.equal(messages[0].contact, null);
+});
+
+test('a reply keeps its Save to memory card, and only a waiting card can be answered', async () => {
+  const card = { text: 'Uses metric units', status: 'pending' };
+  await saveConversation('user_mem', 'c1', 'Units', [
+    { role: 'user', content: 'Remember that I use metric units' },
+    { role: 'assistant', content: 'Check the card.', memory: card },
+    { role: 'user', content: 'Thanks' },
+    { role: 'assistant', content: 'Check this one too.', memory: { text: 'Cooks often', status: 'pending' } },
+  ]);
+  assert.deepEqual((await getMessages('user_mem', 'c1'))[1].memory, card);
+  await markMemory('user_other', 'c1', 1, 'saved', 'Uses metric units');
+  await markMemory('user_mem', 'c1', 0, 'saved', 'Uses metric units');
+  assert.equal((await getMessages('user_mem', 'c1'))[1].memory.status, 'pending');
+  await markMemory('user_mem', 'c1', 1, 'saved', 'Uses metric units for cooking');
+  await markMemory('user_mem', 'c1', 3, 'declined');
+  let messages = await getMessages('user_mem', 'c1');
+  assert.deepEqual(messages[1].memory, { text: 'Uses metric units for cooking', status: 'saved' });
+  assert.deepEqual(messages[3].memory, { text: 'Cooks often', status: 'declined' });
+  await markMemory('user_mem', 'c1', 1, 'declined');
+  messages = await getMessages('user_mem', 'c1');
+  assert.equal(messages[1].memory.status, 'saved');
+  assert.equal(messages[0].memory, null);
 });
