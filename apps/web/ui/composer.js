@@ -25,7 +25,8 @@ export const composerState = {
   dragging: false,
   model: 'Auto',
   modelMenu: false,
-  temporary: false // the next new chat is incognito
+  // The next new chat is incognito. It stays on for new chats until turned off, remembered in this browser.
+  temporary: (() => { try { return localStorage.getItem('proxi-incognito') === 'on'; } catch { return false; } })()
 };
 
 export function createComposer(app) {
@@ -116,7 +117,11 @@ export function createComposer(app) {
           temporaryHint: s.temporary ? 'Incognito chat is on. Click to turn it off.' : 'Start an incognito chat',
           composerBorder: incognito ? 'var(--temp-border)' : 'var(--border-strong)',
           composerBorderStyle: incognito ? 'dashed' : 'solid',
-          toggleTemporary: () => app.setState({ temporary: !s.temporary }),
+          toggleTemporary: () => {
+            const next = !s.temporary;
+            try { if (next) localStorage.setItem('proxi-incognito', 'on'); else localStorage.removeItem('proxi-incognito'); } catch {}
+            app.setState({ temporary: next });
+          },
 
           showComposer: isChat || isNew,
           composerPad: '8px 24px 20px',

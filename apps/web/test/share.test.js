@@ -2,13 +2,13 @@ import { test, before } from 'node:test';
 import assert from 'node:assert/strict';
 import { generateKeyPairSync, createSign } from 'node:crypto';
 import { PGlite } from '@electric-sql/pglite';
-import { setDriver, saveConversation, deleteConversation, listConversations } from '../lib/db.js';
-import { POST, DELETE } from '../api/share.js';
+import { setDriver, saveConversation, deleteConversation, listConversations, saveSettings } from '../lib/db.js';
+import { POST, DELETE, GET as LIST } from '../api/share.js';
 import { GET } from '../api/shared.js';
 
-let alice, bob;
+let alice, bob, pg, privateKey;
 before(() => {
-  const pg = new PGlite();
+  pg = new PGlite();
   setDriver({
     query: async (text, params) => (await pg.query(text, params)).rows,
     transaction: (steps) => pg.transaction(async (tx) => {
@@ -17,6 +17,7 @@ before(() => {
   });
   const keys = generateKeyPairSync('rsa', { modulusLength: 2048 });
   process.env.CLERK_JWT_KEY = keys.publicKey.export({ type: 'spki', format: 'pem' });
+  privateKey = keys.privateKey;
   alice = signJwt(keys.privateKey, { sub: 'user_alice', azp: 'https://localhost' });
   bob = signJwt(keys.privateKey, { sub: 'user_bob', azp: 'https://localhost' });
 });
@@ -96,6 +97,62 @@ test('malformed or unknown links are not found', async () => {
   assert.equal((await view('AAAAAAAAAAAAAAAAAAAAAA')).status, 404);
   assert.equal((await share(alice, 'no-such-chat')).status, 404);
   assert.equal((await share(alice, '../etc')).status, 400);
+});
+
+const links = async (token) => {
+  const res = await LIST(new Request('http://localhost/api/share', { headers: { host: 'localhost', authorization: `Bearer ${token}` } }));
+  assert.equal(res.status, 200);
+  return (await res.json()).links;
+};
+const lastActive = (id, daysAgo) => pg.query(`UPDATE conversations SET updated_at = now() - make_interval(days => $2) WHERE id = $1`, [id, daysAgo]);
+const daysUntil = (iso) => Math.round((new Date(iso) - Date.now()) / 86400000);
+
+test('the shared links list needs a signed-in user', async () => {
+  const res = await LIST(new Request('http://localhost/api/share', { headers: { host: 'localhost' } }));
+  assert.equal(res.status, 401);
+});
+
+test('the shared links list shows only your own shared chats, with when each expires', async () => {
+  await saveConversation('user_carol', 'carol-1', 'Shared one', [{ role: 'user', content: 'Hi' }]);
+  await saveConversation('user_carol', 'carol-2', 'Not shared', [{ role: 'user', content: 'Hi' }]);
+  await saveConversation('user_carol', 'carol-3', 'Shared two', [{ role: 'user', content: 'Hi' }]);
+  const carol = signJwt(privateKey, { sub: 'user_carol', azp: 'https://localhost' });
+  const dave = signJwt(privateKey, { sub: 'user_dave', azp: 'https://localhost' });
+  const { shareId } = await (await share(carol, 'carol-1')).json();
+  await share(carol, 'carol-3');
+  await lastActive('carol-1', 10);
+
+  const list = await links(carol);
+  assert.deepEqual(list.map((l) => l.id), ['carol-3', 'carol-1']);
+  assert.equal(list[1].title, 'Shared one');
+  assert.equal(list[1].shareId, shareId);
+  // Default "Delete chats after" is 30 days, counted from the last activity.
+  assert.equal(daysUntil(list[0].expiresAt), 30);
+  assert.equal(daysUntil(list[1].expiresAt), 20);
+  assert.deepEqual(await links(dave), []);
+
+  // The date follows the user's setting.
+  await saveSettings('user_carol', { chatRetentionDays: 90 });
+  assert.equal(daysUntil((await links(carol))[1].expiresAt), 80);
+  await saveSettings('user_carol', { chatRetentionDays: 7 });
+  assert.deepEqual((await links(carol)).map((l) => l.id), ['carol-3']);
+
+  // A new message moves the date later.
+  await saveConversation('user_carol', 'carol-1', 'Shared one', [{ role: 'user', content: 'Hi' }, { role: 'assistant', content: 'Hello' }]);
+  assert.equal(daysUntil((await links(carol)).find((l) => l.id === 'carol-1').expiresAt), 7);
+
+  // Stopping sharing removes it from the list.
+  await unshare(carol, 'carol-3');
+  assert.deepEqual((await links(carol)).map((l) => l.id), ['carol-1']);
+});
+
+test('an expired link stops working before the daily cleanup deletes the chat', async () => {
+  await saveConversation('user_alice', 'chat-old', 'Old', [{ role: 'user', content: 'Hi' }]);
+  const { shareId } = await (await share(alice, 'chat-old')).json();
+  assert.equal((await view(shareId)).status, 200);
+  await lastActive('chat-old', 31);
+  assert.equal((await view(shareId)).status, 404);
+  assert.ok(!(await links(alice)).some((l) => l.id === 'chat-old'));
 });
 
 function signJwt(privateKey, claims) {
