@@ -6,9 +6,9 @@ import { flushTraces, getSystemPrompt, startTrace } from '@proxi/agent/langfuse'
 import { hasDatabase, saveConversation, conversationAttributes, recordRedactions } from '../lib/db.js';
 import { customInstructions } from '../lib/instructions.js';
 import { processAttachments, AttachmentError } from '../lib/attachments.js';
-import { parseChatRequest, label, contactOf } from '../lib/chat-request.js';
+import { parseChatRequest, label, contactOf, memoryOf } from '../lib/chat-request.js';
 import { CONTACT_TOOL, CONTACT_TOOL_DEFINITION, contactAvailable, contactOffer } from '../lib/contact.js';
-import { savedMemories, remember } from '../lib/memories.js';
+import { savedMemories, memoryOffer } from '../lib/memories.js';
 import { getMcpTools } from '@proxi/agent/mcp';
 import { makeTitle } from '@proxi/agent/title';
 import { getLocale } from '@proxi/agent/locale';
@@ -85,7 +85,10 @@ export async function POST(request) {
       if (typeof a.data === 'string') kinds.push(fileKinds.shift());
       else { kinds.push(a.kind); unavailable.push(a.kind); }
     }
-    return { role: m.role, content: text, model: label(m.model), traceId: label(m.traceId), attachments: kinds.map((kind) => ({ kind })), unavailable, contact: contactOf(m) };
+    // A memory card still waiting when the user sends another message counts as declined.
+    const memory = memoryOf(m);
+    if (memory?.status === 'pending') memory.status = 'declined';
+    return { role: m.role, content: text, model: label(m.model), traceId: label(m.traceId), attachments: kinds.map((kind) => ({ kind })), unavailable, contact: contactOf(m), memory };
   });
   // The privacy page's counts. Incognito chats have no conversation ID, so they aren't counted.
   if (conversationId && hasDatabase()) {
@@ -147,16 +150,17 @@ export async function POST(request) {
       const send = (event) => controller.enqueue(encoder.encode(JSON.stringify(event) + '\n'));
       send({ type: 'start', traceId: trace?.traceId ?? null, redactions, notices: attached.notices, escalated: intent.escalated });
       const contact = contactOffer((summary) => send({ type: 'contact', summary }));
+      const memory = memoryOffer((text) => send({ type: 'memory', text }), memories);
       // A new chat gets a short AI title, made alongside the reply so nobody waits for it.
       const firstMessage = history.length === 1 ? history[0] : null;
       const titled = conversationId && firstMessage ? makeTitle(client, firstMessage.content, trace) : null;
       let text = '';
       let servedBy = model;
       try {
-        // Routes each tool call: save_memory to the user's memories, the rest to the MCP server.
+        // Routes each tool call: save_memory to the "Save to memory" card, the rest to the MCP server.
         const executeTool = async (call) => {
           const span = trace?.startObservation(`tool ${call.name}`, { input: call.input }, { asType: 'tool' });
-          const result = call.name === MEMORY_TOOL && memoryTool ? await remember(user.userId, call)
+          const result = call.name === MEMORY_TOOL && memoryTool ? memory.run(call)
             : call.name === CONTACT_TOOL && contactOn ? contact.run(call)
             : mcp ? await mcp.call(call)
             : { type: 'tool_result', tool_use_id: call.id, content: 'This tool is not available.', is_error: true };
@@ -207,7 +211,8 @@ export async function POST(request) {
         }
         if (conversationId && hasDatabase()) {
           const card = contact.shown() ? { summary: contact.shown(), sent: false } : null;
-          const reply = text || card ? [{ role: 'assistant', content: text, model: servedBy, traceId: trace?.traceId ?? null, contact: card }] : [];
+          const suggested = memory.shown() ? { text: memory.shown(), status: 'pending' } : null;
+          const reply = text || card || suggested ? [{ role: 'assistant', content: text, model: servedBy, traceId: trace?.traceId ?? null, contact: card, memory: suggested }] : [];
           await saveConversation(user.userId, conversationId, aiTitle || titleFrom(history), [...history, ...reply], { replaceTitle: Boolean(aiTitle), language: locale.code, escalated: intent.escalated })
             .catch((e) => console.error('saving chat failed', e));
         }

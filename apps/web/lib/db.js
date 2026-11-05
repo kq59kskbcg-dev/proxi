@@ -70,6 +70,8 @@ const SCHEMA = [
   // A reply's "Message Lisandro" card: {"summary": "...", "sent": true}, or "skipped": true after
   // "Not now". The address typed in the card is never stored.
   `ALTER TABLE messages ADD COLUMN IF NOT EXISTS contact jsonb`,
+  // A reply's "Save to memory" card: {"text": "...", "status": "pending" | "saved" | "declined"}.
+  `ALTER TABLE messages ADD COLUMN IF NOT EXISTS memory jsonb`,
   // True once any message in the chat asked for a person.
   `ALTER TABLE conversations ADD COLUMN IF NOT EXISTS escalated boolean NOT NULL DEFAULT false`,
   // Facts the user asked Proxi to remember, already redacted. Kept until the user deletes them.
@@ -107,9 +109,9 @@ export async function listConversations(userId) {
 export async function getMessages(userId, conversationId) {
   const d = await db();
   const rows = await d.query(
-    `SELECT role, content, model, trace_id, attachments, contact FROM messages
+    `SELECT role, content, model, trace_id, attachments, contact, memory FROM messages
      WHERE user_id = $1 AND conversation_id = $2 ORDER BY position`, [userId, conversationId]);
-  return rows.map((r) => ({ role: r.role, content: r.content, model: r.model, traceId: r.trace_id, attachments: r.attachments ?? null, contact: r.contact ?? null }));
+  return rows.map((r) => ({ role: r.role, content: r.content, model: r.model, traceId: r.trace_id, attachments: r.attachments ?? null, contact: r.contact ?? null, memory: r.memory ?? null }));
 }
 
 // Replaces the stored conversation with its current state, so edits and
@@ -125,12 +127,13 @@ export async function saveConversation(userId, conversationId, title, messages, 
         language = COALESCE(conversations.language, EXCLUDED.language),
         escalated = conversations.escalated OR EXCLUDED.escalated`, [userId, conversationId, title, replaceTitle, language, escalated]],
     ['DELETE FROM messages WHERE user_id = $1 AND conversation_id = $2', [userId, conversationId]],
-    [`INSERT INTO messages (user_id, conversation_id, position, role, content, model, trace_id, attachments, contact)
-      SELECT $1, $2, p, r, c, m, t, a::jsonb, k::jsonb FROM unnest($3::int[], $4::text[], $5::text[], $6::text[], $7::text[], $8::text[], $9::text[]) AS x(p, r, c, m, t, a, k)`,
+    [`INSERT INTO messages (user_id, conversation_id, position, role, content, model, trace_id, attachments, contact, memory)
+      SELECT $1, $2, p, r, c, m, t, a::jsonb, k::jsonb, y::jsonb FROM unnest($3::int[], $4::text[], $5::text[], $6::text[], $7::text[], $8::text[], $9::text[], $10::text[]) AS x(p, r, c, m, t, a, k, y)`,
      [userId, conversationId, messages.map((_, i) => i), messages.map((m) => m.role), messages.map((m) => m.content),
       messages.map((m) => m.model ?? null), messages.map((m) => m.traceId ?? null),
       messages.map((m) => (m.attachments?.length ? JSON.stringify(m.attachments) : null)),
-      messages.map((m) => (m.contact ? JSON.stringify(m.contact) : null))]],
+      messages.map((m) => (m.contact ? JSON.stringify(m.contact) : null)),
+      messages.map((m) => (m.memory ? JSON.stringify(m.memory) : null))]],
   ]);
 }
 
@@ -152,6 +155,17 @@ export async function markContactSkipped(userId, conversationId, position) {
      WHERE user_id = $1 AND conversation_id = $2 AND position = $3 AND role = 'assistant' AND contact IS NOT NULL
        AND NOT COALESCE((contact->>'sent')::boolean, false)`,
     [userId, conversationId, position]);
+}
+
+// Answers a reply's "Save to memory" card that is still waiting: "saved" (with the text that was
+// saved, which may have been changed in the card) or "declined". A card already answered is left as it is.
+export async function markMemory(userId, conversationId, position, status, text) {
+  const d = await db();
+  await d.query(
+    `UPDATE messages SET memory = jsonb_build_object('text', COALESCE($5::text, memory->>'text'), 'status', $4::text)
+     WHERE user_id = $1 AND conversation_id = $2 AND position = $3 AND role = 'assistant'
+       AND memory IS NOT NULL AND memory->>'status' = 'pending'`,
+    [userId, conversationId, position, status, text ?? null]);
 }
 
 // What is known about a chat so far; empty values if it isn't saved yet or can't be read.

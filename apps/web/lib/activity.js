@@ -14,7 +14,7 @@ const KNOWN = {
     detail: quoted('Searched the web', input?.query),
   }),
   get_status: () => ({ label: "Checking Proxi's status", done: "Checked Proxi's status", detail: "Checked Proxi's status" }),
-  save_memory: () => ({ label: 'Saving to memory', done: 'Saved to memory', detail: 'Saved to memory' }),
+  save_memory: () => ({ label: 'Suggesting a memory', done: 'Suggested a memory', detail: 'Suggested a memory' }),
   offer_message_to_lisandro: () => ({ label: 'Writing a message for Lisandro', done: 'Wrote a message for Lisandro', detail: 'Wrote a message for Lisandro' }),
 };
 

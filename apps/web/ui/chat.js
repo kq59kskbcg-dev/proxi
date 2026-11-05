@@ -10,6 +10,7 @@ import { whenVisible } from './browser.js';
 import { createReveal, createFadeTracker, applyFades, prefersReducedMotion } from './reveal.js';
 import { ACCENT } from './store.js';
 import { KIND_LABELS } from './files.js';
+import { declinePending, memoryCard, MEMORY_ERRORS, MEMORY_MAX } from './memory-card.js';
 import { MAX_MESSAGE_CHARS, MAX_CHAT_MESSAGES, MESSAGE_TOO_LONG, CHAT_FULL, CHAT_TOO_LARGE, RECOVER_MS, OWN_CARDS } from './limits.js';
 
 export const chatState = {
@@ -21,7 +22,8 @@ export const chatState = {
   copied: null, // the message whose Copy button shows a check
   votes: {},
   chatMenu: false,
-  contactForms: {} // message id -> what's typed in its "Message Lisandro" card: { email, error, sending, sentTo }
+  contactForms: {}, // message id -> what's typed in its "Message Lisandro" card: { email, error, sending, sentTo }
+  memoryForms: {} // message id -> its "Save to memory" card: { text, error, saving, duplicate }
 };
 
 // The same check as the server's, so a typo is caught before sending.
@@ -35,7 +37,7 @@ export const CONTACT_ERRORS = {
 
 // The messages that are part of a chat. Error notices are shown to the user but never sent back.
 function liveMessages(conv) {
-  return conv.messages.filter((m) => !m.error && (m.text || (m.attachments || []).length || m.contact));
+  return conv.messages.filter((m) => !m.error && (m.text || (m.attachments || []).length || m.contact || m.memory));
 }
 
 // A message's rendered reply, kept until the message changes. Messages are replaced, never
@@ -85,6 +87,7 @@ export function createChat(app) {
     const messages = live.map((m, i) => ({
       role: m.role, content: m.text || '', model: m.model, traceId: m.traceId,
       ...(m.contact ? { contact: { summary: m.contact.summary, sent: !!m.contact.sent, ...(m.contact.skipped ? { skipped: true } : {}) } } : {}),
+      ...(m.memory ? { memory: { text: m.memory.text, status: m.memory.status } } : {}),
       attachments: (m.attachments || []).map((a) => (i === live.length - 1 && a.data ? { name: a.name, type: a.mediaType, data: a.data } : { kind: a.kind }))
     }));
     const controller = new AbortController();
@@ -172,6 +175,9 @@ export function createChat(app) {
             await shown.idle();
             startReply();
             patchMessage(convId, msgId, (m) => ({ ...m, contact: { summary: event.summary, sent: false } }));
+          } else if (event.type === 'memory') {
+            startReply();
+            patchMessage(convId, msgId, (m) => ({ ...m, memory: { text: event.text, status: 'pending' } }));
           } else if (event.type === 'done') {
             if (msgId) patchMessage(convId, msgId, (m) => ({ ...m, model: event.model }));
           } else if (event.type === 'title') {
@@ -227,7 +233,7 @@ export function createChat(app) {
     patch({ loading: true });
     try {
       const { messages } = await api.get('/api/conversations', { query: { id } });
-      patch({ loading: false, loaded: true, messages: messages.map((m) => ({ id: app.nextId(), role: m.role, text: m.content, model: m.model, traceId: m.traceId, attachments: (m.attachments || []).map((a) => ({ kind: a.kind })), ...(m.contact ? { contact: m.contact } : {}) })) });
+      patch({ loading: false, loaded: true, messages: messages.map((m) => ({ id: app.nextId(), role: m.role, text: m.content, model: m.model, traceId: m.traceId, attachments: (m.attachments || []).map((a) => ({ kind: a.kind })), ...(m.contact ? { contact: m.contact } : {}), ...(m.memory ? { memory: m.memory } : {}) })) });
     } catch (e) {
       patch({ loading: false });
       app.showToast("Couldn't open this chat. Try again.");
@@ -261,7 +267,8 @@ export function createChat(app) {
         view: 'chat',
         activeId: convId,
         modelMenu: false,
-        convs: base.map((c) => c.id === convId ? { ...c, messages: [...c.messages, { id, role: 'user', text, attachments: files }] } : c)
+        // A "Save to memory" card left unanswered counts as declined once another message is sent.
+        convs: base.map((c) => c.id === convId ? { ...c, messages: [...declinePending(c.messages), { id, role: 'user', text, attachments: files }] } : c)
       };
     });
     ask(convId);
@@ -345,6 +352,44 @@ export function createChat(app) {
     const position = liveMessages(conv).findIndex((x) => x.id === m.id);
     // Fire and forget: if it doesn't arrive, the page sends the card as skipped with the next message.
     if (!conv.temporary && position >= 0) api.patch('/api/contact', { conversationId: conv.id, position }).catch(() => {});
+  }
+
+  function setMemoryForm(msgId, fields) {
+    app.setState((st) => ({ memoryForms: { ...st.memoryForms, [msgId]: { ...(st.memoryForms[msgId] || {}), ...fields } } }));
+  }
+
+  // Where a reply is in the saved chat, so the server can mark its card; none in incognito chats.
+  function cardPlace(conv, m) {
+    const position = liveMessages(conv).findIndex((x) => x.id === m.id);
+    return conv.temporary || position < 0 ? {} : { conversationId: conv.id, position };
+  }
+
+  // The Save button of a "Save to memory" card. Saves the text as it is in the card.
+  async function saveMemory(m) {
+    const conv = app.activeConv.value;
+    const form = s.memoryForms[m.id] || {};
+    const text = (form.text != null ? form.text : m.memory.text).trim();
+    if (!conv || form.saving) return;
+    if (!text || text.length > MEMORY_MAX) return setMemoryForm(m.id, { error: MEMORY_ERRORS.invalid });
+    setMemoryForm(m.id, { saving: true, error: '' });
+    try {
+      const res = await api.post('/api/memories', { text, ...cardPlace(conv, m) });
+      patchMessage(conv.id, m.id, (x) => ({ ...x, memory: { text: res.text || text, status: 'saved' } }));
+      setMemoryForm(m.id, { saving: false, duplicate: res.outcome === 'duplicate' });
+    } catch (e) {
+      const code = e && e.data && e.data.error;
+      setMemoryForm(m.id, { saving: false, error: MEMORY_ERRORS[code] || MEMORY_ERRORS.failed });
+    }
+  }
+
+  // The Not now button: nothing is saved, and the card becomes a quiet "Not saved to memory" line.
+  function declineMemory(m) {
+    const conv = app.activeConv.value;
+    if (!conv) return;
+    patchMessage(conv.id, m.id, (x) => ({ ...x, memory: { ...x.memory, status: 'declined' } }));
+    const place = cardPlace(conv, m);
+    // If this doesn't arrive, the card is marked declined anyway when the next message is sent.
+    if (place.conversationId) api.patch('/api/memories', place).catch(() => {});
   }
 
   async function deleteChat() {
@@ -463,7 +508,8 @@ export function createChat(app) {
             cardRef: m.card ? m.card.ref : '',
             // Try again replaces the failed reply, the same as Regenerate.
             onRetry: () => regen(m),
-            ...contactView(m)
+            ...contactView(m),
+            ...memoryView(m)
           };
         }) : [];
         return { msgRef, onMsgScroll, msgs };
@@ -493,6 +539,21 @@ export function createChat(app) {
             onContactKey: (e) => { if (e.key === 'Enter') { e.preventDefault(); sendContact(m); } },
             onContactSend: () => sendContact(m),
             onContactDismiss: () => skipContact(m)
+          };
+        }
+        // The reply's "Save to memory" card. Not answerable while the reply is still arriving: it's saved when it ends.
+        function memoryView(m) {
+          const form = s.memoryForms[m.id] || {};
+          return {
+            ...memoryCard(m.memory, form, s.typing && s.typingConv === conv.id),
+            memoryInput: 'memory-text-' + m.id,
+            memoryTitle: 'memory-title-' + m.id,
+            memoryHintId: 'memory-hint-' + m.id,
+            memoryMax: MEMORY_MAX,
+            memoryInvalid: form.error ? 'true' : 'false',
+            onMemoryText: (e) => setMemoryForm(m.id, { text: e.target.value, error: '' }),
+            onMemorySave: () => saveMemory(m),
+            onMemoryDismiss: () => declineMemory(m)
           };
         }
       },

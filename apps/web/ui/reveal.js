@@ -2,7 +2,7 @@
 // cited passage that comes in one piece appears at the same speed as everything else. Each new
 // word fades in. With "reduce motion" on, text shows as it arrives, without the fade.
 
-export const REVEAL_MS = 25; // per word
+export const REVEAL_MS = 10; // per word
 export const FADE_MS = 150; // matches .fade-w in style.css
 
 // Splits text into words, each with the spaces and line breaks around it, so joining the pieces
