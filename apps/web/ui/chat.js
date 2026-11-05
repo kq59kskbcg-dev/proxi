@@ -383,7 +383,7 @@ export function createChat(app) {
     }
   }
 
-  // The Not now button: nothing is saved, and the card becomes a quiet "Not saved to memory" line.
+  // The Not now button: nothing is saved, and the card becomes "Not saved to memory".
   function declineMemory(m) {
     const conv = app.activeConv.value;
     if (!conv) return;

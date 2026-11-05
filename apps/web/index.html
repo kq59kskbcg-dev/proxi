@@ -313,9 +313,9 @@
                     <button type="button" class="contact-later hov" :disabled="m.contactBusy" @click="m.onContactDismiss">Not now</button>
                   </div>
                 </div>
-                <div v-if="m.contactSkipped" class="contact-skipped" role="status">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"></path></svg>
-                  <span>You chose not to message Lisandro.</span>
+                <div v-if="m.contactSkipped" class="contact-card contact-done" role="status">
+                  <span class="contact-ic contact-no" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"></path></svg></span>
+                  <div><div class="contact-head">Not sent to Lisandro</div><div class="contact-muted">Nothing was sent. Ask again any time.</div></div>
                 </div>
                 <div v-if="m.contactSent" class="contact-card contact-done" role="status">
                   <span class="contact-ic contact-ok" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"></path></svg></span>
@@ -338,7 +338,10 @@
                   <span class="contact-ic contact-ok" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"></path></svg></span>
                   <div><div class="contact-head">Saved to memory</div><div class="contact-muted">{{ m.memoryDone }}</div></div>
                 </div>
-                <div v-if="m.memoryDeclined" class="memory-note" role="status"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M8 12h8"></path></svg>Not saved to memory</div>
+                <div v-if="m.memoryDeclined" class="contact-card contact-done" role="status">
+                  <span class="contact-ic contact-no" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"></path></svg></span>
+                  <div><div class="contact-head">Not saved to memory</div><div class="contact-muted">{{ m.memoryText }}</div></div>
+                </div>
                 <div v-if="m.isErrorCard" class="err-card" role="alert">
                   <span class="err-ic" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v5"></path><path d="M12 16.5h.01"></path></svg></span>
                   <span class="err-t">{{ m.cardTitle }}</span>
