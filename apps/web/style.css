@@ -138,7 +138,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 .memory-note svg{flex:none}
 .err-retry{font:inherit;font-size:13px;font-weight:500;height:32px;padding:0 14px;border:0;border-radius:8px;background:var(--sunken);color:var(--text);cursor:pointer}
 .err-ref{font-size:12px;color:var(--text-muted-3);font-variant-numeric:tabular-nums}
-.md .sources{margin:14px 0;position:relative;width:fit-content}
+.md .sources{margin-top:14px;position:relative;width:fit-content}
 .md .sources summary{list-style:none;display:inline-flex;align-items:center;gap:8px;height:32px;box-sizing:border-box;padding:0 10px 0 6px;border:1px solid var(--border);border-radius:16px;font-size:13px;font-weight:500;color:var(--text-2);cursor:pointer;user-select:none}
 .md .sources summary::-webkit-details-marker{display:none}
 .md .sources summary:hover,.md .sources[open] summary{background:var(--soft);border-color:var(--border-hover)}
