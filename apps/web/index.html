@@ -411,7 +411,7 @@
               <div style="display: flex; flex-direction: column; gap: 4px">
                 <label for="instructions" style="font-weight: 600">Custom instructions</label>
               </div>
-              <textarea id="instructions" rows="5" :maxlength="v.instructionsMax" :disabled="v.settingsBusy" :value="v.instructionsDraft" @input="v.onInstructions" placeholder="For example: I'm a product designer. Keep answers short and use bullet points." style="width: 100%; box-sizing: border-box; min-height: 132px; resize: vertical; border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; font: inherit; font-size: 15px; line-height: 1.55; background: var(--surface); color: var(--text)"></textarea>
+              <textarea id="instructions" rows="5" :maxlength="v.instructionsMax" :disabled="v.settingsBusy" :value="v.instructionsDraft" @input="v.onInstructions" placeholder="For example: Keep answers short and use bullet points." style="width: 100%; box-sizing: border-box; min-height: 132px; resize: vertical; border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; font: inherit; font-size: 15px; line-height: 1.55; background: var(--surface); color: var(--text)"></textarea>
               <div style="display: flex; align-items: center; justify-content: flex-end; gap: 12px">
                 <span style="font-size: 13px; color: var(--text-muted-2)">{{ v.instructionsCount }}</span>
                 <button type="button" :disabled="v.noSaveInstructions" @click="v.saveInstructions" :style="`height: 40px; border: 0; border-radius: 10px; padding: 0 18px; font-size: 14px; font-weight: 600; background: ${v.saveInstructionsBg}; color: ${v.saveInstructionsColor}; cursor: ${v.noSaveInstructions ? 'default' : 'pointer'}`">Save</button>
