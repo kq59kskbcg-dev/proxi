@@ -176,8 +176,8 @@ export function createComposer(app) {
           notTyping: !s.typing,
           stop: () => app.stop(),
           noSend: !canSend,
-          sendBg: canSend ? 'var(--inverse)' : 'var(--disabled)',
-          sendColor: canSend ? 'var(--on-inverse)' : 'var(--text-disabled)',
+          sendBg: canSend ? 'var(--send)' : 'var(--disabled)',
+          sendColor: canSend ? 'var(--on-send)' : 'var(--text-disabled)',
           sendCursor: canSend ? 'pointer' : 'default',
           chips: CHIPS.map((c) => ({ ...c, pick: () => {
             app.setState({ draft: c.draft });
