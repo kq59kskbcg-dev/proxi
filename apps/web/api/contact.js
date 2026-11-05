@@ -1,5 +1,5 @@
 import { requireUser } from '../lib/auth.js';
-import { CONVERSATION_ID, hasDatabase, markContactSent } from '../lib/db.js';
+import { CONVERSATION_ID, hasDatabase, markContactSent, markContactSkipped } from '../lib/db.js';
 import { EMAIL, contactSummary, contactLimit, sendContact } from '../lib/contact.js';
 import { MAX_CHAT_MESSAGES } from '../lib/limits.js';
 
@@ -24,13 +24,36 @@ export async function POST(request) {
   if (outcome === 'unavailable') return json({ error: 'unavailable' }, 503);
   if (outcome === 'failed') return json({ error: 'failed' }, 502);
 
-  const { conversationId, position } = body;
-  if (typeof conversationId === 'string' && CONVERSATION_ID.test(conversationId)
-    && Number.isInteger(position) && position >= 0 && position < MAX_CHAT_MESSAGES && hasDatabase()) {
-    await markContactSent(user.userId, conversationId, position)
+  if (savedCard(body) && hasDatabase()) {
+    await markContactSent(user.userId, body.conversationId, body.position)
       .catch((e) => console.error('marking the card as sent failed', e?.code ?? e?.name));
   }
   return new Response(null, { status: 204 });
+}
+
+// PATCH { conversationId, position }: the card's "Not now" button in a saved chat. Marks the card
+// at `position` as skipped, so it stays a short note when the chat is opened again.
+export async function PATCH(request) {
+  const user = await requireUser(request);
+  if (!user.userId) return json({ error: user.error }, user.status);
+  let body;
+  try { body = await request.json(); } catch { return json({ error: 'invalid' }, 400); }
+  if (!savedCard(body)) return json({ error: 'invalid' }, 400);
+  if (!hasDatabase()) return new Response(null, { status: 204 });
+  try {
+    await markContactSkipped(user.userId, body.conversationId, body.position);
+  } catch (e) {
+    console.error('marking the card as skipped failed', e?.code ?? e?.name);
+    return json({ error: 'failed' }, 502);
+  }
+  return new Response(null, { status: 204 });
+}
+
+// Whether the body points at a card in a saved chat.
+function savedCard(body) {
+  const { conversationId, position } = body || {};
+  return typeof conversationId === 'string' && CONVERSATION_ID.test(conversationId)
+    && Number.isInteger(position) && position >= 0 && position < MAX_CHAT_MESSAGES;
 }
 
 function json(data, status, headers = {}) {

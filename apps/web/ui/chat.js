@@ -22,7 +22,7 @@ export const chatState = {
   copied: null, // the message whose Copy button shows a check
   votes: {},
   chatMenu: false,
-  contactForms: {}, // message id -> what's typed in its "Message Lisandro" card: { email, error, sending, sentTo, dismissed }
+  contactForms: {}, // message id -> what's typed in its "Message Lisandro" card: { email, error, sending, sentTo }
   memoryForms: {} // message id -> its "Save to memory" card: { text, error, saving, duplicate }
 };
 
@@ -86,7 +86,7 @@ export function createChat(app) {
     const live = liveMessages(conv);
     const messages = live.map((m, i) => ({
       role: m.role, content: m.text || '', model: m.model, traceId: m.traceId,
-      ...(m.contact ? { contact: { summary: m.contact.summary, sent: !!m.contact.sent } } : {}),
+      ...(m.contact ? { contact: { summary: m.contact.summary, sent: !!m.contact.sent, ...(m.contact.skipped ? { skipped: true } : {}) } } : {}),
       ...(m.memory ? { memory: { text: m.memory.text, status: m.memory.status } } : {}),
       attachments: (m.attachments || []).map((a) => (i === live.length - 1 && a.data ? { name: a.name, type: a.mediaType, data: a.data } : { kind: a.kind }))
     }));
@@ -176,6 +176,7 @@ export function createChat(app) {
             startReply();
             patchMessage(convId, msgId, (m) => ({ ...m, contact: { summary: event.summary, sent: false } }));
           } else if (event.type === 'memory') {
+            await shown.idle();
             startReply();
             patchMessage(convId, msgId, (m) => ({ ...m, memory: { text: event.text, status: 'pending' } }));
           } else if (event.type === 'done') {
@@ -344,6 +345,16 @@ export function createChat(app) {
     }
   }
 
+  // The "Not now" button: the card becomes a short note, saved with the reply in a saved chat.
+  function skipContact(m) {
+    const conv = app.activeConv.value;
+    if (!conv || !m.contact || m.contact.sent) return;
+    patchMessage(conv.id, m.id, (x) => ({ ...x, contact: { ...x.contact, skipped: true } }));
+    const position = liveMessages(conv).findIndex((x) => x.id === m.id);
+    // Fire and forget: if it doesn't arrive, the page sends the card as skipped with the next message.
+    if (!conv.temporary && position >= 0) api.patch('/api/contact', { conversationId: conv.id, position }).catch(() => {});
+  }
+
   function setMemoryForm(msgId, fields) {
     app.setState((st) => ({ memoryForms: { ...st.memoryForms, [msgId]: { ...(st.memoryForms[msgId] || {}), ...fields } } }));
   }
@@ -459,7 +470,10 @@ export function createChat(app) {
 
       messages: () => {
         const conv = app.activeConv.value;
-        const msgs = app.isChat.value ? conv.messages.map((m) => {
+        // The reply still appearing gets its Copy, rating and Regenerate buttons once it's finished.
+        const streaming = s.typing && s.typingConv === conv?.id;
+        const lastIndex = conv ? conv.messages.length - 1 : -1;
+        const msgs = app.isChat.value ? conv.messages.map((m, i) => {
           const v = s.votes[m.id];
           const key = 'm' + m.id;
           const copied = s.copied === key;
@@ -473,6 +487,7 @@ export function createChat(app) {
             })),
             isUser: m.role === 'user',
             isAssistant: m.role === 'assistant',
+            showActions: !(streaming && i === lastIndex && m.role === 'assistant'),
             hasSteps: !!(m.steps && m.steps.length),
             steps: [...new Set((m.steps || []).map((st) => st.short))].join(' · '),
             stepList: [...(m.steps || []), ...(m.model ? [{ text: 'Answered with ' + modelLabel(m.model), icon: 'spark' }] : [])].map((st, i) => ({ key: i, text: st.text, icon: stepIcon(st.icon) })),
@@ -506,12 +521,14 @@ export function createChat(app) {
         // The reply's "Message Lisandro" card: a form until it's sent, then a confirmation.
         function contactView(m) {
           const form = s.contactForms[m.id] || {};
-          const show = !!(m.contact && m.contact.summary) && !(form.dismissed && !m.contact.sent);
+          const show = !!(m.contact && m.contact.summary);
           const sent = show && !!m.contact.sent;
+          const skipped = show && !sent && !!m.contact.skipped;
           return {
             hasContact: show,
             contactSent: sent,
-            contactForm: show && !sent,
+            contactSkipped: skipped,
+            contactForm: show && !sent && !skipped,
             contactSummary: show ? m.contact.summary : '',
             contactDone: form.sentTo ? 'He\'ll reply to ' + form.sentTo + '.' : 'He\'ll reply by email.',
             contactInput: 'contact-email-' + m.id,
@@ -526,7 +543,7 @@ export function createChat(app) {
             onContactEmail: (e) => setForm(m.id, { email: e.target.value, error: '' }),
             onContactKey: (e) => { if (e.key === 'Enter') { e.preventDefault(); sendContact(m); } },
             onContactSend: () => sendContact(m),
-            onContactDismiss: () => setForm(m.id, { dismissed: true })
+            onContactDismiss: () => skipContact(m)
           };
         }
         // The reply's "Save to memory" card. Not answerable while the reply is still arriving: it's saved when it ends.

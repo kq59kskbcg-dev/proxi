@@ -67,8 +67,8 @@ const SCHEMA = [
   `ALTER TABLE conversations ADD COLUMN IF NOT EXISTS share_id text UNIQUE`,
   // Two-letter language of the chat, found from its first message and kept once set.
   `ALTER TABLE conversations ADD COLUMN IF NOT EXISTS language text`,
-  // A reply's "Message Lisandro" card: {"summary": "...", "sent": true}. The address typed in the
-  // card is never stored.
+  // A reply's "Message Lisandro" card: {"summary": "...", "sent": true}, or "skipped": true after
+  // "Not now". The address typed in the card is never stored.
   `ALTER TABLE messages ADD COLUMN IF NOT EXISTS contact jsonb`,
   // A reply's "Save to memory" card: {"text": "...", "status": "pending" | "saved" | "declined"}.
   `ALTER TABLE messages ADD COLUMN IF NOT EXISTS memory jsonb`,
@@ -143,6 +143,17 @@ export async function markContactSent(userId, conversationId, position) {
   await d.query(
     `UPDATE messages SET contact = jsonb_set(contact, '{sent}', 'true'::jsonb)
      WHERE user_id = $1 AND conversation_id = $2 AND position = $3 AND role = 'assistant' AND contact IS NOT NULL`,
+    [userId, conversationId, position]);
+}
+
+// Marks a reply's "Message Lisandro" card as skipped ("Not now"), so it stays a short note when the
+// chat is opened again. A card that was sent stays sent.
+export async function markContactSkipped(userId, conversationId, position) {
+  const d = await db();
+  await d.query(
+    `UPDATE messages SET contact = jsonb_set(contact, '{skipped}', 'true'::jsonb)
+     WHERE user_id = $1 AND conversation_id = $2 AND position = $3 AND role = 'assistant' AND contact IS NOT NULL
+       AND NOT COALESCE((contact->>'sent')::boolean, false)`,
     [userId, conversationId, position]);
 }
 

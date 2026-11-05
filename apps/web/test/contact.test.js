@@ -47,3 +47,15 @@ test('chat requests keep a reply\'s card and the escalated flag, and a card-only
   assert.equal(contactOf({ role: 'user', contact: { summary: 'x' } }), null);
   assert.equal(parseChatRequest({ model: 'Auto', messages: [{ role: 'user', content: 'Hi' }] }).escalated, false);
 });
+
+test('a skipped card keeps its flag, unless it was sent', () => {
+  assert.deepEqual(contactField({ summary: 'Help', sent: false, skipped: true }), { summary: 'Help', sent: false, skipped: true });
+  assert.deepEqual(contactField({ summary: 'Help', sent: true, skipped: true }), { summary: 'Help', sent: true });
+  assert.deepEqual(contactField({ summary: 'Help', skipped: 'yes' }), { summary: 'Help', sent: false });
+  const parsed = parseChatRequest({ model: 'Auto', messages: [
+    { role: 'user', content: 'Can I talk to a person?' },
+    { role: 'assistant', content: '', contact: { summary: 'Their link broke.', sent: false, skipped: true } },
+    { role: 'user', content: 'Never mind' },
+  ] });
+  assert.deepEqual(contactOf(parsed.messages[1]), { summary: 'Their link broke.', sent: false, skipped: true });
+});

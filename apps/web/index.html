@@ -310,8 +310,12 @@
                   </div>
                   <div class="contact-acts">
                     <button type="button" class="contact-send" :disabled="m.contactBusy" @click="m.onContactSend">{{ m.contactSendLabel }}</button>
-                    <button type="button" class="contact-later hov" @click="m.onContactDismiss">Not now</button>
+                    <button type="button" class="contact-later hov" :disabled="m.contactBusy" @click="m.onContactDismiss">Not now</button>
                   </div>
+                </div>
+                <div v-if="m.contactSkipped" class="contact-skipped" role="status">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"></path></svg>
+                  <span>You chose not to message Lisandro.</span>
                 </div>
                 <div v-if="m.contactSent" class="contact-card contact-done" role="status">
                   <span class="contact-ic contact-ok" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"></path></svg></span>
@@ -344,7 +348,7 @@
                     <span v-if="m.cardRef" class="err-ref">Ref {{ m.cardRef }}</span>
                   </span>
                 </div>
-                <div v-if="!m.isErrorCard" style="display: flex; gap: 0; margin-left: -12px">
+                <div v-if="!m.isErrorCard && m.showActions" style="display: flex; gap: 0; margin-left: -12px">
                   <button class="hov" :aria-label="m.copyLabel" @click="m.onCopy" style="width: 44px; height: 44px; border: 0; background: transparent; border-radius: 8px; color: var(--text-muted-3); display: flex; align-items: center; justify-content: center; cursor: pointer">
                     <template v-if="m.copied"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"></path></svg></template>
                     <template v-if="m.notCopied"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"></rect><path d="M5 15V5a2 2 0 0 1 2-2h10"></path></svg></template>
