@@ -30,3 +30,8 @@ test('every jsDelivr script is pinned in the CSP and checked with an integrity h
     assert.match(s.attrs, /crossorigin="anonymous"/, `${src} needs crossorigin for its integrity check`);
   }
 });
+
+test('site icons come through Proxi, so the CSP allows no icon host', () => {
+  assert.ok(!/duckduckgo/.test(csp), 'the CSP still allows an outside icon host');
+  assert.ok(!/icons\.duckduckgo/.test(readFileSync(new URL('../ui/citations.js', import.meta.url), 'utf8')), 'source icons still load from an outside host');
+});
