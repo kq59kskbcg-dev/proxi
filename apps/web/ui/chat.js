@@ -459,7 +459,10 @@ export function createChat(app) {
 
       messages: () => {
         const conv = app.activeConv.value;
-        const msgs = app.isChat.value ? conv.messages.map((m) => {
+        // The reply still appearing gets its Copy, rating and Regenerate buttons once it's finished.
+        const streaming = s.typing && s.typingConv === conv?.id;
+        const lastIndex = conv ? conv.messages.length - 1 : -1;
+        const msgs = app.isChat.value ? conv.messages.map((m, i) => {
           const v = s.votes[m.id];
           const key = 'm' + m.id;
           const copied = s.copied === key;
@@ -473,6 +476,7 @@ export function createChat(app) {
             })),
             isUser: m.role === 'user',
             isAssistant: m.role === 'assistant',
+            showActions: !(streaming && i === lastIndex && m.role === 'assistant'),
             hasSteps: !!(m.steps && m.steps.length),
             steps: [...new Set((m.steps || []).map((st) => st.short))].join(' · '),
             stepList: [...(m.steps || []), ...(m.model ? [{ text: 'Answered with ' + modelLabel(m.model), icon: 'spark' }] : [])].map((st, i) => ({ key: i, text: st.text, icon: stepIcon(st.icon) })),
