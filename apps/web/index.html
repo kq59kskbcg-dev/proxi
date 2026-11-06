@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, interactive-widget=resizes-content">
 <title>Proxi</title>
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Manrope:wght@800&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<link href="/fonts/fonts.css" rel="stylesheet">
+<link rel="preload" href="/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
 <script>
 // Applies the saved theme before the page paints. "system" follows the device setting.
 (function () {
@@ -372,9 +372,9 @@
         </template>
         <template v-if="v.showTyping">
           <article style="display: flex; align-items: center">
-            <div role="status" aria-live="polite" :style="`display: flex; align-items: center; gap: 8px; padding: 10px 0; color: var(--think, ${v.accent})`">
-              <span class="spinner" aria-hidden="true" style="flex: none; width: 14px; height: 14px; box-sizing: border-box; border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent"></span>
-              <span style="font-size: 14px; font-weight: 500">{{ v.workingLabel }}...</span>
+            <div role="status" aria-live="polite" style="display: flex; align-items: center; gap: 8px; padding: 10px 0; color: var(--text-muted-3)">
+              <span class="spinner" aria-hidden="true" :style="`flex: none; width: 14px; height: 14px; box-sizing: border-box; border-radius: 50%; border: 2px solid var(--think, ${v.accent}); border-right-color: transparent`"></span>
+              <span style="font-size: 14px">{{ v.workingLabel }}...</span>
             </div>
           </article>
         </template>
@@ -435,6 +435,28 @@
                   <li style="display: flex; align-items: center; gap: 12px; border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px">
                     <span style="flex: 1; min-width: 0; font-size: 14px; line-height: 1.5; overflow-wrap: anywhere">{{ mem.text }}</span>
                     <button type="button" @click="mem.remove" aria-label="Delete memory" style="flex: none; height: 32px; border: 1px solid var(--border); border-radius: 8px; padding: 0 12px; font-size: 13px; font-weight: 500; background: var(--surface); color: var(--text-2); cursor: pointer">Delete</button>
+                  </li>
+                </template>
+              </ul>
+            </div>
+            <div style="border: 1px solid var(--border); border-radius: 16px; padding: 20px; background: var(--surface); display: flex; flex-direction: column; gap: 12px">
+              <div style="display: flex; flex-direction: column; gap: 4px">
+                <h3 style="margin: 0; font-size: 16px; font-weight: 600">Shared links</h3>
+              </div>
+              <template v-if="v.noSharedLinks">
+                <p style="margin: 0; font-size: 14px; color: var(--text-muted-2); line-height: 1.5">You aren't sharing any chats.</p>
+              </template>
+              <ul style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px">
+                <template v-for="link in v.sharedLinkItems" :key="link.key">
+                  <li style="display: flex; align-items: center; gap: 12px; border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px">
+                    <span style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+                      <a href="#" class="shared-link-title" @click.prevent="link.open" style="font-size: 14px; font-weight: 500; line-height: 1.45; color: var(--text); text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{ link.title }}</a>
+                      <span style="font-size: 13px; color: var(--text-muted-2)">{{ link.expires }}</span>
+                    </span>
+                    <span style="flex: none; display: flex; gap: 6px">
+                      <button type="button" class="hov" @click="link.copy" aria-label="Copy link" title="Copy link" style="width: 32px; height: 32px; padding: 0; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text-2); display: flex; align-items: center; justify-content: center; cursor: pointer"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"></rect><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"></path></svg></button>
+                      <button type="button" class="hov" @click="link.stop" aria-label="Stop sharing" title="Stop sharing" style="width: 32px; height: 32px; padding: 0; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text-2); display: flex; align-items: center; justify-content: center; cursor: pointer"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 17H7a5 5 0 0 1 0-10h2"></path><path d="M15 7h2a5 5 0 0 1 4 8"></path><path d="M8 12h4"></path><path d="M3 3l18 18"></path></svg></button>
+                    </span>
                   </li>
                 </template>
               </ul>
@@ -606,9 +628,10 @@
 </div>
 </script>
 
-<script src="https://cdn.jsdelivr.net/npm/vue@3.4.38/dist/vue.global.prod.js" integrity="sha384-Z9a2xA0EIaURxthVmeQmPrgSC05eG8Lch8X4Y2+lXpTg9wcxPj2m3QNurDl5hLiS" crossorigin="anonymous"></script>
-<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js" integrity="sha384-/TQbtLCAerC3jgaim+N78RZSDYV7ryeoBCVqTuzRrFec2akfBkHS7ACQ3PQhvMVi" crossorigin="anonymous"></script>
-<script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js" integrity="sha384-+VfUPEb0PdtChMwmBcBmykRMDd+v6D/oFmB3rZM/puCMDYcIvF968OimRh4KQY9a" crossorigin="anonymous"></script>
+<!-- Served from Proxi so visitors' browsers don't contact a public code host. Licenses are in /vendor. -->
+<script src="/vendor/vue-3.4.38.global.prod.js"></script>
+<script src="/vendor/marked-12.0.2.min.js"></script>
+<script src="/vendor/purify-3.1.6.min.js"></script>
 <script crossorigin="anonymous" src="https://fond-sloth-104.clerk.accounts.dev/npm/@clerk/ui@1/dist/ui.browser.js"></script>
 <script crossorigin="anonymous" data-clerk-publishable-key="pk_test_Zm9uZC1zbG90aC0xMDQuY2xlcmsuYWNjb3VudHMuZGV2JA" src="https://fond-sloth-104.clerk.accounts.dev/npm/@clerk/clerk-js@6/dist/clerk.browser.js"></script>
 <script type="module" src="/ui/app.js"></script>
