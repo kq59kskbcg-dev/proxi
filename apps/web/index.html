@@ -395,8 +395,7 @@
 
     <template v-if="v.isSettings">
       <section style="flex: 1; min-height: 0; overflow-y: auto; padding: 40px 24px">
-        <div style="max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px">
-          <h2 style="margin: 0; font-size: 28px; font-weight: 600; letter-spacing: -0.02em">Settings</h2>
+        <div style="max-width: 640px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px">
           <template v-if="v.settingsLoading">
             <div class="load-in" role="status" style="display: flex; justify-content: center; padding: 120px 0"><span class="load-spinner spinner" aria-hidden="true"></span><span class="sr-only">Loading</span></div>
           </template>
@@ -407,58 +406,79 @@
             </div>
           </template>
           <template v-if="v.settingsReady">
-            <div style="border: 1px solid var(--border); border-radius: 16px; padding: 20px; background: var(--surface); display: flex; flex-direction: column; gap: 12px">
-              <div style="display: flex; flex-direction: column; gap: 4px">
-                <label for="instructions" style="font-weight: 600">Custom instructions</label>
+            <section class="set-sec" aria-labelledby="set-general">
+              <h2 class="set-sh" id="set-general">General</h2>
+              <div class="set-group">
+                <div class="set-row">
+                  <span class="set-title" id="theme-label">Theme</span>
+                  <fieldset class="set-seg" aria-labelledby="theme-label">
+                    <template v-for="(o, i_o) in v.themeChoices" :key="i_o"><label><input type="radio" name="theme" :value="o.value" :checked="o.value === v.themeValue" @change="v.changeTheme">{{ o.label }}</label></template>
+                  </fieldset>
+                </div>
               </div>
-              <textarea id="instructions" rows="5" :maxlength="v.instructionsMax" :disabled="v.settingsBusy" :value="v.instructionsDraft" @input="v.onInstructions" placeholder="For example: Keep answers short and use bullet points." style="width: 100%; box-sizing: border-box; min-height: 132px; resize: vertical; border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; font: inherit; font-size: 15px; line-height: 1.55; background: var(--surface); color: var(--text)"></textarea>
-              <div style="display: flex; align-items: center; justify-content: flex-end; gap: 12px">
-                <span style="font-size: 13px; color: var(--text-muted-2)">{{ v.instructionsCount }}</span>
-                <button type="button" :disabled="v.noSaveInstructions" @click="v.saveInstructions" :style="`height: 40px; border: 0; border-radius: 10px; padding: 0 18px; font-size: 14px; font-weight: 600; background: ${v.saveInstructionsBg}; color: ${v.saveInstructionsColor}; cursor: ${v.noSaveInstructions ? 'default' : 'pointer'}`">Save</button>
+            </section>
+            <section class="set-sec" aria-labelledby="set-personal">
+              <h2 class="set-sh" id="set-personal">Personalization</h2>
+              <div class="set-group">
+                <div class="set-row tight">
+                  <div class="set-label"><label class="set-title" for="instructions">Custom instructions</label><span class="set-hint" id="instructions-hint">Proxi follows these in every chat.</span></div>
+                </div>
+                <div>
+                  <textarea id="instructions" class="set-text" rows="4" :maxlength="v.instructionsMax" :disabled="v.settingsBusy" :value="v.instructionsDraft" @input="v.onInstructions" aria-describedby="instructions-hint" placeholder="For example: Keep answers short and use bullet points."></textarea>
+                  <div class="set-foot">
+                    <span class="set-count">{{ v.instructionsCount }}</span>
+                    <button type="button" class="set-btn primary" :disabled="v.noSaveInstructions" @click="v.saveInstructions">Save</button>
+                  </div>
+                </div>
               </div>
-            </div>
-            <div style="border: 1px solid var(--border); border-radius: 16px; padding: 20px; background: var(--surface); display: flex; flex-direction: column; gap: 12px">
-              <div style="display: flex; flex-direction: column; gap: 4px">
-                <h3 style="margin: 0; font-size: 16px; font-weight: 600">Memory</h3>
-              </div>
-              <template v-if="v.noMemories">
-                <p style="margin: 0; font-size: 14px; color: var(--text-muted-2); line-height: 1.5">Nothing saved yet.</p>
-              </template>
-              <ul style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px">
-                <template v-for="mem in v.memoryItems" :key="mem.key">
-                  <li style="display: flex; align-items: center; gap: 12px; border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px">
-                    <span style="flex: 1; min-width: 0; font-size: 14px; line-height: 1.5; overflow-wrap: anywhere">{{ mem.text }}</span>
-                    <button type="button" @click="mem.remove" aria-label="Delete memory" style="flex: none; height: 32px; border: 1px solid var(--border); border-radius: 8px; padding: 0 12px; font-size: 13px; font-weight: 500; background: var(--surface); color: var(--text-2); cursor: pointer">Delete</button>
-                  </li>
+              <div class="set-group">
+                <div class="set-row">
+                  <div class="set-label"><h3 class="set-title" style="margin: 0">Memory</h3><span class="set-hint">{{ v.memoryHint }}</span></div>
+                </div>
+                <template v-if="v.noMemories">
+                  <p class="set-mem" style="margin: 0; color: var(--text-muted-2)">Nothing saved yet.</p>
                 </template>
-              </ul>
-            </div>
-<!-- Simple settings: one card of rows, label on the left and control on the right. -->
-            <div style="border: 1px solid var(--border); border-radius: 16px; background: var(--surface)">
-              <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 72px; padding: 0 20px">
-                <label for="theme" style="font-weight: 600; min-width: 0">Theme</label>
-                <select id="theme" :value="v.themeValue" @change="v.changeTheme" style="flex: none; height: 44px; width: 140px; box-sizing: border-box; border: 1px solid var(--border); border-radius: 10px; padding: 0 12px; font-size: 15px; background: var(--surface); color: var(--text); cursor: pointer">
-                  <template v-for="(o, i_o) in v.themeChoices" :key="i_o"><option :value="o.value">{{ o.label }}</option></template>
-                </select>
+                <template v-if="!v.noMemories">
+                  <ul class="set-list">
+                    <template v-for="mem in v.memoryItems" :key="mem.key">
+                      <li class="set-mem"><span>{{ mem.text }}</span><button type="button" class="set-x" @click="mem.remove" aria-label="Delete memory"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"></path></svg></button></li>
+                    </template>
+                  </ul>
+                </template>
               </div>
-              <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 72px; padding: 0 20px; border-top: 1px solid var(--border)">
-                <label for="retention" style="font-weight: 600; min-width: 0">Delete chats after</label>
-                <select id="retention" :disabled="v.settingsBusy" :value="v.retentionValue" @change="v.changeRetention" style="flex: none; height: 44px; width: 140px; box-sizing: border-box; border: 1px solid var(--border); border-radius: 10px; padding: 0 12px; font-size: 15px; background: var(--surface); color: var(--text); cursor: pointer">
-                  <template v-for="(o, i_o) in v.retentionChoices" :key="i_o"><option :value="o.value">{{ o.label }}</option></template>
-                </select>
+            </section>
+            <section class="set-sec" aria-labelledby="set-data">
+              <h2 class="set-sh" id="set-data">Data</h2>
+              <div class="set-group">
+                <div class="set-row">
+                  <div class="set-label"><label class="set-title" for="retention">Delete chats after</label><span class="set-hint" id="retention-hint">Chats with no activity for this long are deleted.</span></div>
+                  <select id="retention" class="set-select" :disabled="v.settingsBusy" :value="v.retentionValue" @change="v.changeRetention" aria-describedby="retention-hint">
+                    <template v-for="(o, i_o) in v.retentionChoices" :key="i_o"><option :value="o.value">{{ o.label }}</option></template>
+                  </select>
+                </div>
+                <div class="set-row">
+                  <div class="set-label"><span class="set-title">Delete all chats</span><span class="set-hint">Memories and settings stay.</span></div>
+                  <button type="button" class="set-btn danger" :disabled="!v.hasChats" @click="v.askDeleteChats" aria-haspopup="dialog">Delete all</button>
+                </div>
               </div>
-              <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 72px; padding: 0 20px; border-top: 1px solid var(--border)">
-                <span style="font-weight: 600; min-width: 0">Delete all chats</span>
-                <button type="button" :disabled="!v.hasChats" @click="v.askDeleteChats" aria-haspopup="dialog" :style="`flex: none; height: 44px; width: 140px; border: 1px solid var(--border); border-radius: 10px; padding: 0 16px; font-size: 14px; font-weight: 500; background: var(--surface); color: ${v.hasChats ? 'var(--text-2)' : 'var(--text-disabled)'}; cursor: ${v.hasChats ? 'pointer' : 'default'}`">Delete all</button>
+            </section>
+            <section class="set-sec" aria-labelledby="set-account">
+              <h2 class="set-sh" id="set-account">Account</h2>
+              <div class="set-group">
+                <div class="set-row">
+                  <div class="set-who">
+                    <template v-if="v.userImage"><img class="set-av" :src="v.userImage" alt=""></template>
+                    <template v-if="!v.userImage"><span class="set-av" aria-hidden="true">{{ v.userInitial }}</span></template>
+                    <div class="set-label"><span class="set-title set-ellip">{{ v.userName }}</span><template v-if="v.userEmailLine"><span class="set-hint set-ellip">{{ v.userEmailLine }}</span></template></div>
+                  </div>
+                  <button type="button" class="set-btn" @click="v.logout">Log out</button>
+                </div>
+                <div class="set-row">
+                  <div class="set-label"><span class="set-title">Delete account</span><span class="set-hint">Deletes your chats, memories and settings.</span></div>
+                  <button type="button" class="set-btn danger" @click="v.askDeleteAccount" aria-haspopup="dialog">Delete</button>
+                </div>
               </div>
-            </div>
-            <!-- Deleting the account is the only red button on the page. -->
-            <div style="border: 1px solid var(--border); border-radius: 16px; background: var(--surface)">
-              <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 72px; padding: 0 20px">
-                <span style="font-weight: 600; min-width: 0">Account</span>
-                <button type="button" @click="v.askDeleteAccount" aria-haspopup="dialog" style="flex: none; height: 44px; border: 0; border-radius: 10px; padding: 0 16px; font-size: 14px; font-weight: 600; white-space: nowrap; background: var(--danger); color: var(--on-danger); cursor: pointer">Delete account</button>
-              </div>
-            </div>
+            </section>
             <nav aria-label="Legal" style="display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 20px; padding: 8px 0 16px; font-size: 13px">
               <a class="foot-link" :href="v.privacyPolicy" target="_blank" rel="noopener noreferrer">Privacy policy</a>
               <a class="foot-link" :href="v.terms" target="_blank" rel="noopener noreferrer">Terms of service</a>

@@ -118,6 +118,7 @@ async function start() {
   trackViewport();
   const user = {
     name: clerk.user.fullName || clerk.user.primaryEmailAddress?.emailAddress || 'Signed in',
+    email: clerk.user.primaryEmailAddress?.emailAddress || '',
     image: clerk.user.hasImage ? clerk.user.imageUrl : ''
   };
   mount(user);
