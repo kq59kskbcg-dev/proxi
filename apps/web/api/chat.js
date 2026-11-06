@@ -4,7 +4,7 @@ import { rateLimit } from '../lib/ratelimit.js';
 import { requireUser } from '../lib/auth.js';
 import { flushTraces, getSystemPrompt, startTrace } from '@proxi/agent/langfuse';
 import { hasDatabase, saveConversation, conversationAttributes, recordRedactions, searchChatMessages } from '../lib/db.js';
-import { customInstructions } from '../lib/instructions.js';
+import { customInstructions, disabledTools } from '../lib/instructions.js';
 import { processAttachments, AttachmentError } from '../lib/attachments.js';
 import { parseChatRequest, label, contactOf, memoryOf } from '../lib/chat-request.js';
 import { CONTACT_TOOL, CONTACT_TOOL_DEFINITION, contactAvailable, contactOffer } from '../lib/contact.js';
@@ -106,15 +106,18 @@ export async function POST(request) {
   const localeFor = async () => getLocale(client, history[0].content, (await attributes).language);
   // Memory is off in incognito chats: nothing is saved and saved memories aren't used.
   const memoryOn = !temporary && hasDatabase();
-  const [prompt, instructions, locale, intent, memories, memoryTool, route, summary] = await Promise.all([
+  // Tools turned off in Settings are never offered to the model. Turning off "Save to memory"
+  // only stops new suggestions: saved memories are still used.
+  const [prompt, instructions, locale, intent, memories, memoryToolDef, route, summary, toolsOff] = await Promise.all([
     getSystemPrompt(), customInstructions(user.userId), localeFor(), getIntent(client, history),
     memoryOn ? savedMemories(user.userId) : [], memoryOn ? getMemoryTool() : null,
     auto ? chooseModel(client, history) : { level: null, model: fixedModel },
-    summarizeOlder(client, older),
+    summarizeOlder(client, older), disabledTools(user.userId),
   ]);
+  const memoryTool = toolsOff.has(MEMORY_TOOL) ? null : memoryToolDef;
   const model = route.model;
   // The "Message Lisandro" card is offered once someone in the chat has asked for a person.
-  const contactOn = await contactAvailable(intent.escalated || escalatedBefore || (await attributes).escalated);
+  const contactOn = !toolsOff.has(CONTACT_TOOL) && await contactAvailable(intent.escalated || escalatedBefore || (await attributes).escalated);
   const { messages, traced, system: systemText } = buildContext({
     recent, blocks: attached.blocks, maxReplyChars: MAX_REPLY_CHARS,
     parts: { prompt: prompt.text, locale: locale.text, intent: intent.text, memories, summary, instructions },
@@ -133,9 +136,10 @@ export async function POST(request) {
 
   const mcp = await getMcpTools();
   // Chat search is off in incognito chats, like memory: it only searches the user's own saved chats.
-  const chatSearchOn = memoryOn;
+  const chatSearchOn = memoryOn && !toolsOff.has(CHAT_SEARCH_TOOL);
   const origin = new URL(request.url).origin;
-  const tools = [...(mcp?.tools ?? []), ...(memoryTool ? [memoryTool] : []), ...(chatSearchOn ? [CHAT_SEARCH_TOOL_DEFINITION] : []), ...(contactOn ? [CONTACT_TOOL_DEFINITION] : [])];
+  const mcpTools = (mcp?.tools ?? []).filter((tool) => !toolsOff.has(tool.name));
+  const tools = [...mcpTools, ...(memoryTool ? [memoryTool] : []), ...(chatSearchOn ? [CHAT_SEARCH_TOOL_DEFINITION] : []), ...(contactOn ? [CONTACT_TOOL_DEFINITION] : [])];
   const params = {
     model,
     max_tokens: MAX_TOKENS,
@@ -170,7 +174,7 @@ export async function POST(request) {
           const result = call.name === MEMORY_TOOL && memoryTool ? memory.run(call)
             : searching ? await searchChats(user.userId, conversationId, origin, call.id, input.query)
             : call.name === CONTACT_TOOL && contactOn ? contact.run(call)
-            : mcp ? await mcp.call(call)
+            : mcp && !toolsOff.has(call.name) ? await mcp.call(call)
             : { type: 'tool_result', tool_use_id: call.id, content: 'This tool is not available.', is_error: true };
           // Past chats' passages stay out of traces: only how many chats matched.
           const output = searching && Array.isArray(result.content) ? { chats: result.content.length } : result.content;

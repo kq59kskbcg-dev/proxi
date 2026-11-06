@@ -88,10 +88,10 @@ test('chats inactive for longer than the retention period are deleted with their
 });
 
 test('settings default to 30 days and can be changed per user', async () => {
-  assert.deepEqual(await getSettings('user_s'), { chatRetentionDays: 30, customInstructions: '' });
+  assert.deepEqual(await getSettings('user_s'), { chatRetentionDays: 30, customInstructions: '', disabledTools: [] });
   await saveSettings('user_s', { chatRetentionDays: 7 });
-  assert.deepEqual(await getSettings('user_s'), { chatRetentionDays: 7, customInstructions: '' });
-  assert.deepEqual(await getSettings('user_other'), { chatRetentionDays: 30, customInstructions: '' });
+  assert.deepEqual(await getSettings('user_s'), { chatRetentionDays: 7, customInstructions: '', disabledTools: [] });
+  assert.deepEqual(await getSettings('user_other'), { chatRetentionDays: 30, customInstructions: '', disabledTools: [] });
 });
 
 test('cleanup follows each user\'s own retention, or the 30 day default', async () => {
@@ -142,7 +142,7 @@ test('deleting an account removes the user\'s chats, memories and settings, and 
   assert.deepEqual((await deleteAccountData('user_gone')).sort(), ['trace-1', 'trace-2']);
   assert.deepEqual(await listConversations('user_gone'), []);
   assert.deepEqual(await listMemories('user_gone'), []);
-  assert.deepEqual(await getSettings('user_gone'), { chatRetentionDays: 30, customInstructions: '' });
+  assert.deepEqual(await getSettings('user_gone'), { chatRetentionDays: 30, customInstructions: '', disabledTools: [] });
   assert.equal((await listConversations('user_kept')).length, 1);
   assert.equal((await listMemories('user_kept')).length, 1);
 });

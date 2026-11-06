@@ -13,5 +13,17 @@ export async function customInstructions(userId) {
   }
 }
 
+// The tools the user turned off in Settings, as a Set of tool names. If they can't be loaded,
+// every tool stays on.
+export async function disabledTools(userId) {
+  if (!hasDatabase()) return new Set();
+  try {
+    return new Set((await getSettings(userId)).disabledTools);
+  } catch (error) {
+    console.error('tool settings lookup failed', error?.code ?? error?.name);
+    return new Set();
+  }
+}
+
 // Kept here for existing imports; the prompt is assembled in @proxi/agent/context.
 export { withInstructions } from '@proxi/agent/context';

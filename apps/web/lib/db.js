@@ -13,6 +13,9 @@ export const RETENTION_OPTIONS = [7, 30, 90];
 export const DEFAULT_RETENTION_DAYS = 30;
 // Custom instructions: how long they may be, in characters.
 export const CUSTOM_INSTRUCTIONS_MAX = 1500;
+// Tools: the ones a user can turn off in Settings, by the name the model calls them.
+// web_search, search_docs and get_status come from the MCP server; the others from the web app.
+export const TOOL_OPTIONS = ['web_search', 'search_docs', 'search_chats', 'save_memory', 'offer_message_to_lisandro', 'get_status'];
 // Memory: how many facts one user can have saved.
 export const MEMORY_LIMIT = 50;
 
@@ -63,6 +66,8 @@ const SCHEMA = [
      chat_retention_days int NOT NULL CHECK (chat_retention_days IN (7, 30, 90)),
      updated_at timestamptz NOT NULL DEFAULT now())`,
   `ALTER TABLE user_settings ADD COLUMN IF NOT EXISTS custom_instructions text NOT NULL DEFAULT ''`,
+  // Tools the user turned off in Settings, by name. Empty means every tool is on.
+  `ALTER TABLE user_settings ADD COLUMN IF NOT EXISTS disabled_tools text[] NOT NULL DEFAULT '{}'`,
   // Set while a chat is shared with a public link. Deleting the chat removes the link with it.
   `ALTER TABLE conversations ADD COLUMN IF NOT EXISTS share_id text UNIQUE`,
   // Two-letter language of the chat, found from its first message and kept once set.
@@ -216,24 +221,26 @@ export async function deleteInactiveConversations(defaultDays = DEFAULT_RETENTIO
 
 export async function getSettings(userId) {
   const d = await db();
-  const rows = await d.query('SELECT chat_retention_days, custom_instructions FROM user_settings WHERE user_id = $1', [userId]);
+  const rows = await d.query('SELECT chat_retention_days, custom_instructions, disabled_tools FROM user_settings WHERE user_id = $1', [userId]);
   return {
     chatRetentionDays: rows[0]?.chat_retention_days ?? DEFAULT_RETENTION_DAYS,
     customInstructions: rows[0]?.custom_instructions ?? '',
+    disabledTools: rows[0]?.disabled_tools ?? [],
   };
 }
 
 // Saves the settings that are given and keeps the others as they are.
-export async function saveSettings(userId, { chatRetentionDays, customInstructions }) {
+export async function saveSettings(userId, { chatRetentionDays, customInstructions, disabledTools }) {
   const d = await db();
   await d.query(
-    `INSERT INTO user_settings (user_id, chat_retention_days, custom_instructions)
-     VALUES ($1, COALESCE($2::int, $4::int), COALESCE($3::text, ''))
+    `INSERT INTO user_settings (user_id, chat_retention_days, custom_instructions, disabled_tools)
+     VALUES ($1, COALESCE($2::int, $4::int), COALESCE($3::text, ''), COALESCE($5::text[], '{}'))
      ON CONFLICT (user_id) DO UPDATE SET
        chat_retention_days = COALESCE($2::int, user_settings.chat_retention_days),
        custom_instructions = COALESCE($3::text, user_settings.custom_instructions),
+       disabled_tools = COALESCE($5::text[], user_settings.disabled_tools),
        updated_at = now()`,
-    [userId, chatRetentionDays ?? null, customInstructions ?? null, DEFAULT_RETENTION_DAYS]);
+    [userId, chatRetentionDays ?? null, customInstructions ?? null, DEFAULT_RETENTION_DAYS, disabledTools ?? null]);
 }
 
 // Which of these chat IDs still belong to a saved chat, for any user.
