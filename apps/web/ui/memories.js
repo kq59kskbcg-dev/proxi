@@ -1,9 +1,11 @@
-// Memory: facts Proxi saved to remember. Shown in Settings, where each one can be deleted.
+// Memory: facts Proxi saved to remember. Shown in Settings with how many are saved out of the limit,
+// where each one can be deleted.
 
 import { api } from './api.js';
 
 export const memoriesState = {
-  memories: null // null until loaded
+  memories: null, // null until loaded
+  memoryLimit: 50 // replaced by the limit the server sends
 };
 
 export function createMemories(app) {
@@ -11,7 +13,8 @@ export function createMemories(app) {
 
   async function loadMemories() {
     try {
-      app.setState({ memories: (await api.get('/api/memories')).memories || [] });
+      const data = await api.get('/api/memories');
+      app.setState({ memories: data.memories || [], ...(Number.isInteger(data.limit) ? { memoryLimit: data.limit } : {}) });
     } catch {
       app.setState({ memories: [] });
       app.showToast("Couldn't load your memories. Please try again.");
@@ -35,7 +38,8 @@ export function createMemories(app) {
     views: {
       memories: () => ({
         memoryItems: (s.memories || []).map((m) => ({ key: m.id, text: m.content, remove: () => deleteMemory(m.id) })),
-        noMemories: Array.isArray(s.memories) && s.memories.length === 0
+        noMemories: Array.isArray(s.memories) && s.memories.length === 0,
+        memoryHint: `Things Proxi remembers about you. ${(s.memories || []).length} of ${s.memoryLimit}.`
       })
     }
   };

@@ -1,5 +1,5 @@
-// Settings: custom instructions, theme, "Delete chats after" (7, 30 or 90 days) and
-// "Delete all chats".
+// Settings: theme, custom instructions, "Delete chats after" (7, 30 or 90 days) and
+// "Delete all chats". The page groups them under General, Personalization, Data and Account.
 // Settings opens on its own screen, without the sidebar; the X (or Esc) goes back to where you were.
 // The Memory and Account sections are in memories.js and account.js.
 
@@ -162,8 +162,6 @@ export function createSettings(app) {
           instructionsCount: `${s.instructionsDraft.length.toLocaleString('en-US')} / ${max.toLocaleString('en-US')}`,
           onInstructions: (e) => app.setState({ instructionsDraft: e.target.value }),
           noSaveInstructions: unchanged,
-          saveInstructionsBg: unchanged ? 'var(--disabled)' : 'var(--inverse)',
-          saveInstructionsColor: unchanged ? 'var(--text-disabled)' : 'var(--on-inverse)',
           saveInstructions,
           themeValue: s.theme,
           themeChoices: THEMES,
