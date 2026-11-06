@@ -4,13 +4,23 @@
 import { TITLE_MODEL } from '../src/title.js';
 import { detectLanguage } from '../src/locale.js';
 import { classifyIntent } from '../src/intents.js';
+import { classifySuggestions, parseSuggestions, suggestionKey } from '../src/reply-suggestions.js';
 
 // Prompts that have an eval. Each dataset item has the prompt's variables as its input and
 // the exact expected reply as its expected output.
 export const DATASETS = {
   'classifiers/language': 'evals/classifier-language',
   'classifiers/intent-router': 'evals/classifier-intent-router',
+  'classifiers/reply-suggestions': 'evals/classifier-reply-suggestions',
 };
+
+// Prompts that aren't scored on one exact word. `parse` turns the model's text into what the app
+// uses, and `key` is what has to match: for suggestions, the same options in any order or case.
+const plainKey = (value) => String(value).trim().toLowerCase();
+const SCORING = {
+  'classifiers/reply-suggestions': { maxTokens: 64, parse: parseSuggestions, key: suggestionKey },
+};
+const keyFor = (name) => SCORING[name]?.key ?? plainKey;
 
 async function activeItems(langfuse, datasetName) {
   const { data } = await langfuse.api.datasetItems.list({ datasetName, limit: 100 });
@@ -19,10 +29,11 @@ async function activeItems(langfuse, datasetName) {
 
 // Asks for each item's answer and compares it with the expected output, exactly.
 async function score(name, version, datasetName, items, answer) {
+  const key = keyFor(name);
   const failures = [];
   for (const item of items) {
-    const got = String(await answer(item.input)).trim().toLowerCase();
-    const expected = String(item.expectedOutput).toLowerCase();
+    const got = key(await answer(item.input));
+    const expected = key(item.expectedOutput);
     if (got !== expected) failures.push({ input: item.input, expected, got });
   }
   return { name, version, datasetName, total: items.length, passed: items.length - failures.length, failures, ok: items.length > 0 && failures.length === 0 };
@@ -35,13 +46,15 @@ export async function evalPrompt(langfuse, client, name, version) {
   const prompt = await langfuse.prompt.get(name, { version, cacheTtlSeconds: 0 });
   const items = await activeItems(langfuse, datasetName);
   return score(name, version, datasetName, items, async (input) => {
+    const scoring = SCORING[name] ?? {};
     const res = await client.messages.create({
       model: TITLE_MODEL,
-      max_tokens: 8,
+      max_tokens: scoring.maxTokens ?? 8,
       thinking: { type: 'disabled' },
       messages: [{ role: 'user', content: prompt.compile(input) }],
     }, { timeout: 15_000, maxRetries: 1 });
-    return res.content.filter((b) => b.type === 'text').map((b) => b.text).join('');
+    const text = res.content.filter((b) => b.type === 'text').map((b) => b.text).join('');
+    return scoring.parse ? scoring.parse(text) : text;
   });
 }
 
@@ -50,6 +63,7 @@ export async function evalPrompt(langfuse, client, name, version) {
 const LIVE = {
   'classifiers/language': (langfuse, client, input) => detectLanguage(langfuse, client, input.message),
   'classifiers/intent-router': async (langfuse, client, input) => (await classifyIntent(langfuse, client, [{ role: 'user', content: input.message }])) ?? 'none',
+  'classifiers/reply-suggestions': async (langfuse, client, input) => (await classifySuggestions(langfuse, client, input.reply, { timeout: 15_000 })).options,
 };
 
 export async function evalLive(langfuse, client, name) {
