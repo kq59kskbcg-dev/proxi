@@ -9,9 +9,10 @@ const STEP_ICONS = {
   pulse: '<path d="M3 12h4l3-8 4 16 3-8h4"></path>',
   file: '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"></path><path d="M14 3v5h5"></path>',
   tool: '<path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.4-.6-.6-2.4z"></path>',
+  chat: '<path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"></path>',
   spark: '<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"></path>'
 };
-const TOOL_ICONS = { search_docs: 'book', web_search: 'globe', get_status: 'pulse' };
+const TOOL_ICONS = { search_docs: 'book', search_chats: 'chat', web_search: 'globe', get_status: 'pulse' };
 export function toStep(a) {
   return { short: a.done, text: a.detail || a.done, icon: a.icon || TOOL_ICONS[a.tool] || 'tool' };
 }

@@ -54,6 +54,7 @@
           "tools/overview",
           "tools/web-search",
           "tools/help-center-search",
+          "tools/search-your-chats",
           "tools/service-status",
           "tools/talk-to-a-person"
         ]

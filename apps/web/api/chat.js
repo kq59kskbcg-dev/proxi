@@ -3,7 +3,7 @@ import { redact } from '@proxi/agent/redact';
 import { rateLimit } from '../lib/ratelimit.js';
 import { requireUser } from '../lib/auth.js';
 import { flushTraces, getSystemPrompt, startTrace } from '@proxi/agent/langfuse';
-import { hasDatabase, saveConversation, conversationAttributes, recordRedactions } from '../lib/db.js';
+import { hasDatabase, saveConversation, conversationAttributes, recordRedactions, searchChatMessages } from '../lib/db.js';
 import { customInstructions } from '../lib/instructions.js';
 import { processAttachments, AttachmentError } from '../lib/attachments.js';
 import { parseChatRequest, label, contactOf, memoryOf } from '../lib/chat-request.js';
@@ -14,6 +14,7 @@ import { makeTitle } from '@proxi/agent/title';
 import { getLocale } from '@proxi/agent/locale';
 import { getIntent } from '@proxi/agent/intents';
 import { MEMORY_TOOL, getMemoryTool } from '@proxi/agent/memory';
+import { CHAT_SEARCH_TOOL, CHAT_SEARCH_TOOL_DEFINITION, searchWords, likePatterns, rankChats, chatSearchResult } from '@proxi/agent/chat-search';
 import { runAgentLoop } from '@proxi/agent/agent-loop';
 import { buildContext, splitHistory } from '@proxi/agent/context';
 import { summarizeOlder } from '@proxi/agent/summary';
@@ -131,7 +132,10 @@ export async function POST(request) {
   }, { asType: 'generation' });
 
   const mcp = await getMcpTools();
-  const tools = [...(mcp?.tools ?? []), ...(memoryTool ? [memoryTool] : []), ...(contactOn ? [CONTACT_TOOL_DEFINITION] : [])];
+  // Chat search is off in incognito chats, like memory: it only searches the user's own saved chats.
+  const chatSearchOn = memoryOn;
+  const origin = new URL(request.url).origin;
+  const tools = [...(mcp?.tools ?? []), ...(memoryTool ? [memoryTool] : []), ...(chatSearchOn ? [CHAT_SEARCH_TOOL_DEFINITION] : []), ...(contactOn ? [CONTACT_TOOL_DEFINITION] : [])];
   const params = {
     model,
     max_tokens: MAX_TOKENS,
@@ -157,14 +161,20 @@ export async function POST(request) {
       let text = '';
       let servedBy = model;
       try {
-        // Routes each tool call: save_memory to the "Save to memory" card, the rest to the MCP server.
+        // Routes each tool call: save_memory to the "Save to memory" card, search_chats to the
+        // user's saved chats, the rest to the MCP server.
         const executeTool = async (call) => {
-          const span = trace?.startObservation(`tool ${call.name}`, { input: call.input }, { asType: 'tool' });
+          const searching = call.name === CHAT_SEARCH_TOOL && chatSearchOn;
+          const input = searching ? { query: redact(String(call.input?.query ?? '')).text } : call.input;
+          const span = trace?.startObservation(`tool ${call.name}`, { input }, { asType: 'tool' });
           const result = call.name === MEMORY_TOOL && memoryTool ? memory.run(call)
+            : searching ? await searchChats(user.userId, conversationId, origin, call.id, input.query)
             : call.name === CONTACT_TOOL && contactOn ? contact.run(call)
             : mcp ? await mcp.call(call)
             : { type: 'tool_result', tool_use_id: call.id, content: 'This tool is not available.', is_error: true };
-          span?.update({ output: result.content, level: result.is_error ? 'ERROR' : 'DEFAULT' }).end();
+          // Past chats' passages stay out of traces: only how many chats matched.
+          const output = searching && Array.isArray(result.content) ? { chats: result.content.length } : result.content;
+          span?.update({ output, level: result.is_error ? 'ERROR' : 'DEFAULT' }).end();
           return result;
         };
         const onEvent = (event) => {
@@ -227,6 +237,19 @@ export async function POST(request) {
   return new Response(body$, {
     headers: { 'Content-Type': 'application/x-ndjson; charset=utf-8', 'Cache-Control': 'no-store' },
   });
+}
+
+// Runs search_chats over the user's saved chats, except this one. Resolves to its tool_result.
+async function searchChats(userId, conversationId, origin, toolUseId, query) {
+  const words = searchWords(query);
+  if (!words.length) return { type: 'tool_result', tool_use_id: toolUseId, content: 'Give a few keywords to search for.', is_error: true };
+  try {
+    const rows = await searchChatMessages(userId, likePatterns(words), conversationId);
+    return chatSearchResult(toolUseId, rankChats(rows, words), origin);
+  } catch (error) {
+    console.error('chat search failed', error?.code ?? error?.name);
+    return { type: 'tool_result', tool_use_id: toolUseId, content: 'Searching saved chats failed.', is_error: true };
+  }
 }
 
 function titleFrom(history) {

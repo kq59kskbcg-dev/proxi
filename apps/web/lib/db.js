@@ -169,6 +169,21 @@ export async function markMemory(userId, conversationId, position, status, text)
 }
 
 // What is known about a chat so far; empty values if it isn't saved yet or can't be read.
+// Chat search for the agent: the signed-in user's saved chats whose title or messages contain any
+// of the words, except the chat in progress. Returns the matching rows, most recent chats first;
+// ranking and snippets are made by the caller (@proxi/agent/chat-search).
+export async function searchChatMessages(userId, patterns, excludeId) {
+  if (!patterns.length) return [];
+  const d = await db();
+  const rows = await d.query(
+    `SELECT c.id, c.title, c.updated_at, m.position, m.role, m.content
+     FROM conversations c JOIN messages m ON m.user_id = c.user_id AND m.conversation_id = c.id
+     WHERE c.user_id = $1 AND ($2::text IS NULL OR c.id <> $2)
+       AND (m.content ILIKE ANY($3::text[]) OR c.title ILIKE ANY($3::text[]))
+     ORDER BY c.updated_at DESC, m.position LIMIT 400`, [userId, excludeId ?? null, patterns]);
+  return rows.map((r) => ({ id: r.id, title: r.title, updatedAt: new Date(r.updated_at).toISOString(), position: r.position, role: r.role, content: r.content }));
+}
+
 export async function conversationAttributes(userId, conversationId) {
   try {
     const d = await db();

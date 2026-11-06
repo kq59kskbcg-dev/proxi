@@ -145,6 +145,8 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 .src-tile{width:20px;height:20px;box-sizing:border-box;border-radius:50%;border:2px solid var(--surface);margin-left:-6px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#FFFFFF}
 .src-tile:first-child{margin-left:0}
 .src-tile.t0,.src-ico.t0{background:#6D28FF}.src-tile.t1,.src-ico.t1{background:#0F7B5F}.src-tile.t2,.src-ico.t2{background:#F4511E}.src-tile.t3,.src-ico.t3{background:#2563EB}.src-tile.t4,.src-ico.t4{background:#B45309}
+.src-tile.src-chat,.src-ico.src-chat{background:#6D28FF}
+.md .sources li>span{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;color:var(--text)}
 .src-panel{position:absolute;z-index:20;top:calc(100% + 8px);left:0;width:360px;max-width:calc(100vw - 48px);box-sizing:border-box;background:var(--surface);border:1px solid var(--border);border-radius:14px;box-shadow:0 12px 36px rgba(24,24,27,0.18);padding:4px 4px 6px;line-height:1.4}
 :root[data-theme="dark"] .src-panel{box-shadow:0 12px 36px rgba(0,0,0,0.5)}
 .sources.src-up .src-panel{top:auto;bottom:calc(100% + 8px)}

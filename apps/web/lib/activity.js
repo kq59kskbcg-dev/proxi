@@ -13,6 +13,11 @@ const KNOWN = {
     done: 'Searched the web',
     detail: quoted('Searched the web', input?.query),
   }),
+  search_chats: (input) => ({
+    label: quoted('Searching your chats', input?.query),
+    done: 'Searched your chats',
+    detail: quoted('Searched your chats', input?.query),
+  }),
   get_status: () => ({ label: "Checking Proxi's status", done: "Checked Proxi's status", detail: "Checked Proxi's status" }),
   save_memory: () => ({ label: 'Suggesting a memory', done: 'Suggested a memory', detail: 'Suggested a memory' }),
   offer_message_to_lisandro: () => ({ label: 'Writing a message for Lisandro', done: 'Wrote a message for Lisandro', detail: 'Wrote a message for Lisandro' }),
