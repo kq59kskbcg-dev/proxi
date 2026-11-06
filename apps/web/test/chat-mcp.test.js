@@ -350,6 +350,20 @@ test('search_chats is not offered in incognito chats', { skip }, async () => {
   });
 });
 
+test('tools turned off in Settings are not offered, and saved memories are still used', { skip }, async () => {
+  await withDatabase(async () => {
+    const { saveSettings, addMemory } = await import('../lib/db.js');
+    await saveSettings('user_search', { disabledTools: ['web_search', 'search_chats', 'save_memory'] });
+    await addMemory('user_search', 'mem-1', 'Prefers metric units');
+    script = [() => textTurn('Sure.')];
+    await chat('What did we talk about?', {}, searchToken());
+    const names = (requests[0].tools ?? []).map((tool) => tool.name);
+    for (const off of ['web_search', 'search_chats', 'save_memory']) assert.ok(!names.includes(off), off + ' is off');
+    for (const on of ['search_docs', 'get_status']) assert.ok(names.includes(on), on + ' stays on');
+    assert.match(JSON.stringify(requests[0].system), /Prefers metric units/);
+  });
+});
+
 test('a temporary chat is not titled, saved or traced', { skip }, async () => {
   script = [() => textTurn('Sure.')];
   const events = await chat('Help me plan a trip', { conversationId: 'temp-chat-1', temporary: true });

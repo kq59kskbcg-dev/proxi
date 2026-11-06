@@ -32,13 +32,13 @@ test('settings need a signed-in user', async () => {
 test('settings start at 30 days with no instructions, and list the choices', async () => {
   const res = await GET(request('GET'));
   assert.equal(res.status, 200);
-  assert.deepEqual(await res.json(), { chatRetentionDays: 30, customInstructions: '', retentionOptions: [7, 30, 90], customInstructionsMax: 1500 });
+  assert.deepEqual(await res.json(), { chatRetentionDays: 30, customInstructions: '', disabledTools: [], retentionOptions: [7, 30, 90], customInstructionsMax: 1500, toolOptions: ['web_search', 'search_docs', 'search_chats', 'save_memory', 'offer_message_to_lisandro', 'get_status'] });
 });
 
 test('a valid choice is saved, anything else is refused', async () => {
   const saved = await PUT(request('PUT', { chatRetentionDays: 7 }));
   assert.equal(saved.status, 200);
-  assert.deepEqual(await saved.json(), { chatRetentionDays: 7, customInstructions: '' });
+  assert.deepEqual(await saved.json(), { chatRetentionDays: 7, customInstructions: '', disabledTools: [] });
   assert.equal((await PUT(request('PUT', { chatRetentionDays: 365 }))).status, 400);
   assert.equal((await PUT(request('PUT', { chatRetentionDays: '7' }))).status, 400);
   assert.equal((await (await GET(request('GET'))).json()).chatRetentionDays, 7);
@@ -47,7 +47,7 @@ test('a valid choice is saved, anything else is refused', async () => {
 test('custom instructions are saved trimmed, without touching retention', async () => {
   const saved = await PUT(request('PUT', { customInstructions: '  Keep answers short.  ' }));
   assert.equal(saved.status, 200);
-  assert.deepEqual(await saved.json(), { chatRetentionDays: 7, customInstructions: 'Keep answers short.' });
+  assert.deepEqual(await saved.json(), { chatRetentionDays: 7, customInstructions: 'Keep answers short.', disabledTools: [] });
   // Changing retention keeps the instructions.
   await PUT(request('PUT', { chatRetentionDays: 90 }));
   assert.equal((await (await GET(request('GET'))).json()).customInstructions, 'Keep answers short.');
@@ -60,6 +60,25 @@ test('custom instructions must be text up to 1,500 characters', async () => {
   assert.equal((await PUT(request('PUT', { customInstructions: 42 }))).status, 400);
   assert.equal((await PUT(request('PUT', {}))).status, 400);
   assert.equal((await PUT(request('PUT', { customInstructions: 'x'.repeat(1500) }))).status, 200);
+});
+
+test('tools can be turned off and on again, without touching other settings', async () => {
+  const off = await PUT(request('PUT', { disabledTools: ['web_search', 'save_memory'] }));
+  assert.equal(off.status, 200);
+  const body = await off.json();
+  assert.deepEqual(body.disabledTools, ['web_search', 'save_memory']);
+  assert.equal(body.chatRetentionDays, 90);
+  // Other settings keep the tool choices.
+  await PUT(request('PUT', { chatRetentionDays: 30 }));
+  assert.deepEqual((await (await GET(request('GET'))).json()).disabledTools, ['web_search', 'save_memory']);
+  // An empty list turns every tool back on.
+  assert.deepEqual((await (await PUT(request('PUT', { disabledTools: [] }))).json()).disabledTools, []);
+});
+
+test('only known tools, each once, can be turned off', async () => {
+  assert.equal((await PUT(request('PUT', { disabledTools: ['delete_everything'] }))).status, 400);
+  assert.equal((await PUT(request('PUT', { disabledTools: ['web_search', 'web_search'] }))).status, 400);
+  assert.equal((await PUT(request('PUT', { disabledTools: 'web_search' }))).status, 400);
 });
 
 function signJwt(privateKey, claims) {

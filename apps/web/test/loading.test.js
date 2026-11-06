@@ -19,6 +19,20 @@ test('Settings shows one spinner until both the settings and the memories have l
   assert.equal(view().settingsReady, true);
 });
 
+test('Settings opens on General, and unchecking a tool turns it off', async () => {
+  const state = { ...settingsState, memories: [], view: 'new', settings: { chatRetentionDays: 30, options: [7, 30, 90], customInstructions: '', instructionsMax: 1500, disabledTools: [], toolOptions: ['web_search', 'save_memory'] } };
+  const view = () => createSettings(fakeApp(state)).views.settings();
+  assert.equal(view().onGeneralTab, true);
+  assert.deepEqual(view().toolItems.map((t) => [t.id, t.on]), [['web_search', true], ['save_memory', true]]);
+  const sent = [];
+  window.Clerk = { session: { getToken: async () => 'token' } };
+  globalThis.fetch = async (url, init) => { sent.push(JSON.parse(init.body)); return new Response('{}', { status: 200 }); };
+  await view().toolItems[0].change({ target: { checked: false } });
+  assert.deepEqual(state.settings.disabledTools, ['web_search']);
+  assert.deepEqual(sent.at(-1), { disabledTools: ['web_search'] });
+  assert.equal(view().toolItems[0].on, false);
+});
+
 test('Settings shows an error with Try again when loading fails', () => {
   const state = { ...settingsState, memories: [], settingsFailed: true };
   const v = createSettings(fakeApp(state)).views.settings();
