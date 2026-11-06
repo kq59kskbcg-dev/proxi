@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { highlight, groupOf, whenLabel, fullDate, shareUrl, maskCards, modelLabel } from '../ui/format.js';
 import { redactionSteps, toStep, stepIcon } from '../ui/steps.js';
 import { classify, formatSize, ACCEPT } from '../ui/files.js';
-import { opensAbove } from '../ui/citations.js';
+import { opensAbove, chatLinkId } from '../ui/citations.js';
 
 const daysAgo = (n) => new Date(Date.now() - n * 86400000).toISOString();
 
@@ -70,4 +70,19 @@ test('the sources card opens above the button only when it fits better there', (
   assert.equal(opensAbove(400, 100, 220), false);
   assert.equal(opensAbove(120, 500, 220), true);
   assert.equal(opensAbove(120, 80, 220), false);
+});
+
+test('a source is one of the user\'s chats only when it links to /?chat=<id> on this site', () => {
+  const origin = 'https://proxi.example';
+  assert.equal(chatLinkId('https://proxi.example/?chat=abc-1', origin), 'abc-1');
+  assert.equal(chatLinkId('https://other.example/?chat=abc-1', origin), null);
+  assert.equal(chatLinkId('https://proxi.example/s/?chat=abc-1', origin), null);
+  assert.equal(chatLinkId('https://proxi.example/?chat=a%20b', origin), null);
+  assert.equal(chatLinkId('https://proxi.example/', origin), null);
+  assert.equal(chatLinkId('not a url', origin), null);
+});
+
+test('chat search steps get the chat icon', () => {
+  assert.equal(toStep({ done: 'Searched your chats', tool: 'search_chats' }).icon, 'chat');
+  assert.match(stepIcon('chat'), /M21 12a8 8 0 0 1/);
 });

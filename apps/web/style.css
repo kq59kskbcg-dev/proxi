@@ -3,14 +3,15 @@
 --divider:#EDEDF0;--disabled:#E4E4E8;--border:#E7E5EE;--border-strong:#D4D4DA;--border-hover:#C4C4CC;
 --accent-line:#DDD6FE;--accent-soft:#EFE8FF;--temp-border:#A1A1AA;--link:#6D28FF;--link-hover:#5214E0;
 --text:#111111;--text-code:#27272A;--text-2:#3F3F46;--text-muted:#52525B;--text-muted-2:#5C5C66;--text-muted-3:#63636B;--placeholder:#6B6B74;--text-disabled:#71717A;
---danger:#B42318;--on-danger:#FFFFFF;--ok:#067647;--inverse:#111111;--inverse-hover:#2A2A2E;--on-inverse:#FFFFFF}
+--danger:#B42318;--on-danger:#FFFFFF;--ok:#067647;--inverse:#111111;--inverse-hover:#2A2A2E;--on-inverse:#FFFFFF;--send:#6D28FF;--send-hover:#5214E0;--on-send:#FFFFFF}
 :root[data-theme="dark"]{color-scheme:dark;
 --bg:#121116;--surface:#18171D;--side:#141318;--sunken:#26242D;--soft:#1E1D24;--hover-solid:#24222B;--hover:rgba(255,255,255,0.07);
 --divider:#26242D;--disabled:#2E2C36;--border:#2C2A34;--border-strong:#3A3843;--border-hover:#4A4754;
 --accent-line:#4A3B82;--accent-soft:#2A2340;--temp-border:#6B6A75;--link:#A78BFA;--link-hover:#C4B5FD;--think:#A78BFA;
 --text:#ECEBF1;--text-code:#DAD9E0;--text-2:#C9C8D1;--text-muted:#A9A8B3;--text-muted-2:#A1A0AB;--text-muted-3:#9A99A4;--placeholder:#8A8994;--text-disabled:#7D7C87;
---danger:#F97066;--on-danger:#1A0B0A;--ok:#47CD89;--inverse:#ECEBF1;--inverse-hover:#D6D5DD;--on-inverse:#111111}
+--danger:#F97066;--on-danger:#1A0B0A;--ok:#47CD89;--inverse:#ECEBF1;--inverse-hover:#D6D5DD;--on-inverse:#111111;--send:#8B5CF6;--send-hover:#7C3AED;--on-send:#FFFFFF}
 @supports (height:100dvh){:root{--app-h:100dvh}}
+.send-btn:not(:disabled):hover{background:var(--send-hover) !important}
 body{margin:0;background:var(--bg)}
 .app{position:fixed;left:0;right:0;top:var(--app-top,0px);height:var(--app-h)}
 .app-mode,.app-mode body{overflow:hidden;overscroll-behavior:none}
@@ -126,15 +127,12 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 .contact-send:disabled{opacity:.6;cursor:default}
 .contact-later{background:var(--sunken);color:var(--text)}
 .contact-later:disabled{opacity:.6;cursor:default}
-.contact-skipped{display:flex;align-items:center;gap:6px;font-size:13px;line-height:1.5;color:var(--text-muted)}
-.contact-skipped svg{flex:none}
 .contact-send:focus-visible,.contact-later:focus-visible{outline:2px solid var(--link);outline-offset:2px}
 .contact-done{flex-direction:row;align-items:flex-start;gap:10px}
 .contact-ok{background:var(--sunken);color:var(--ok)}
+.contact-no{background:var(--sunken);color:var(--danger)}
 .memory-input{height:auto;padding:10px 12px;line-height:24px;resize:none;display:block}
 .contact-later:disabled{opacity:.6;cursor:default}
-.memory-note{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-muted)}
-.memory-note svg{flex:none}
 .err-retry{font:inherit;font-size:13px;font-weight:500;height:32px;padding:0 14px;border:0;border-radius:8px;background:var(--sunken);color:var(--text);cursor:pointer}
 .err-ref{font-size:12px;color:var(--text-muted-3);font-variant-numeric:tabular-nums}
 .md .sources{margin-top:14px;position:relative;width:fit-content}
@@ -147,6 +145,8 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 .src-tile{width:20px;height:20px;box-sizing:border-box;border-radius:50%;border:2px solid var(--surface);margin-left:-6px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#FFFFFF}
 .src-tile:first-child{margin-left:0}
 .src-tile.t0,.src-ico.t0{background:#6D28FF}.src-tile.t1,.src-ico.t1{background:#0F7B5F}.src-tile.t2,.src-ico.t2{background:#F4511E}.src-tile.t3,.src-ico.t3{background:#2563EB}.src-tile.t4,.src-ico.t4{background:#B45309}
+.src-tile.src-chat,.src-ico.src-chat{background:#6D28FF}
+.md .sources li>span{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;color:var(--text)}
 .src-panel{position:absolute;z-index:20;top:calc(100% + 8px);left:0;width:360px;max-width:calc(100vw - 48px);box-sizing:border-box;background:var(--surface);border:1px solid var(--border);border-radius:14px;box-shadow:0 12px 36px rgba(24,24,27,0.18);padding:4px 4px 6px;line-height:1.4}
 :root[data-theme="dark"] .src-panel{box-shadow:0 12px 36px rgba(0,0,0,0.5)}
 .sources.src-up .src-panel{top:auto;bottom:calc(100% + 8px)}

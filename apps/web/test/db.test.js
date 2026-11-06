@@ -1,7 +1,7 @@
 import { test, before } from 'node:test';
 import assert from 'node:assert/strict';
 import { PGlite } from '@electric-sql/pglite';
-import { setDriver, saveConversation, listConversations, getMessages, deleteConversation, deleteAllConversations, deleteAccountData, deleteInactiveConversations, getSettings, saveSettings, conversationAttributes, markContactSent, markContactSkipped, markMemory, listMemories, addMemory, deleteMemory, MEMORY_LIMIT } from '../lib/db.js';
+import { setDriver, saveConversation, listConversations, getMessages, deleteConversation, deleteAllConversations, deleteAccountData, deleteInactiveConversations, getSettings, saveSettings, conversationAttributes, markContactSent, markContactSkipped, markMemory, listMemories, addMemory, deleteMemory, MEMORY_LIMIT, searchChatMessages } from '../lib/db.js';
 
 let pg;
 before(() => {
@@ -217,4 +217,22 @@ test('a reply keeps its Save to memory card, and only a waiting card can be answ
   messages = await getMessages('user_mem', 'c1');
   assert.equal(messages[1].memory.status, 'saved');
   assert.equal(messages[0].memory, null);
+});
+
+test('chat search finds only the user\'s own chats, skips the chat in progress and takes % literally', async () => {
+  await saveConversation('search_a', 's1', 'Lisbon trip', [{ role: 'user', content: 'Hotels in Alfama' }, { role: 'assistant', content: 'Casa do Largo.' }]);
+  await saveConversation('search_a', 's2', 'Budget', [{ role: 'user', content: 'Save 10% each month' }]);
+  await saveConversation('search_a', 's3', 'Now', [{ role: 'user', content: 'Alfama again' }]);
+  await saveConversation('search_b', 's1', 'Lisbon too', [{ role: 'user', content: 'Alfama hotels for B' }]);
+
+  const rows = await searchChatMessages('search_a', ['%alfama%'], 's3');
+  assert.deepEqual(rows.map((r) => [r.id, r.content]), [['s1', 'Hotels in Alfama']]);
+  // A title match returns the chat's messages too.
+  const byTitle = await searchChatMessages('search_a', ['%lisbon%'], null);
+  assert.deepEqual(byTitle.map((r) => r.position), [0, 1]);
+  assert.ok(byTitle.every((r) => r.id === 's1'));
+  assert.deepEqual((await searchChatMessages('search_a', ['%10\\%%'], null)).map((r) => r.id), ['s2']);
+  assert.deepEqual(await searchChatMessages('search_a', ['%1\\%%'], null), []);
+  assert.deepEqual(await searchChatMessages('search_a', [], null), []);
+  assert.deepEqual(await searchChatMessages('nobody', ['%alfama%'], null), []);
 });
