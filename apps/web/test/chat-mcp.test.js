@@ -336,7 +336,7 @@ test('search_chats finds only the signed-in user\'s saved chats and cites them a
     assert.doesNotMatch(passages, /secret/);
 
     const activity = events.find((e) => e.type === 'activity');
-    assert.equal(activity.label, 'Searching your chats for "Lisbon hotel"');
+    assert.equal(activity.label, 'Searching your chats');
     const text = events.filter((e) => e.type === 'text').map((e) => e.text).join('');
     assert.match(text, /\*\*Sources\*\*\n1\. \[Lisbon trip planning\]\(http:\/\/localhost\/\?chat=lisbon-1\)$/);
   });

@@ -369,9 +369,9 @@
 
         <template v-if="v.showTyping">
           <article style="display: flex; align-items: center">
-            <div role="status" aria-live="polite" :style="`display: flex; align-items: center; gap: 8px; padding: 10px 0; color: var(--think, ${v.accent})`">
-              <span class="spinner" aria-hidden="true" style="flex: none; width: 14px; height: 14px; box-sizing: border-box; border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent"></span>
-              <span style="font-size: 14px; font-weight: 500">{{ v.workingLabel }}...</span>
+            <div role="status" aria-live="polite" style="display: flex; align-items: center; gap: 8px; padding: 10px 0; color: var(--text-muted-3)">
+              <span class="spinner" aria-hidden="true" :style="`flex: none; width: 14px; height: 14px; box-sizing: border-box; border-radius: 50%; border: 2px solid var(--think, ${v.accent}); border-right-color: transparent`"></span>
+              <span style="font-size: 14px">{{ v.workingLabel }}...</span>
             </div>
           </article>
         </template>
