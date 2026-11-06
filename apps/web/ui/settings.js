@@ -25,6 +25,7 @@ export function createSettings(app) {
   async function loadSettings() {
     app.setState({ settingsFailed: false });
     app.loadMemories();
+    app.loadSharedLinks();
     try {
       const data = await api.get('/api/settings');
       app.setState({
@@ -44,6 +45,7 @@ export function createSettings(app) {
     try {
       await api.put('/api/settings', { chatRetentionDays: days });
       app.showToast(`Chats will be deleted after ${days} days without activity.`);
+      app.loadSharedLinks(); // links expire with their chat, so their dates change too
     } catch {
       app.setState({ settings: before });
       app.showToast("Couldn't save your settings. Please try again.");
@@ -96,6 +98,7 @@ export function createSettings(app) {
     app.setState((st) => ({
       convs: st.convs.filter((c) => c.temporary),
       activeId: active && !active.temporary ? null : st.activeId,
+      sharedLinks: [],
       deletingChats: false,
       deleteChatsOpen: false
     }));
