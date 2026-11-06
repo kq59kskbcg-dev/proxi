@@ -1,20 +1,21 @@
 // Short, friendly descriptions of what the agent is doing, shown while a reply
-// is being prepared. Known tools get hand-written wording; any other MCP tool
+// is being prepared. The live label leaves out the search query to stay quiet;
+// the detail shown in the reply's steps keeps it. Known tools get hand-written wording; any other MCP tool
 // falls back to its title.
 
 const KNOWN = {
   search_docs: (input) => ({
-    label: quoted('Searching the help center', input?.query),
+    label: 'Searching the help center',
     done: 'Searched the help center',
     detail: quoted('Searched the help center', input?.query),
   }),
   web_search: (input) => ({
-    label: quoted('Searching the web', input?.query),
+    label: 'Searching the web',
     done: 'Searched the web',
     detail: quoted('Searched the web', input?.query),
   }),
   search_chats: (input) => ({
-    label: quoted('Searching your chats', input?.query),
+    label: 'Searching your chats',
     done: 'Searched your chats',
     detail: quoted('Searched your chats', input?.query),
   }),

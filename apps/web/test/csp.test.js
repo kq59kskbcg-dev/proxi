@@ -19,16 +19,20 @@ test('inline scripts run only because their hash is in the CSP, not because of u
   }
 });
 
-test('every jsDelivr script is pinned in the CSP and checked with an integrity hash', () => {
-  const cdn = scripts.filter((s) => /src="https:\/\/cdn\.jsdelivr\.net\//.test(s.attrs));
-  assert.ok(cdn.length > 0);
-  assert.ok(!scriptSrc.includes('https://cdn.jsdelivr.net'), 'jsDelivr is allowed as a whole');
-  for (const s of cdn) {
-    const src = s.attrs.match(/src="([^"]+)"/)[1];
-    assert.ok(scriptSrc.includes(src), `${src} is not in script-src`);
-    assert.match(s.attrs, /integrity="sha384-[A-Za-z0-9+/=]+"/, `${src} has no integrity hash`);
-    assert.match(s.attrs, /crossorigin="anonymous"/, `${src} needs crossorigin for its integrity check`);
+test('every script comes from Proxi or Clerk, and no public code host is allowed', () => {
+  const srcs = scripts.map((s) => s.attrs.match(/\bsrc="([^"]+)"/)?.[1]).filter(Boolean);
+  assert.ok(srcs.length > 0);
+  for (const src of srcs) {
+    assert.ok(src.startsWith('/') || src.startsWith('https://fond-sloth-104.clerk.accounts.dev/'), `${src} is not served by Proxi or Clerk`);
   }
+  assert.ok(!csp.includes('jsdelivr'), 'jsDelivr is allowed in the CSP but nothing loads from it');
+});
+
+test('fonts come from Proxi, so the CSP allows no font host', () => {
+  const directive = (name) => csp.split(';').map((d) => d.trim()).find((d) => d.startsWith(name + ' '));
+  assert.equal(directive('font-src'), "font-src 'self'");
+  assert.ok(!/googleapis|gstatic/.test(csp));
+  assert.ok(!/fonts\.googleapis/.test(html), 'the page still loads fonts from another host');
 });
 
 test('site icons come through Proxi, so the CSP allows no icon host', () => {

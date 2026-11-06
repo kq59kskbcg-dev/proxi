@@ -236,4 +236,8 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 .set-x:hover{background:var(--sunken);color:var(--text)}
 .set-who{display:flex;align-items:center;gap:12px;min-width:0}
 .set-av{flex:none;width:36px;height:36px;border-radius:50%;object-fit:cover;background:var(--sunken);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:var(--text)}
+.set-link{gap:4px}
+.set-link .set-label{flex:1}
+.set-link a{text-decoration:none}
 .set-ellip{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.shared-link-title:hover{text-decoration:underline!important;text-underline-offset:2px}

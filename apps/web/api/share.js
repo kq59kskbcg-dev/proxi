@@ -1,7 +1,20 @@
 import { randomBytes } from 'node:crypto';
 import { requireUser } from '../lib/auth.js';
 import { rateLimit } from '../lib/ratelimit.js';
-import { CONVERSATION_ID, hasDatabase, shareConversation, unshareConversation } from '../lib/db.js';
+import { CONVERSATION_ID, hasDatabase, shareConversation, unshareConversation, listSharedConversations } from '../lib/db.js';
+
+// GET: the signed-in user's shared chats that haven't expired, with when each link expires.
+export async function GET(request) {
+  const user = await requireUser(request);
+  if (!user.userId) return json({ error: user.error, code: user.reason }, user.status);
+  if (!hasDatabase()) return json({ error: 'Chat history is not set up yet.' }, 503);
+  try {
+    return json({ links: await listSharedConversations(user.userId) });
+  } catch (error) {
+    console.error('share GET failed', error);
+    return json({ error: 'Could not load shared links.' }, 500);
+  }
+}
 
 // POST { id }: shares one of the signed-in user's chats and returns its link ID.
 export async function POST(request) {
