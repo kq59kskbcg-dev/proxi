@@ -587,8 +587,10 @@ export function createChat(app) {
         const conv = app.activeConv.value;
         const liveStep = [...s.activity].reverse().find((a) => a.label);
         return {
-          workingLabel: conv && conv.loading ? 'Loading' : liveStep ? liveStep.label : WORKING_VERBS[s.verbTick % WORKING_VERBS.length],
-          showTyping: app.isChat.value && ((s.typing && !s.replyStarted && s.typingConv === s.activeId) || !!conv.loading)
+          workingLabel: liveStep ? liveStep.label : WORKING_VERBS[s.verbTick % WORKING_VERBS.length],
+          showTyping: app.isChat.value && s.typing && !s.replyStarted && s.typingConv === s.activeId,
+          // Opening a saved chat shows the page spinner, not the reply indicator, so it doesn't look like Proxi is answering.
+          chatLoading: app.isChat.value && !!(conv && conv.loading)
         };
       }
     }
