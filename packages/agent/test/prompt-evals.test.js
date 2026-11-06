@@ -65,3 +65,25 @@ test('evalLive skips a prompt that has no production version yet', async () => {
   assert.equal(result.skipped, true);
   assert.match(report(result), /skipped, no production version yet/);
 });
+
+test('the reply suggestions eval compares the options the app would show, in any order', async () => {
+  const lf = {
+    prompt: { get: async () => ({ compile: ({ reply }) => `R: ${reply}` }) },
+    api: { datasetItems: { list: async () => ({ data: [
+      { status: 'ACTIVE', input: { reply: 'Should I send it?' }, expectedOutput: ['Yes', 'No'] },
+      { status: 'ACTIVE', input: { reply: "What's your budget?" }, expectedOutput: '[]' },
+      { status: 'ACTIVE', input: { reply: 'Red or blue?' }, expectedOutput: ['Red', 'Blue'] },
+    ] }) } },
+  };
+  const client = answering({
+    'R: Should I send it?': '["no", "Yes"]',
+    "R: What's your budget?": '[]',
+    'R: Red or blue?': '["Red"]',
+  });
+  answering.sent = [];
+  const result = await evalPrompt(lf, client, 'classifiers/reply-suggestions', 1);
+  assert.equal(answering.sent[0].max_tokens, 64);
+  assert.equal(result.passed, 2);
+  assert.equal(result.failures.length, 1);
+  assert.deepEqual(result.failures[0].input, { reply: 'Red or blue?' });
+});

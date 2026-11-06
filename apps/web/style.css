@@ -23,6 +23,10 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 .composer:focus-within,.composer.drop{border-color:var(--accent) !important;box-shadow:0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent) !important}
 .hov:hover{background:var(--hover) !important}
 .chip:hover{background:var(--bg) !important;border-color:var(--border-hover) !important}
+/* Starters and suggested replies: one row that scrolls sideways to the edge of the screen, with a fade on the right while there are more chips. */
+.chip-row{display:flex;gap:8px;overflow-x:auto;margin:0 -24px;padding:0 24px;scrollbar-width:none;overscroll-behavior-x:contain}
+.chip-row::-webkit-scrollbar{display:none}
+.chip-row[data-more]{-webkit-mask-image:linear-gradient(to right,#000 calc(100% - 40px),transparent);mask-image:linear-gradient(to right,#000 calc(100% - 40px),transparent)}
 .menu-item:hover{background:var(--sunken) !important}
 .msgs{gap:28px}
 .umsg{position:relative}

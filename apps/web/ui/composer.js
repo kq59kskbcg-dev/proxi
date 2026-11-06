@@ -2,6 +2,7 @@
 
 import { MAX_MESSAGE_CHARS, MESSAGE_TOO_LONG } from './limits.js';
 import { MAX_FILES, MAX_TOTAL, MAX_TEXT, ACCEPT, classify, formatSize, readBase64, makeThumb } from './files.js';
+import { hasMoreToScroll } from './reply-chips.js';
 
 const MODELS = [
   { name: 'Auto', note: 'Balances quality with speed' },
@@ -88,13 +89,24 @@ export function createComposer(app) {
     focusComposer();
   }
 
+  // The chip row (starters or suggested replies) scrolls sideways and fades on the right while
+  // there are more chips past the edge. An attribute, not a class, so Vue leaves it alone.
+  function fadeChips() {
+    const el = els.chipRow;
+    if (!el) return;
+    if (hasMoreToScroll(el)) el.setAttribute('data-more', '');
+    else el.removeAttribute('data-more');
+  }
+  const chipRowRef = (el) => { els.chipRow = el; fadeChips(); };
+  if (typeof window !== 'undefined') window.addEventListener('resize', fadeChips);
+
   const hasFiles = (e) => e.dataTransfer && Array.from(e.dataTransfer.types || []).includes('Files');
   const taRef = (el) => { els.textarea = el; };
   const fileRef = (el) => { els.filePicker = el; };
 
   return {
     actions: { focusComposer },
-    updated: sizeComposer,
+    updated() { sizeComposer(); fadeChips(); },
 
     views: {
       composer: () => {
@@ -131,6 +143,8 @@ export function createComposer(app) {
           modelName: s.model.split(' ')[0],
           modelVersion: s.model.split(' ').slice(1).join(' '),
           showChips: isNew && !s.draft.trim() && !s.pending.length,
+          chipRowRef,
+          onChipScroll: fadeChips,
           taRef,
           draft: s.draft,
           maxChars: MAX_MESSAGE_CHARS,
