@@ -3,8 +3,8 @@
 
 import { api, readProblem } from './api.js';
 import { renderMarkdown } from './markdown.js';
-import { maskCards, modelLabel } from './format.js';
-import { renderCitations } from './citations.js';
+import { maskCards, modelLabel, whenLabel } from './format.js';
+import { renderCitations, chatLinkId } from './citations.js';
 import { toStep, stepIcon, redactionSteps, WORKING_VERBS } from './steps.js';
 import { whenVisible } from './browser.js';
 import { createReveal, createFadeTracker, applyFades, prefersReducedMotion } from './reveal.js';
@@ -43,10 +43,10 @@ function liveMessages(conv) {
 // A message's rendered reply, kept until the message changes. Messages are replaced, never
 // changed in place, so a streamed reply doesn't render every earlier message again.
 const rendered = new WeakMap();
-function replyHtml(m) {
+function replyHtml(m, chatDate) {
   let html = rendered.get(m);
   if (html === undefined) {
-    html = renderCitations(renderMarkdown(m.text || ''));
+    html = renderCitations(renderMarkdown(m.text || ''), { chatDate });
     rendered.set(m, html);
   }
   return html;
@@ -449,10 +449,29 @@ export function createChat(app) {
     if (msgEl) atBottom = msgEl.scrollHeight - msgEl.scrollTop - msgEl.clientHeight < 80;
   };
 
+  // A reply's sources can be the user's own chats (from search_chats). Those open here, in Proxi.
+  const chatDate = (id) => whenLabel(s.convs.find((c) => c.id === id)?.updatedAt);
+  function openCitedChat(id) {
+    if (s.convs.some((c) => c.id === id && !c.temporary)) openConversation(id);
+    else app.showToast("This chat isn't in your history anymore.");
+  }
+  const onCitedChatClick = (e) => {
+    const a = e.target.closest?.('a[data-chat]');
+    if (!a || e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    const id = chatLinkId(a.href, location.origin);
+    if (!id) return;
+    e.preventDefault();
+    const sources = a.closest('details.sources');
+    if (sources) sources.open = false;
+    openCitedChat(id);
+  };
+
   return {
-    actions: { openConversation, send, stop },
+    actions: { openConversation, openCitedChat, send, stop },
+    mounted() { document.addEventListener('click', onCitedChatClick); },
     updated() { followBottom(); fadeLive(); },
     unmounted() {
+      document.removeEventListener('click', onCitedChatClick);
       if (msgObserver) msgObserver.disconnect();
     },
 
@@ -492,7 +511,7 @@ export function createChat(app) {
             steps: [...new Set((m.steps || []).map((st) => st.short))].join(' · '),
             stepList: [...(m.steps || []), ...(m.model ? [{ text: 'Answered with ' + modelLabel(m.model), icon: 'spark' }] : [])].map((st, i) => ({ key: i, text: st.text, icon: stepIcon(st.icon) })),
             canVote: !conv.temporary,
-            html: m.role === 'assistant' ? replyHtml(m) : '',
+            html: m.role === 'assistant' ? replyHtml(m, chatDate) : '',
             copied,
             notCopied: !copied,
             copyLabel: copied ? 'Copied' : (m.role === 'user' ? 'Copy message' : 'Copy response'),

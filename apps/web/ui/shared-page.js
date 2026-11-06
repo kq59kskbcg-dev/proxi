@@ -45,7 +45,7 @@ export async function startShared(shareId) {
       body.append(wrap);
     } else {
       const reply = el('article', 'shared-reply md');
-      reply.innerHTML = renderCitations(renderMarkdown(m.content || ''));
+      reply.innerHTML = renderCitations(renderMarkdown(m.content || ''), { linkChats: false });
       body.append(reply);
     }
   }
