@@ -10,12 +10,8 @@ const MODELS = [
   { name: 'Haiku 5.5', note: 'Fastest, for quick answers' }
 ];
 
-// Starters: they fill the message box (and open the file picker for a PDF) instead of sending.
-const CHIPS = [
-  { label: 'Summarize a PDF', draft: 'Summarize the key points of the attached PDF.', files: true },
-  { label: 'Draft an email', draft: 'Draft a short, friendly email to ' },
-  { label: 'Explain a concept', draft: 'Explain in plain terms: ' }
-];
+// Starters: common questions about Proxi, sent as soon as one is tapped.
+const CHIPS = ['What is Proxi?', 'What can Proxi do?', 'How does Proxi protect my privacy?'];
 
 export const composerState = {
   draft: '',
@@ -184,10 +180,7 @@ export function createComposer(app) {
           sendBg: canSend ? 'var(--send)' : 'var(--disabled)',
           sendColor: canSend ? 'var(--on-send)' : 'var(--text-disabled)',
           sendCursor: canSend ? 'pointer' : 'default',
-          chips: CHIPS.map((c) => ({ ...c, pick: () => {
-            app.setState({ draft: c.draft });
-            if (c.files && els.filePicker) els.filePicker.click(); else focusComposer();
-          } }))
+          chips: CHIPS.map((label) => ({ label, pick: () => app.send(label) }))
         };
       }
     }
