@@ -11,6 +11,7 @@ import { createReveal, createFadeTracker, applyFades, prefersReducedMotion } fro
 import { ACCENT } from './store.js';
 import { KIND_LABELS } from './files.js';
 import { declinePending, memoryCard, MEMORY_ERRORS, MEMORY_MAX } from './memory-card.js';
+import { visibleSuggestions } from './reply-chips.js';
 import { MAX_MESSAGE_CHARS, MAX_CHAT_MESSAGES, MESSAGE_TOO_LONG, CHAT_FULL, CHAT_TOO_LARGE, RECOVER_MS, OWN_CARDS } from './limits.js';
 
 export const chatState = {
@@ -23,7 +24,8 @@ export const chatState = {
   votes: {},
   chatMenu: false,
   contactForms: {}, // message id -> what's typed in its "Message Lisandro" card: { email, error, sending, sentTo }
-  memoryForms: {} // message id -> its "Save to memory" card: { text, error, saving, duplicate }
+  memoryForms: {}, // message id -> its "Save to memory" card: { text, error, saving, duplicate }
+  suggestions: null // suggested replies for the latest reply: { convId, msgId, options }. Not saved.
 };
 
 // The same check as the server's, so a typo is caught before sending.
@@ -92,7 +94,7 @@ export function createChat(app) {
     }));
     const controller = new AbortController();
     abort = controller;
-    app.setState({ typing: true, typingConv: convId, replyStarted: false, activity: [], verbTick: 0 });
+    app.setState({ typing: true, typingConv: convId, replyStarted: false, activity: [], verbTick: 0, suggestions: null });
     // Rotates the "Thinking...", "Pondering..." label until the reply starts.
     clearInterval(verbTimer);
     verbTimer = setInterval(() => app.setState((st) => ({ verbTick: st.verbTick + 1 })), 1800);
@@ -118,7 +120,11 @@ export function createChat(app) {
       clearInterval(verbTimer);
       app.setState({ replyStarted: true, activity: [] });
     };
+    // The reply is over at "done" (title and suggestions can still follow), or when the stream ends.
+    let finished = false;
     const finish = () => {
+      if (finished) return;
+      finished = true;
       if (abort === controller) abort = null;
       if (reveal === shown) { reveal = null; liveId = null; }
       clearInterval(verbTimer);
@@ -181,6 +187,10 @@ export function createChat(app) {
             patchMessage(convId, msgId, (m) => ({ ...m, memory: { text: event.text, status: 'pending' } }));
           } else if (event.type === 'done') {
             if (msgId) patchMessage(convId, msgId, (m) => ({ ...m, model: event.model }));
+            await shown.idle();
+            finish();
+          } else if (event.type === 'suggestions') {
+            if (msgId && Array.isArray(event.options)) app.setState({ suggestions: { convId, msgId, options: event.options.map(String) } });
           } else if (event.type === 'title') {
             app.setState((st) => ({ convs: st.convs.map((c) => c.id === convId ? { ...c, title: event.title } : c) }));
           } else if (event.type === 'error') {
@@ -192,7 +202,8 @@ export function createChat(app) {
       // The reply is finished once its last word is on screen; Stop stays until then.
       await shown.idle();
     } catch (e) {
-      if (!controller.signal.aborted) {
+      // A dropped connection after "done" only loses the title or suggestions; the reply is whole.
+      if (!finished && !controller.signal.aborted) {
         // Switching tabs can make the browser drop the connection while Proxi keeps going and saves
         // the reply. In a saved chat, wait for that reply instead of showing an error.
         const saved = conv.temporary || !traceId ? null : await savedReply(convId, traceId, controller);
@@ -228,6 +239,7 @@ export function createChat(app) {
 
   async function openConversation(id) {
     app.go({ view: 'chat', activeId: id });
+    app.setState({ suggestions: null });
     const conv = s.convs.find((c) => c.id === id);
     if (!conv || conv.loaded || conv.loading) return;
     const patch = (fields) => app.setState((st) => ({ convs: st.convs.map((c) => c.id === id ? { ...c, ...fields } : c) }));
@@ -580,6 +592,17 @@ export function createChat(app) {
             onMemoryDismiss: () => declineMemory(m)
           };
         }
+      },
+
+      // Suggested replies above the message box. Tapping one sends it.
+      replyChips: () => {
+        // Nothing to show is checked first, so a streaming reply doesn't recompute this.
+        if (!s.suggestions || !app.isChat.value) return { showReplyChips: false, replyChips: [] };
+        const options = visibleSuggestions(s.suggestions, app.activeConv.value, { typing: s.typing, draft: s.draft, pending: s.pending });
+        return {
+          showReplyChips: options.length > 0,
+          replyChips: options.map((label) => ({ label, pick: () => send(label) }))
+        };
       },
 
       // The "Thinking..." line, apart from the messages so its rotating label doesn't rebuild them.

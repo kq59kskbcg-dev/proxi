@@ -2,7 +2,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { redact } from '@proxi/agent/redact';
 import { rateLimit } from '../lib/ratelimit.js';
 import { requireUser } from '../lib/auth.js';
-import { flushTraces, getSystemPrompt, startTrace } from '@proxi/agent/langfuse';
+import { flushTraces, getLangfuse, getSystemPrompt, startTrace } from '@proxi/agent/langfuse';
 import { hasDatabase, saveConversation, conversationAttributes, recordRedactions, searchChatMessages } from '../lib/db.js';
 import { customInstructions, disabledTools } from '../lib/instructions.js';
 import { processAttachments, AttachmentError } from '../lib/attachments.js';
@@ -11,6 +11,7 @@ import { CONTACT_TOOL, CONTACT_TOOL_DEFINITION, contactAvailable, contactOffer }
 import { savedMemories, memoryOffer } from '../lib/memories.js';
 import { getMcpTools } from '@proxi/agent/mcp';
 import { makeTitle } from '@proxi/agent/title';
+import { suggestReplies } from '@proxi/agent/reply-suggestions';
 import { getLocale } from '@proxi/agent/locale';
 import { getIntent } from '@proxi/agent/intents';
 import { MEMORY_TOOL, getMemoryTool } from '@proxi/agent/memory';
@@ -164,6 +165,7 @@ export async function POST(request) {
       const titled = conversationId && firstMessage ? makeTitle(client, firstMessage.content, trace) : null;
       let text = '';
       let servedBy = model;
+      let suggesting = null;
       try {
         // Routes each tool call: save_memory to the "Save to memory" card, search_chats to the
         // user's saved chats, the rest to the MCP server.
@@ -209,6 +211,9 @@ export async function POST(request) {
         }).end();
         trace?.update({ output: text });
         send({ type: 'done', stopReason: final.stop_reason, model: final.model });
+        // Tap-to-answer chips when the reply ends with a short-answer question. They're worked out
+        // while the chat is saved, so the reply never waits for them.
+        if (text.trim() && final.stop_reason !== 'refusal') suggesting = suggestReplies(getLangfuse(), client, text, trace);
       } catch (error) {
         if (request.signal.aborted) {
           generation?.update({ output: text, level: 'WARNING', statusMessage: 'Stopped by user' }).end();
@@ -229,6 +234,10 @@ export async function POST(request) {
           const reply = text || card || suggested ? [{ role: 'assistant', content: text, model: servedBy, traceId: trace?.traceId ?? null, contact: card, memory: suggested }] : [];
           await saveConversation(user.userId, conversationId, aiTitle || titleFrom(history), [...history, ...reply], { replaceTitle: Boolean(aiTitle), language: locale.code, escalated: intent.escalated })
             .catch((e) => console.error('saving chat failed', e));
+        }
+        const suggestions = suggesting ? await suggesting : [];
+        if (suggestions.length) {
+          try { send({ type: 'suggestions', options: suggestions }); } catch {}
         }
         trace?.end();
         await flushTraces();

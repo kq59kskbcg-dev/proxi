@@ -598,11 +598,13 @@
       <template v-if="v.isChat">
         <div aria-hidden="true" style="position: absolute; left: 0; right: 0; top: -40px; height: 40px; background: linear-gradient(to bottom, transparent, var(--surface)); pointer-events: none"></div>
       </template>
-      <template v-if="v.showChips">
-        <div :style="`max-width: ${v.composerMax}; margin: 0 auto 10px; display: flex; flex-direction: column; align-items: flex-start; gap: 8px`">
-          <template v-for="(ch, i_ch) in v.chips" :key="i_ch">
-            <button class="chip" type="button" @click="ch.pick" style="border: 1px solid var(--border); background: var(--surface); border-radius: 999px; padding: 0 14px; height: 34px; font-size: 13px; font-weight: 500; color: var(--text-2); cursor: pointer">{{ ch.label }}</button>
-          </template>
+      <template v-if="v.showChips || v.showReplyChips">
+        <div :style="`max-width: ${v.composerMax}; margin: 0 auto 10px`">
+          <div class="chip-row" role="group" :aria-label="v.showReplyChips ? 'Suggested replies' : 'Ideas to start with'" :ref="v.chipRowRef" @scroll="v.onChipScroll">
+            <template v-for="(ch, i_ch) in (v.showReplyChips ? v.replyChips : v.chips)" :key="i_ch + ch.label">
+              <button class="chip" type="button" @click="ch.pick" style="flex: none; white-space: nowrap; border: 1px solid var(--border); background: var(--surface); border-radius: 999px; padding: 0 16px; height: 40px; font-size: 14px; font-weight: 500; color: var(--text-2); cursor: pointer">{{ ch.label }}</button>
+            </template>
+          </div>
         </div>
       </template>
       <form @submit="v.onSubmit" :style="`max-width: ${v.composerMax}; margin: 0 auto; display: flex; flex-direction: column; gap: 10px`">
