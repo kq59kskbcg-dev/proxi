@@ -351,7 +351,8 @@
                     <span v-if="m.cardRef" class="err-ref">Ref {{ m.cardRef }}</span>
                   </span>
                 </div>
-                <div v-if="!m.isErrorCard && m.showActions" style="display: flex; gap: 0; margin-left: -12px; margin-top: -16px">
+                <!-- Takes its space from the start of the reply and is only hidden until it ends, so the message doesn't jump when the buttons appear. -->
+                <div v-if="!m.isErrorCard" :style="`visibility: ${m.showActions ? 'visible' : 'hidden'}`" style="display: flex; gap: 0; margin-left: -12px; margin-top: -16px">
                   <button class="hov" :aria-label="m.copyLabel" @click="m.onCopy" style="width: 44px; height: 44px; border: 0; background: transparent; border-radius: 8px; color: var(--text-muted-3); display: flex; align-items: center; justify-content: center; cursor: pointer">
                     <template v-if="m.copied"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"></path></svg></template>
                     <template v-if="m.notCopied"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"></rect><path d="M5 15V5a2 2 0 0 1 2-2h10"></path></svg></template>
