@@ -63,6 +63,7 @@ export function createChat(app) {
   let opened = '';
   let messageCount = 0;
   let atBottom = true;
+  let lastTop = 0;
   let reveal = null; // the buffer showing the reply on its way, word by word
   let liveId = null; // that reply's message, whose new words fade in
   const fades = createFadeTracker();
@@ -430,11 +431,22 @@ export function createChat(app) {
     if (now !== opened) {
       opened = now;
       atBottom = true;
+      lastTop = 0;
     } else if (messages.length !== messageCount && last && last.role === 'user') {
       atBottom = true;
+      lastTop = 0;
     }
     messageCount = messages.length;
-    if (atBottom) el.scrollTop = el.scrollHeight;
+    stick(el);
+  }
+
+  // Scroll to the bottom, unless the reader has moved up since we last put them there.
+  // The new words can arrive before the browser reports their scroll, so check here too.
+  function stick(el) {
+    if (el.scrollTop < lastTop && el.scrollHeight - el.scrollTop - el.clientHeight >= 2) atBottom = false;
+    if (!atBottom) return;
+    el.scrollTop = el.scrollHeight;
+    lastTop = el.scrollTop;
   }
 
   // The reply on its way is rendered again for each word; this fades in only the newest words.
@@ -453,12 +465,21 @@ export function createChat(app) {
     // When the list's height changes (keyboard, attachments, rotation), stay at the bottom if we were there.
     if (msgObserver) msgObserver.disconnect();
     if (el && window.ResizeObserver) {
-      msgObserver = new ResizeObserver(() => { if (atBottom) el.scrollTop = el.scrollHeight; });
+      msgObserver = new ResizeObserver(() => stick(el));
       msgObserver.observe(el);
     }
   };
+  // Any move up stops following, even a small one, so a reply that is still arriving
+  // doesn't pull the reader back down. Coming back near the bottom follows again.
   const onMsgScroll = () => {
-    if (msgEl) atBottom = msgEl.scrollHeight - msgEl.scrollTop - msgEl.clientHeight < 80;
+    const el = msgEl;
+    if (!el) return;
+    const top = el.scrollTop;
+    const gap = el.scrollHeight - top - el.clientHeight;
+    if (gap < 2) atBottom = true;
+    else if (top < lastTop) atBottom = false;
+    else if (gap < 80) atBottom = true;
+    lastTop = top;
   };
 
   // A reply's sources can be the user's own chats (from search_chats). Those open here, in Proxi.
