@@ -367,6 +367,9 @@
           </template>
         </template>
 
+        <template v-if="v.chatLoading">
+          <div class="load-in" role="status" style="display: flex; justify-content: center; padding: 120px 0"><span class="load-spinner spinner" aria-hidden="true"></span><span class="sr-only">Loading</span></div>
+        </template>
         <template v-if="v.showTyping">
           <article style="display: flex; align-items: center">
             <div role="status" aria-live="polite" style="display: flex; align-items: center; gap: 8px; padding: 10px 0; color: var(--text-muted-3)">
