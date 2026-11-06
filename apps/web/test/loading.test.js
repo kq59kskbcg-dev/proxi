@@ -36,3 +36,18 @@ test('the chat list shows its spinner only while the first chats load', () => {
   state.history = 'ok';
   assert.equal(view().historyLoading, false);
 });
+
+test('opening a saved chat shows the loading spinner, not the reply indicator', async () => {
+  // The page loads these as scripts before the modules.
+  globalThis.DOMPurify ??= { addHook() {}, sanitize: (h) => h };
+  globalThis.Vue ??= { shallowReactive: (o) => o, computed: (f) => ({ get value() { return f(); } }) };
+  const { createChat, chatState } = await import('../ui/chat.js');
+  const conv = { id: 'c1', messages: [], loading: true };
+  const state = { ...chatState, convs: [conv], activeId: 'c1', view: 'chat', activity: [] };
+  const app = { ...fakeApp(state), isChat: { value: true }, activeConv: { value: conv } };
+  const view = () => createChat(app).views.typingIndicator();
+  assert.equal(view().chatLoading, true);
+  assert.equal(view().showTyping, false);
+  conv.loading = false;
+  assert.equal(view().chatLoading, false);
+});

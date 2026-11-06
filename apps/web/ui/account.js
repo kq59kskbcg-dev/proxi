@@ -69,6 +69,8 @@ export function createAccount(app) {
         cancelDeleteRef,
 
         userName: user.name,
+        // Settings shows the email under the name, unless the name already is the email.
+        userEmailLine: user.email && user.email !== user.name ? user.email : '',
         userImage: user.image,
         userInitial,
         userMenu: s.userMenu,
