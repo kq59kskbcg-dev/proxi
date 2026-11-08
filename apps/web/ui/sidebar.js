@@ -77,6 +77,7 @@ export function createSidebar(app) {
           navScroll: (e) => { e.currentTarget.previousElementSibling?.classList.toggle('scrolled', e.currentTarget.scrollTop > 0); },
           recents: list.slice(0, RECENTS_SHOWN).map(item),
           hasMore: list.length > RECENTS_SHOWN,
+          recentsEmpty: !q && s.history === 'ok' && !list.length,
           historyLoading: !q && s.history === 'loading' && !list.length,
           historyNote: q ? '' : s.history === 'off' ? "Chat history isn't set up yet, so chats aren't saved."
             : s.history === 'error' ? "Couldn't load your previous chats" + (s.historyRef ? ' (error ' + s.historyRef + ').' : '.') : '',
