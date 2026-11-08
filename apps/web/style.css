@@ -152,7 +152,8 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 .md .sources summary:hover,.md .sources[open] summary{background:var(--soft);border-color:var(--border-hover)}
 .src-chev{color:var(--text-muted);transition:transform .15s}
 .sources[open] .src-chev{transform:rotate(180deg)}
-.src-stack{display:flex}
+.src-stack{display:flex;flex-shrink:0}
+.src-count{white-space:nowrap;overflow-wrap:normal;word-break:normal}
 .src-tile{width:20px;height:20px;box-sizing:border-box;border-radius:50%;border:2px solid var(--surface);margin-left:-6px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#FFFFFF}
 .src-tile:first-child{margin-left:0}
 .src-tile.t0,.src-ico.t0{background:#6D28FF}.src-tile.t1,.src-ico.t1{background:#0F7B5F}.src-tile.t2,.src-ico.t2{background:#F4511E}.src-tile.t3,.src-ico.t3{background:#2563EB}.src-tile.t4,.src-ico.t4{background:#B45309}
