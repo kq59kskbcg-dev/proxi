@@ -22,18 +22,14 @@ input::placeholder,textarea::placeholder{color:var(--placeholder)}
 button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .composer:focus-within,.composer.drop{border-color:var(--accent) !important;box-shadow:0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent) !important}
 .hov:hover{background:var(--hover) !important}
-.chip:hover{background:var(--bg) !important;border-color:var(--border-hover) !important}
-/* Starters and suggested replies: one row that scrolls sideways to the edge of the screen, with a fade on the right while there are more chips. */
-.chip-row{display:flex;gap:8px;overflow-x:auto;margin:-4px -24px;padding:4px 24px;scrollbar-width:none;overscroll-behavior-x:contain}
-.chip-row.reserved{min-height:40px}
-/* Suggested replies pop in one after another. Starters don't: they're there when the page opens. */
-@keyframes chip-pop{0%{opacity:0;transform:scale(0.85)}70%{opacity:1;transform:scale(1.04)}100%{opacity:1;transform:none}}
-.chip-row.pop .chip{animation:chip-pop 0.28s ease-out both}
-.chip-row.pop .chip:nth-child(2){animation-delay:50ms}
-.chip-row.pop .chip:nth-child(3){animation-delay:100ms}
-@media (prefers-reduced-motion: reduce){.chip-row.pop .chip{animation:none}}
-.chip-row::-webkit-scrollbar{display:none}
-.chip-row[data-more]{-webkit-mask-image:linear-gradient(to right,#000 calc(100% - 40px),transparent);mask-image:linear-gradient(to right,#000 calc(100% - 40px),transparent)}
+.starter:hover,.reply-row:hover{background:var(--bg) !important}
+.reply-row:focus-visible{outline-offset:-2px}
+/* The reply card's rows fade in one after another. Starters don't: they're there when the page opens. */
+@keyframes row-in{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.reply-card .reply-row{animation:row-in 0.2s ease-out both}
+.reply-card .reply-row:nth-of-type(2){animation-delay:50ms}
+.reply-card .reply-row:nth-of-type(3){animation-delay:100ms}
+@media (prefers-reduced-motion: reduce){.reply-card .reply-row{animation:none}}
 .menu-item:hover{background:var(--sunken) !important}
 .msgs{gap:28px}
 .umsg{position:relative}

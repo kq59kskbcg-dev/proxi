@@ -11,7 +11,7 @@ import { CONTACT_TOOL, CONTACT_TOOL_DEFINITION, contactAvailable, contactOffer }
 import { savedMemories, memoryOffer } from '../lib/memories.js';
 import { getMcpTools } from '@proxi/agent/mcp';
 import { makeTitle } from '@proxi/agent/title';
-import { suggestReplies } from '@proxi/agent/reply-suggestions';
+import { suggestRepliesWithTitle } from '@proxi/agent/reply-suggestions';
 import { getLocale } from '@proxi/agent/locale';
 import { getIntent } from '@proxi/agent/intents';
 import { MEMORY_TOOL, getMemoryTool } from '@proxi/agent/memory';
@@ -211,9 +211,9 @@ export async function POST(request) {
         }).end();
         trace?.update({ output: text });
         send({ type: 'done', stopReason: final.stop_reason, model: final.model });
-        // Tap-to-answer chips when the reply ends with a short-answer question. They're worked out
+        // Tap-to-answer reply card when the reply ends with a short-answer question. They're worked out
         // while the chat is saved, so the reply never waits for them.
-        if (text.trim() && final.stop_reason !== 'refusal') suggesting = suggestReplies(getLangfuse(), client, text, trace);
+        if (text.trim() && final.stop_reason !== 'refusal') suggesting = suggestRepliesWithTitle(getLangfuse(), client, text, trace);
       } catch (error) {
         if (request.signal.aborted) {
           generation?.update({ output: text, level: 'WARNING', statusMessage: 'Stopped by user' }).end();
@@ -235,9 +235,9 @@ export async function POST(request) {
           await saveConversation(user.userId, conversationId, aiTitle || titleFrom(history), [...history, ...reply], { replaceTitle: Boolean(aiTitle), language: locale.code, escalated: intent.escalated })
             .catch((e) => console.error('saving chat failed', e));
         }
-        const suggestions = suggesting ? await suggesting : [];
-        if (suggestions.length) {
-          try { send({ type: 'suggestions', options: suggestions }); } catch {}
+        const suggestions = suggesting ? await suggesting : { options: [], title: '' };
+        if (suggestions.options.length) {
+          try { send({ type: 'suggestions', options: suggestions.options, title: suggestions.title }); } catch {}
         }
         trace?.end();
         await flushTraces();

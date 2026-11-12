@@ -88,7 +88,7 @@ test('chat search steps get the chat icon', () => {
 });
 
 test('suggested replies show only under the chat\'s last reply, with nothing typed or on its way', async () => {
-  const { visibleSuggestions } = await import('../ui/reply-chips.js');
+  const { visibleSuggestions } = await import('../ui/reply-suggestions.js');
   const conv = { id: 'c1', messages: [{ id: 1, role: 'user' }, { id: 2, role: 'assistant' }] };
   const sug = { convId: 'c1', msgId: 2, options: ['Yes', 'No'] };
   const idle = { typing: false, draft: '', pending: [] };
@@ -101,12 +101,4 @@ test('suggested replies show only under the chat\'s last reply, with nothing typ
   assert.deepEqual(visibleSuggestions(sug, conv, { ...idle, draft: 'Ma' }), []);
   assert.deepEqual(visibleSuggestions(sug, conv, { ...idle, draft: '   ' }), ['Yes', 'No']);
   assert.deepEqual(visibleSuggestions(sug, conv, { ...idle, pending: [{ id: 1 }] }), []);
-});
-
-test('a chip row fades on the right only while there are more chips to scroll to', async () => {
-  const { hasMoreToScroll } = await import('../ui/reply-chips.js');
-  assert.equal(hasMoreToScroll({ scrollLeft: 0, clientWidth: 390, scrollWidth: 390 }), false);
-  assert.equal(hasMoreToScroll({ scrollLeft: 0, clientWidth: 390, scrollWidth: 460 }), true);
-  assert.equal(hasMoreToScroll({ scrollLeft: 70, clientWidth: 390, scrollWidth: 460 }), false);
-  assert.equal(hasMoreToScroll({ scrollLeft: 69.5, clientWidth: 390, scrollWidth: 460 }), false);
 });
