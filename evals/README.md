@@ -15,7 +15,6 @@ Needs these environment variables:
 |---|---|
 | `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY` | Read the dataset and prompts, save scores (`LANGFUSE_BASE_URL` outside the EU cloud) |
 | `ANTHROPIC_API_KEY` | The chat and the judges |
-| `MINTLIFY_API_KEY` | The docs search in the MCP server |
 
 Also run `npm ci` in `apps/mcp` once, because the runner starts that server locally. Optional: `EVAL_MODEL` (chat model, default `Sonnet 5.5`), `EVAL_JUDGE_MODEL`, `EVAL_JUDGE_LABEL` (default `latest`) and `EVAL_RUN_NAME`.
 

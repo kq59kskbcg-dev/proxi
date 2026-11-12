@@ -57,7 +57,7 @@ The web tests include an end-to-end check: the chat endpoint discovers `get_stat
 `apps/mcp` uses the official MCP TypeScript SDK and serves Streamable HTTP at `/mcp`. Its tools:
 
 - `get_status`: returns `{ "status": "ok", "service", "version", "uptimeSeconds", "time" }`
-- `search_docs`: searches the Mintlify docs through Mintlify's search API and returns matching passages with their title and link. The chat turns them into citations: numbered links in the reply and a **Sources** list.
+- `search_docs`: searches the help center and returns matching passages with their title and link. It needs no key: it downloads the published site's `llms-full.txt`, keeps it for an hour and ranks sections with BM25. The chat turns them into citations: numbered links in the reply and a **Sources** list.
 - `web_search`: asks Claude (Sonnet 5.5) with Anthropic's web search tool on, and returns a short answer plus the cited pages as citable results.
 
 MCP server environment variables (set in the `proxi-mcp` Vercel project):
@@ -65,11 +65,8 @@ MCP server environment variables (set in the `proxi-mcp` Vercel project):
 | Name | Purpose |
 |---|---|
 | `MCP_TOKEN` | Shared secret every request must send as `Authorization: Bearer <token>`. Generate one with `openssl rand -base64 32` and set the same value on the web app. Without it, the server refuses every request (503). |
-| `MINTLIFY_API_KEY` | Mintlify assistant API key (`mint_dsc_...`), used by `search_docs` |
 | `ANTHROPIC_API_KEY` | Claude API key, used by `web_search`. Without it, `web_search` isn't offered to the agent |
-| `MINTLIFY_DOMAIN` | Optional: the docs domain Mintlify's API expects. Defaults to `proxi.mintlify.site` |
-| `MINTLIFY_DOCS_URL` | Optional: base URL for citation links. Defaults to `https://proxi.mintlify.site` |
-| `MINTLIFY_SCORE_THRESHOLD` | Optional: drop results below this relevance score (0 to 1) |
+| `MINTLIFY_DOCS_URL` | Optional: the docs site that `search_docs` reads and that its links point to. Defaults to `https://proxi.mintlify.site` |
 
 Run it locally:
 

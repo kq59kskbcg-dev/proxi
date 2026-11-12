@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseSuggestions, suggestReplies, suggestionKey } from '../src/reply-suggestions.js';
+import { parseSuggestions, parseSuggestionTitle, suggestReplies, suggestRepliesWithTitle, suggestionKey } from '../src/reply-suggestions.js';
 
 const langfuse = { prompt: { get: async () => ({ compile: ({ reply }) => `R: ${reply}` }) } };
 const answering = (text, extra = {}) => {
@@ -23,7 +23,7 @@ test('parseSuggestions gives none for anything else', () => {
   assert.deepEqual(parseSuggestions('["Yes"]'), []);
   assert.deepEqual(parseSuggestions('["A", "B", "C", "D"]'), []);
   assert.deepEqual(parseSuggestions('Yes, No'), []);
-  assert.deepEqual(parseSuggestions('{"options": ["Yes", "No"]}'), []);
+  assert.deepEqual(parseSuggestions('{"title": "Save it?"}'), []);
   assert.deepEqual(parseSuggestions('["Yes", 2]'), []);
   assert.deepEqual(parseSuggestions('["Yes", ""]'), []);
   assert.deepEqual(parseSuggestions('["Yes", "yes"]'), []);
@@ -80,4 +80,20 @@ test('suggestionKey matches the same options in any order or case', () => {
   assert.equal(suggestionKey([]), suggestionKey('[]'));
   assert.notEqual(suggestionKey(['Yes', 'No']), suggestionKey([]));
   assert.notEqual(suggestionKey(['Yes', 'No']), suggestionKey(['Yes', 'No', 'Maybe']));
+});
+
+test('a title can come with the options, and a plain list has none', () => {
+  const raw = '{"title": "Choose a trip style", "options": ["City", "Outdoors"]}';
+  assert.deepEqual(parseSuggestions(raw), ['City', 'Outdoors']);
+  assert.equal(parseSuggestionTitle(raw), 'Choose a trip style');
+  assert.equal(parseSuggestionTitle('["Yes", "No"]'), '');
+  assert.equal(parseSuggestionTitle('{"title": 5, "options": ["Yes", "No"]}'), '');
+  assert.equal(parseSuggestionTitle(`{"title": "${'x'.repeat(41)}", "options": ["Yes", "No"]}`), '');
+  assert.equal(suggestionKey(raw), suggestionKey(['outdoors', 'city']));
+});
+
+test('suggestRepliesWithTitle returns the title with the options', async () => {
+  const { langfuse, client } = (() => ({ langfuse: { prompt: { get: async () => ({ compile: () => 'x' }) } }, client: { messages: { create: async () => ({ stop_reason: 'end_turn', content: [{ type: 'text', text: '{"title": "Save it?", "options": ["Yes", "No"]}' }] }) } } }))();
+  assert.deepEqual(await suggestRepliesWithTitle(langfuse, client, 'Should I save it?'), { options: ['Yes', 'No'], title: 'Save it?' });
+  assert.deepEqual(await suggestRepliesWithTitle(null, client, 'Ok?'), { options: [], title: '' });
 });
