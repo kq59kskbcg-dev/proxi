@@ -102,3 +102,27 @@ test('suggested replies show only under the chat\'s last reply, with nothing typ
   assert.deepEqual(visibleSuggestions(sug, conv, { ...idle, draft: '   ' }), ['Yes', 'No']);
   assert.deepEqual(visibleSuggestions(sug, conv, { ...idle, pending: [{ id: 1 }] }), []);
 });
+test('a pinned message scrolls to the top, and the spacer fills what the reply leaves empty', async () => {
+  const { pinTarget, spacerHeight, hasMoreBelow, endTarget } = await import('../ui/pin.js');
+  // A list 600 high with 32 of padding at the top and 24 at the bottom. The new message starts at 500.
+  const list = { clientHeight: 600, padTop: 32, padBottom: 24, pinnedTop: 500 };
+  assert.equal(pinTarget(list), 468);
+  // Just the message (44 high) so far: the spacer fills the rest of the screen.
+  assert.equal(spacerHeight({ ...list, contentEnd: 544 }), 468 + 600 - 544 - 24);
+  // The reply grows by 100, so the spacer shrinks by 100 and the total height stays the same.
+  assert.equal(spacerHeight({ ...list, contentEnd: 644 }), 468 + 600 - 644 - 24);
+  // A reply that fills the screen needs no spacer, and never a negative one.
+  assert.equal(spacerHeight({ ...list, contentEnd: 1200 }), 0);
+  // The first message of a chat is already at the top.
+  assert.equal(pinTarget({ clientHeight: 600, padTop: 32, padBottom: 24, pinnedTop: 32 }), 0);
+  assert.equal(pinTarget({ pinnedTop: 10, padTop: 32 }), 0);
+  // The arrow shows only when the content goes below the visible part, with a little slack.
+  assert.equal(hasMoreBelow({ scrollTop: 468, clientHeight: 600, contentEnd: 1500 }), true);
+  assert.equal(hasMoreBelow({ scrollTop: 468, clientHeight: 600, contentEnd: 1000 }), false);
+  assert.equal(hasMoreBelow({ scrollTop: 468, clientHeight: 600, contentEnd: 1070 }), false);
+  assert.equal(hasMoreBelow({ scrollTop: 468, clientHeight: 600, contentEnd: 1080 }), true);
+  assert.equal(hasMoreBelow({ scrollTop: 468, clientHeight: 600, contentEnd: 700 }), false);
+  // The arrow scrolls so the end of the content, and its padding, is at the bottom.
+  assert.equal(endTarget({ contentEnd: 1500, padBottom: 24, clientHeight: 600 }), 924);
+  assert.equal(endTarget({ contentEnd: 300, padBottom: 24, clientHeight: 600 }), 0);
+});

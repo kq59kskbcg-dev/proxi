@@ -256,6 +256,7 @@
     </header>
 
     <template v-if="v.isChat">
+    <div style="flex: 1; min-height: 0; position: relative; display: flex; flex-direction: column">
     <section aria-label="Messages" :ref="v.msgRef" @scroll.passive="v.onMsgScroll" style="flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 32px 24px 24px">
       <div class="msgs" style="max-width: 760px; margin: 0 auto; display: flex; flex-direction: column">
         <template v-for="(m, i_m) in v.msgs" :key="i_m">
@@ -382,7 +383,13 @@
           </article>
         </template>
       </div>
+      <!-- Empty space under the latest exchange, sized by the page, so a message you send can sit at the top. -->
+      <div aria-hidden="true" :ref="v.spacerRef" style="flex: none; height: 0"></div>
     </section>
+    <template v-if="v.moreBelow">
+      <button type="button" class="to-latest" aria-label="Scroll to the latest message" @click="v.toLatest"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12l7 7 7-7"></path></svg></button>
+    </template>
+    </div>
     </template>
 
     <template v-if="v.isNew">
