@@ -2,6 +2,12 @@
 
 AI chat assistant built on Claude, deployed on Vercel, with a Mintlify help center.
 
+## What it is
+
+Proxi is a chat assistant for people who want help from an AI without handing over their sensitive details. Card numbers, IBANs, emails and phone numbers are masked before anything reaches the model, the logs or saved chats, and answers about Proxi itself cite the help center so they can be checked.
+
+It is also a worked example of shipping an LLM app with care: prompts live in Langfuse and are checked by evals before they go live, tools are served through an MCP server, and changes go through tests, CI and documented releases.
+
 ## Try it live
 
 - App: https://proxi-three.vercel.app
