@@ -138,6 +138,9 @@
       <template v-for="(c, i_c) in v.recents" :key="i_c">
           <button :class="c.cls" :aria-current="c.current" @click="c.open" :style="`border: 0; text-align: left; cursor: pointer; color: ${c.color}; background: ${c.bg}; box-shadow: ${c.shadow}; height: 44px; flex: none; border-radius: 8px; padding: 0 10px; font-size: 14px; font-weight: ${c.weight}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis`">{{ c.title }}</button>
       </template>
+      <template v-if="v.recentsEmpty">
+        <p style="margin: 0; padding: 6px 10px; font-size: 13px; line-height: 1.45; color: var(--text-muted-2)">Your chats will show up here.</p>
+      </template>
       <template v-if="v.hasMore">
         <button class="hov" type="button" @click="v.openSearch" aria-haspopup="dialog" style="border: 0; background: transparent; text-align: left; cursor: pointer; height: 44px; flex: none; border-radius: 8px; padding: 0 10px; font-size: 14px; color: var(--text-muted-2)">View all</button>
       </template>
