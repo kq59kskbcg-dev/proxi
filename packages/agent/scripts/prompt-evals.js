@@ -18,7 +18,7 @@ export const DATASETS = {
 // uses, and `key` is what has to match: for suggestions, the same options in any order or case.
 const plainKey = (value) => String(value).trim().toLowerCase();
 const SCORING = {
-  'classifiers/reply-suggestions': { maxTokens: 64, parse: parseSuggestions, key: suggestionKey },
+  'classifiers/reply-suggestions': { maxTokens: 96, parse: parseSuggestions, key: suggestionKey },
 };
 const keyFor = (name) => SCORING[name]?.key ?? plainKey;
 

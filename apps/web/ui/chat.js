@@ -11,7 +11,7 @@ import { createReveal, createFadeTracker, applyFades, prefersReducedMotion } fro
 import { ACCENT } from './store.js';
 import { KIND_LABELS } from './files.js';
 import { declinePending, memoryCard, MEMORY_ERRORS, MEMORY_MAX } from './memory-card.js';
-import { visibleSuggestions } from './reply-chips.js';
+import { visibleSuggestions } from './reply-suggestions.js';
 import { pinTarget, spacerHeight, hasMoreBelow, endTarget } from './pin.js';
 import { MAX_MESSAGE_CHARS, MAX_CHAT_MESSAGES, MESSAGE_TOO_LONG, CHAT_FULL, CHAT_TOO_LARGE, RECOVER_MS, OWN_CARDS } from './limits.js';
 
@@ -26,7 +26,7 @@ export const chatState = {
   chatMenu: false,
   contactForms: {}, // message id -> what's typed in its "Message Lisandro" card: { email, error, sending, sentTo }
   memoryForms: {}, // message id -> its "Save to memory" card: { text, error, saving, duplicate }
-  suggestions: null, // suggested replies for the latest reply: { convId, msgId, options }. Not saved.
+  suggestions: null, // suggested replies for the latest reply: { convId, msgId, options, title }. Not saved.
   moreBelow: false // the list continues below what's visible, so the down arrow shows
 };
 
@@ -196,7 +196,7 @@ export function createChat(app) {
             await shown.idle();
             finish();
           } else if (event.type === 'suggestions') {
-            if (msgId && Array.isArray(event.options)) app.setState({ suggestions: { convId, msgId, options: event.options.map(String) } });
+            if (msgId && Array.isArray(event.options)) app.setState({ suggestions: { convId, msgId, options: event.options.map(String), title: typeof event.title === 'string' ? event.title : '' } });
           } else if (event.type === 'title') {
             app.setState((st) => ({ convs: st.convs.map((c) => c.id === convId ? { ...c, title: event.title } : c) }));
           } else if (event.type === 'error') {
@@ -691,14 +691,17 @@ export function createChat(app) {
       // doesn't rebuild them.
       latestArrow: () => ({ spacerRef, moreBelow: s.moreBelow, toLatest }),
 
-      // Suggested replies above the message box. Tapping one sends it.
-      replyChips: () => {
+      // Suggested replies in a card above the message box. Tapping one sends it.
+      replyCard: () => {
         // Nothing to show is checked first, so a streaming reply doesn't recompute this.
-        if (!s.suggestions || !app.isChat.value) return { showReplyChips: false, replyChips: [] };
+        if (!s.suggestions || !app.isChat.value) return { showReplyCard: false, replyCard: { title: '', rows: [] } };
         const options = visibleSuggestions(s.suggestions, app.activeConv.value, { typing: s.typing, draft: s.draft, pending: s.pending });
         return {
-          showReplyChips: options.length > 0,
-          replyChips: options.map((label) => ({ label, pick: () => send(label) }))
+          showReplyCard: options.length > 0,
+          replyCard: {
+            title: s.suggestions.title || 'Suggested replies',
+            rows: options.map((label) => ({ label, pick: () => send(label) }))
+          }
         };
       },
 

@@ -22,22 +22,18 @@ input::placeholder,textarea::placeholder{color:var(--placeholder)}
 button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .composer:focus-within,.composer.drop{border-color:var(--accent) !important;box-shadow:0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent) !important}
 .hov:hover{background:var(--hover) !important}
-.chip:hover{background:var(--bg) !important;border-color:var(--border-hover) !important}
-/* Starters and suggested replies: one row that scrolls sideways to the edge of the screen, with a fade on the right while there are more chips. */
-.chip-row{display:flex;gap:8px;overflow-x:auto;margin:-4px -24px;padding:4px 24px;scrollbar-width:none;overscroll-behavior-x:contain}
-/* Suggested replies pop in one after another. Starters don't: they're there when the page opens. */
-@keyframes chip-pop{0%{opacity:0;transform:scale(0.85)}70%{opacity:1;transform:scale(1.04)}100%{opacity:1;transform:none}}
-.chip-row.pop-in .chip{animation:chip-pop 0.28s ease-out both}
-.chip-row.pop-in .chip:nth-child(2){animation-delay:50ms}
-.chip-row.pop-in .chip:nth-child(3){animation-delay:100ms}
-@media (prefers-reduced-motion: reduce){.chip-row.pop-in .chip{animation:none}}
-/* The down arrow over the bottom of the message list, shown while the reply runs past the bottom. */
+.starter:hover,.reply-row:hover{background:var(--bg) !important}
+.reply-row:focus-visible{outline-offset:-2px}
+/* The reply card's rows fade in one after another. Starters don't: they're there when the page opens. */
+@keyframes row-in{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.reply-card .reply-row{animation:row-in 0.2s ease-out both}
+.reply-card .reply-row:nth-of-type(2){animation-delay:50ms}
+.reply-card .reply-row:nth-of-type(3){animation-delay:100ms}
+@media (prefers-reduced-motion: reduce){.reply-card .reply-row{animation:none}}
 .to-latest{animation:to-latest-in 0.16s ease-out;position:absolute;left:50%;bottom:16px;transform:translateX(-50%);width:40px;height:40px;border-radius:50%;border:1px solid var(--border);background:var(--surface);color:var(--text-2);box-shadow:0 4px 14px rgba(24,24,27,0.12);display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0}
 @keyframes to-latest-in{from{opacity:0}to{opacity:1}}
 .to-latest:hover{background:var(--bg);border-color:var(--border-hover)}
 @media (prefers-reduced-motion: reduce){.to-latest{animation:none}}
-.chip-row::-webkit-scrollbar{display:none}
-.chip-row[data-more]{-webkit-mask-image:linear-gradient(to right,#000 calc(100% - 40px),transparent);mask-image:linear-gradient(to right,#000 calc(100% - 40px),transparent)}
 .menu-item:hover{background:var(--sunken) !important}
 .msgs{gap:28px}
 .umsg{position:relative}

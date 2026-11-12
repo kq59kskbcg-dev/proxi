@@ -2,7 +2,7 @@
 
 import { MAX_MESSAGE_CHARS, MESSAGE_TOO_LONG } from './limits.js';
 import { MAX_FILES, MAX_TOTAL, MAX_TEXT, ACCEPT, classify, formatSize, readBase64, makeThumb } from './files.js';
-import { hasMoreToScroll } from './reply-chips.js';
+import { visibleSuggestions } from './reply-suggestions.js';
 
 const MODELS = [
   { name: 'Auto', note: 'Balances quality with speed' },
@@ -89,24 +89,13 @@ export function createComposer(app) {
     focusComposer();
   }
 
-  // The chip row (starters or suggested replies) scrolls sideways and fades on the right while
-  // there are more chips past the edge. An attribute, not a class, so Vue leaves it alone.
-  function fadeChips() {
-    const el = els.chipRow;
-    if (!el) return;
-    if (hasMoreToScroll(el)) el.setAttribute('data-more', '');
-    else el.removeAttribute('data-more');
-  }
-  const chipRowRef = (el) => { els.chipRow = el; fadeChips(); };
-  if (typeof window !== 'undefined') window.addEventListener('resize', fadeChips);
-
   const hasFiles = (e) => e.dataTransfer && Array.from(e.dataTransfer.types || []).includes('Files');
   const taRef = (el) => { els.textarea = el; };
   const fileRef = (el) => { els.filePicker = el; };
 
   return {
     actions: { focusComposer },
-    updated() { sizeComposer(); fadeChips(); },
+    updated() { sizeComposer(); },
 
     views: {
       composer: () => {
@@ -115,6 +104,9 @@ export function createComposer(app) {
         const incognito = (isNew && s.temporary) || (isChat && app.activeIncognito.value);
         const canSend = (!!s.draft.trim() || s.pending.length > 0) && !s.reading;
         const tall = s.composerTall || s.pending.length > 0;
+        // With the reply card above it, the box squares its top corners and asks for another answer.
+        const underCard = isChat && !!s.suggestions && visibleSuggestions(s.suggestions, app.activeConv.value, { typing: s.typing, draft: s.draft, pending: s.pending }).length > 0;
+        const radius = tall ? '22px' : '28px';
         return {
           temporary: s.temporary,
           temporaryPressed: s.temporary ? 'true' : 'false',
@@ -134,7 +126,8 @@ export function createComposer(app) {
           showComposer: isChat || isNew,
           composerPad: '8px 24px 20px',
           composerMax: isNew ? '720px' : '760px',
-          composerRadius: tall ? '22px' : '28px',
+          composerRadius: underCard ? `0 0 ${radius} ${radius}` : radius,
+          placeholder: underCard ? 'Other response' : 'Message Proxi',
           composerPadding: tall ? '10px 8px 6px 8px' : '6px 6px 6px 6px',
           attachOrder: tall ? 2 : 1,
           textOrder: tall ? 1 : 2,
@@ -143,8 +136,6 @@ export function createComposer(app) {
           modelName: s.model.split(' ')[0],
           modelVersion: s.model.split(' ').slice(1).join(' '),
           showChips: isNew && !s.draft.trim() && !s.pending.length,
-          chipRowRef,
-          onChipScroll: fadeChips,
           taRef,
           draft: s.draft,
           maxChars: MAX_MESSAGE_CHARS,
