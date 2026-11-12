@@ -65,8 +65,8 @@ before(async () => {
   process.env.ANTHROPIC_API_KEY = 'test-key';
 
   fakeMintlify = http.createServer((req, res) => {
-    res.writeHead(200, { 'content-type': 'application/json' });
-    res.end(JSON.stringify([{ path: 'privacy', content: PRIVACY_TEXT, metadata: { title: 'Privacy' } }]));
+    res.writeHead(200, { 'content-type': 'text/plain' });
+    res.end(`# Privacy\nSource: https://proxi.mintlify.site/privacy\n\n${PRIVACY_TEXT}\n`);
   });
   await listen(fakeMintlify);
 
@@ -89,9 +89,7 @@ before(async () => {
     env: {
       ...process.env,
       PORT: String(port),
-      MINTLIFY_API_KEY: 'mint_dsc_test',
-      MINTLIFY_API_URL: `http://127.0.0.1:${fakeMintlify.address().port}/discovery/v1`,
-      MINTLIFY_DOCS_URL: 'https://proxi.mintlify.site',
+      MINTLIFY_DOCS_URL: `http://127.0.0.1:${fakeMintlify.address().port}`,
       RESEND_API_KEY: 're_test',
       SUPPORT_EMAIL_TO: 'owner@example.com',
       RESEND_BASE_URL: `http://127.0.0.1:${fakeResend.address().port}`,
