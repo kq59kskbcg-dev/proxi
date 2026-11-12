@@ -1,29 +1,54 @@
-import { test, before, after, beforeEach } from 'node:test';
+import { test, before, after, beforeEach, mock } from 'node:test';
 import assert from 'node:assert/strict';
 import http from 'node:http';
 import { Client, InMemoryTransport } from '@modelcontextprotocol/client';
 import { createServer } from '../lib/server.js';
+import { resetDocsCache, parsePages, tokens } from '../lib/mintlify.js';
 
 const calls = [];
 let reply;
 let fake;
 let client;
 
+const FILE = `# Search the web
+Source: https://proxi.mintlify.site/tools/web-search
+
+How Proxi looks up current information on the web.
+
+Proxi uses the web_search tool when an answer depends on current or changing information, such as news, prices, releases or events.
+
+## Privacy
+
+Your search query is redacted like your messages.
+
+# Security
+Source: https://proxi.mintlify.site/security
+
+How Proxi protects your data.
+
+## Encryption
+
+Traffic uses HTTPS, and stored data is encrypted, with AES-256 for chats and traces.
+
+## Reporting a problem
+
+Email us if you find a security problem.
+
+# Your privacy
+Source: https://proxi.mintlify.site/your-privacy
+
+Short.
+`;
+
 before(async () => {
   fake = http.createServer((req, res) => {
-    let raw = '';
-    req.on('data', (chunk) => { raw += chunk; });
-    req.on('end', () => {
-      calls.push({ url: req.url, auth: req.headers.authorization, body: JSON.parse(raw) });
-      const [status, body] = reply(req.url);
-      res.writeHead(status, { 'content-type': 'application/json' });
-      res.end(JSON.stringify(body));
-    });
+    calls.push(req.url);
+    const [status, body] = reply(req.url);
+    res.writeHead(status, { 'content-type': 'text/plain' });
+    res.end(body);
   });
   await new Promise((resolve) => fake.listen(0, '127.0.0.1', resolve));
-  process.env.MINTLIFY_API_URL = `http://127.0.0.1:${fake.address().port}/discovery/v1`;
-  process.env.MINTLIFY_DOCS_URL = 'https://proxi.mintlify.site';
-  delete process.env.MINTLIFY_DOMAIN;
+  process.env.MINTLIFY_DOCS_URL = `http://127.0.0.1:${fake.address().port}`;
 
   const [clientSide, serverSide] = InMemoryTransport.createLinkedPair();
   await createServer().connect(serverSide);
@@ -38,10 +63,11 @@ after(async () => {
 
 beforeEach(() => {
   calls.length = 0;
-  process.env.MINTLIFY_API_KEY = 'mint_dsc_test';
+  resetDocsCache();
+  reply = () => [200, FILE];
 });
 
-const longText = 'Proxi masks card numbers, IBANs, emails and phone numbers before anything reaches the model. '.repeat(3);
+const search = (query, limit) => client.callTool({ name: 'search_docs', arguments: { query, ...(limit ? { limit } : {}) } });
 
 test('lists search_docs with a query parameter', async () => {
   const { tools } = await client.listTools();
@@ -50,60 +76,92 @@ test('lists search_docs with a query parameter', async () => {
   assert.deepEqual(tool.inputSchema.required, ['query']);
 });
 
-test('returns Mintlify hits as resources with title and link', async () => {
-  reply = () => [200, [
-    { path: 'privacy', content: longText, metadata: { title: 'Privacy' } },
-    { path: '/security', content: longText, metadata: {} },
-  ]];
-  const result = await client.callTool({ name: 'search_docs', arguments: { query: 'what is masked', limit: 3 } });
-
-  assert.equal(calls[0].url, '/discovery/v1/search/proxi.mintlify.site');
-  assert.equal(calls[0].auth, 'Bearer mint_dsc_test');
-  assert.deepEqual(calls[0].body, { query: 'what is masked', pageSize: 3 });
-
+test('needs no API key, and reads the published llms-full.txt', async () => {
+  delete process.env.MINTLIFY_API_KEY;
+  const result = await search('When does Proxi search the web?');
   assert.notEqual(result.isError, true);
-  assert.equal(result.content.length, 2);
-  assert.equal(result.content[0].type, 'resource');
-  assert.equal(result.content[0].resource.uri, 'https://proxi.mintlify.site/privacy');
-  assert.equal(result.content[0].resource._meta.title, 'Privacy');
-  assert.equal(result.structuredContent.results[1].url, 'https://proxi.mintlify.site/security');
-  assert.equal(result.structuredContent.results[1].title, 'security');
+  assert.deepEqual(calls, ['/llms-full.txt']);
 });
 
-test('accepts a response wrapped in results', async () => {
-  reply = () => [200, { results: [{ path: 'features', content: longText, metadata: { title: 'Features' } }] }];
-  const result = await client.callTool({ name: 'search_docs', arguments: { query: 'features' } });
-  assert.equal(result.structuredContent.results[0].title, 'Features');
+test('finds the page for a plain question, with its title and link', async () => {
+  const web = await search('When does Proxi search the web?');
+  assert.equal(web.content[0].type, 'resource');
+  assert.equal(web.content[0].resource.uri, 'https://proxi.mintlify.site/tools/web-search');
+  assert.equal(web.content[0].resource._meta.title, 'Search the web');
+  assert.match(web.content[0].resource.text, /current or changing information/);
+
+  const data = await search('Is my data encrypted?');
+  assert.equal(data.structuredContent.results[0].url, 'https://proxi.mintlify.site/security');
+  assert.match(data.structuredContent.results[0].text, /AES-256/);
 });
 
-test('fetches the full page when the snippet is short', async () => {
-  reply = (url) => url.includes('/page/')
-    ? [200, { path: 'privacy', content: longText }]
-    : [200, [{ path: 'privacy', content: 'Short.', metadata: { title: 'Privacy' } }]];
-  const result = await client.callTool({ name: 'search_docs', arguments: { query: 'privacy' } });
-  assert.equal(calls[1].url, '/discovery/v1/page/proxi.mintlify.site');
-  assert.deepEqual(calls[1].body, { path: 'privacy' });
-  assert.equal(result.structuredContent.results[0].text, longText);
+test('returns each page once, best page first, up to the limit', async () => {
+  const result = await search('security data search', 2);
+  const urls = result.structuredContent.results.map((r) => r.url);
+  assert.equal(urls.length, 2);
+  assert.equal(new Set(urls).size, 2);
+});
+
+test('a short section comes with the start of its page', async () => {
+  const result = await search('Reporting a problem');
+  const hit = result.structuredContent.results[0];
+  assert.equal(hit.url, 'https://proxi.mintlify.site/security');
+  assert.match(hit.text, /How Proxi protects your data/);
 });
 
 test('says so when nothing matches', async () => {
-  reply = () => [200, []];
-  const result = await client.callTool({ name: 'search_docs', arguments: { query: 'unrelated' } });
+  const result = await search('zebra');
   assert.notEqual(result.isError, true);
   assert.match(result.content[0].text, /No matching docs/);
 });
 
-test('reports a missing key as a tool error', async () => {
-  delete process.env.MINTLIFY_API_KEY;
-  const result = await client.callTool({ name: 'search_docs', arguments: { query: 'privacy' } });
-  assert.equal(result.isError, true);
-  assert.match(result.content[0].text, /not set up/);
-  assert.equal(calls.length, 0);
+test('keeps the downloaded docs for an hour', async () => {
+  await search('encrypted');
+  await search('web');
+  assert.equal(calls.length, 1);
 });
 
-test('reports Mintlify failures as a tool error', async () => {
-  reply = () => [500, { error: 'boom' }];
-  const result = await client.callTool({ name: 'search_docs', arguments: { query: 'privacy' } });
+test('uses the last copy of the docs when a refresh fails', async () => {
+  await search('encrypted');
+  const later = Date.now() + 2 * 60 * 60 * 1000;
+  const now = mock.method(Date, 'now', () => later);
+  try {
+    reply = () => [500, 'boom'];
+    const result = await search('encrypted');
+    assert.notEqual(result.isError, true);
+    assert.equal(result.structuredContent.results[0].url, 'https://proxi.mintlify.site/security');
+    assert.equal(calls.length, 2);
+  } finally {
+    now.mock.restore();
+  }
+});
+
+test('reports a failed download as a tool error', async () => {
+  reply = () => [500, 'boom'];
+  const result = await search('privacy');
   assert.equal(result.isError, true);
   assert.match(result.content[0].text, /HTTP 500/);
+});
+
+test('reports a file in an unexpected format as a tool error', async () => {
+  reply = () => [200, 'Just some text with no pages in it.'];
+  const result = await search('privacy');
+  assert.equal(result.isError, true);
+  assert.match(result.content[0].text, /unavailable/);
+});
+
+test('parsePages reads the title above each Source line, and the text below it', () => {
+  const pages = parsePages(FILE);
+  assert.deepEqual(pages.map((p) => [p.title, p.url]), [
+    ['Search the web', 'https://proxi.mintlify.site/tools/web-search'],
+    ['Security', 'https://proxi.mintlify.site/security'],
+    ['Your privacy', 'https://proxi.mintlify.site/your-privacy'],
+  ]);
+  assert.doesNotMatch(pages[0].body, /# Security/);
+  assert.match(pages[1].body, /Encryption/);
+});
+
+test('tokens drop filler words and match word endings', () => {
+  assert.deepEqual(tokens('Is my data encrypted?'), ['data', 'encrypt']);
+  assert.deepEqual(tokens('Encryption of chats'), ['encrypt', 'chat']);
 });

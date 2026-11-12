@@ -82,7 +82,7 @@ test('the reply suggestions eval compares the options the app would show, in any
   });
   answering.sent = [];
   const result = await evalPrompt(lf, client, 'classifiers/reply-suggestions', 1);
-  assert.equal(answering.sent[0].max_tokens, 64);
+  assert.equal(answering.sent[0].max_tokens, 96);
   assert.equal(result.passed, 2);
   assert.equal(result.failures.length, 1);
   assert.deepEqual(result.failures[0].input, { reply: 'Red or blue?' });
