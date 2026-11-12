@@ -94,10 +94,13 @@ export function createServer() {
       },
       async ({ query }) => {
         try {
-          const result = await searchWeb(query);
+          const { cited, ...result } = await searchWeb(query);
+          // With cited pages, the chat model gets only those pages, whose passages hold the
+          // answer's facts. Given the written answer too, it often cites that instead, and the
+          // answer has no web address to link, so the reply shows no sources.
           return {
             content: [
-              { type: 'text', text: result.answer || 'No answer was found.' },
+              ...(cited ? [] : [{ type: 'text', text: result.answer || 'No answer was found.' }]),
               ...result.sources.map((r) => ({
                 type: 'resource',
                 resource: { uri: r.url, mimeType: 'text/plain', text: r.text, _meta: { title: r.title } },

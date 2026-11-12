@@ -42,7 +42,8 @@ export async function searchWeb(query) {
   return toResults(res.content);
 }
 
-// The answer text, and one source per cited page with the passages quoted from it.
+// The answer text, and one source per cited page with the passages quoted from it. `cited` says
+// whether the sources came from the answer's citations, rather than only the pages found.
 export function toResults(content) {
   const answer = content.filter((b) => b.type === 'text').map((b) => b.text).join('').trim();
   const sources = new Map();
@@ -57,8 +58,9 @@ export function toResults(content) {
       for (const c of block.citations ?? []) if (c.type === 'web_search_result_location') add(c.url, c.title, c.cited_text);
     }
   }
+  const cited = sources.size > 0;
   // Nothing cited: fall back to the pages the search found.
-  if (!sources.size) {
+  if (!cited) {
     for (const block of content) {
       if (block.type === 'web_search_tool_result' && Array.isArray(block.content)) {
         for (const r of block.content) if (r.type === 'web_search_result') add(r.url, r.title);
@@ -67,6 +69,7 @@ export function toResults(content) {
   }
   return {
     answer,
+    cited,
     sources: [...sources.values()].map((s) => ({
       title: s.title,
       url: s.url,

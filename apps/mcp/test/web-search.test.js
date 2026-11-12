@@ -64,8 +64,11 @@ test('web_search asks Claude with web search on and returns the cited pages', as
   assert.equal(requests[0].model, 'claude-sonnet-5-5');
   assert.deepEqual(requests[0].tools, [{ type: 'web_search_20260209', name: 'web_search', max_uses: 3 }]);
   assert.equal(requests[0].messages[0].content, 'How much is Mintlify Pro?');
-  assert.equal(result.content[0].text, 'The Pro plan costs $150 a month.');
-  assert.deepEqual(result.content[1].resource, { uri: 'https://example.com/pricing', mimeType: 'text/plain', text: 'Pro: $150/month', _meta: { title: 'Pricing' } });
+  // Only the cited pages go to the chat model, so every citation it makes has a link to show.
+  assert.equal(result.content.length, 1);
+  assert.equal(result.structuredContent.answer, 'The Pro plan costs $150 a month.');
+  assert.equal(result.structuredContent.cited, undefined);
+  assert.deepEqual(result.content[0].resource, { uri: 'https://example.com/pricing', mimeType: 'text/plain', text: 'Pro: $150/month', _meta: { title: 'Pricing' } });
 });
 
 test('with nothing cited, the pages found are returned as sources', async () => {
@@ -78,6 +81,9 @@ test('with nothing cited, the pages found are returned as sources', async () => 
   const result = await client.callTool({ name: 'web_search', arguments: { query: 'something obscure' } });
   assert.equal(result.structuredContent.sources[0].url, 'https://example.com/a');
   assert.equal(result.structuredContent.sources[0].text, 'Page A');
+  // The pages hold only their titles, so the written answer is kept as well.
+  assert.equal(result.content[0].text, "I couldn't find reliable information.");
+  assert.equal(result.content[1].resource.uri, 'https://example.com/a');
 });
 
 test('a paused search is continued, and a refusal becomes a clear error', async () => {
