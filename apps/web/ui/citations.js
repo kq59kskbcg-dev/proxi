@@ -108,7 +108,10 @@ export function renderCitations(html, { chatDate = () => '', linkChats = true } 
   }
   const count = sources.length === 1 ? '1 source' : sources.length + ' sources';
   const chevron = '<svg class="src-chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg>';
-  summary.append(stack, count);
+  const countEl = document.createElement('span');
+  countEl.className = 'src-count';
+  countEl.textContent = count;
+  summary.append(stack, countEl);
   summary.insertAdjacentHTML('beforeend', chevron);
   // The list opens on top of the chat: a card by the button, or a sheet from the bottom on phones.
   const panel = document.createElement('div');

@@ -47,8 +47,15 @@ test('the chat list shows its spinner only while the first chats load', () => {
   const view = () => createSidebar(app).views.sidebar();
   assert.equal(view().historyLoading, true);
   assert.equal(view().historyNote, '');
+  assert.equal(view().recentsEmpty, false);
   state.history = 'ok';
   assert.equal(view().historyLoading, false);
+  assert.equal(view().recentsEmpty, true);
+  state.query = 'x';
+  assert.equal(view().recentsEmpty, false);
+  state.query = '';
+  state.convs = [{ id: 'a', title: 'Hi', updatedAt: 1 }];
+  assert.equal(view().recentsEmpty, false);
 });
 
 test('opening a saved chat shows the loading spinner, not the reply indicator', async () => {

@@ -138,6 +138,9 @@
       <template v-for="(c, i_c) in v.recents" :key="i_c">
           <button :class="c.cls" :aria-current="c.current" @click="c.open" :style="`border: 0; text-align: left; cursor: pointer; color: ${c.color}; background: ${c.bg}; box-shadow: ${c.shadow}; height: 44px; flex: none; border-radius: 8px; padding: 0 10px; font-size: 14px; font-weight: ${c.weight}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis`">{{ c.title }}</button>
       </template>
+      <template v-if="v.recentsEmpty">
+        <p style="margin: 0; padding: 6px 10px; font-size: 13px; line-height: 1.45; color: var(--text-muted-2)">Your chats will show up here.</p>
+      </template>
       <template v-if="v.hasMore">
         <button class="hov" type="button" @click="v.openSearch" aria-haspopup="dialog" style="border: 0; background: transparent; text-align: left; cursor: pointer; height: 44px; flex: none; border-radius: 8px; padding: 0 10px; font-size: 14px; color: var(--text-muted-2)">View all</button>
       </template>
@@ -598,10 +601,11 @@
       <template v-if="v.isChat">
         <div aria-hidden="true" style="position: absolute; left: 0; right: 0; top: -40px; height: 40px; background: linear-gradient(to bottom, transparent, var(--surface)); pointer-events: none"></div>
       </template>
-      <template v-if="v.showChips || v.showReplyChips">
+      <template v-if="v.showChips || v.isChat">
         <div :style="`max-width: ${v.composerMax}; margin: 0 auto 10px`">
-          <div class="chip-row" role="group" :aria-label="v.showReplyChips ? 'Suggested replies' : 'Ideas to start with'" :ref="v.chipRowRef" @scroll="v.onChipScroll">
-            <template v-for="(ch, i_ch) in (v.showReplyChips ? v.replyChips : v.chips)" :key="i_ch + ch.label">
+          <!-- In a chat this row always keeps its height, so the messages don't move when suggested replies come and go. -->
+          <div class="chip-row" :class="{ pop: v.showReplyChips, reserved: v.isChat }" :role="(v.showChips || v.showReplyChips) ? 'group' : null" :aria-label="v.showReplyChips ? 'Suggested replies' : v.showChips ? 'Ideas to start with' : null" :ref="v.chipRowRef" @scroll="v.onChipScroll">
+            <template v-for="(ch, i_ch) in (v.showReplyChips ? v.replyChips : v.showChips ? v.chips : [])" :key="i_ch + ch.label">
               <button class="chip" type="button" @click="ch.pick" style="flex: none; white-space: nowrap; border: 1px solid var(--border); background: var(--surface); border-radius: 999px; padding: 0 16px; height: 40px; font-size: 14px; font-weight: 500; color: var(--text-2); cursor: pointer">{{ ch.label }}</button>
             </template>
           </div>
