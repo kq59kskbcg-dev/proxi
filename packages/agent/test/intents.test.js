@@ -31,7 +31,7 @@ test('classifyIntent skips empty messages without calling the model', async () =
 });
 
 test('getIntent adds nothing when Langfuse is not set up', async () => {
-  assert.deepEqual(await getIntent(reply('escalation'), history), { intent: null, escalated: false, text: '' });
+  assert.deepEqual(await getIntent(reply('redaction-missed'), history), { intent: null, text: '' });
 });
 
 test('intentText joins the production prompts tagged for the intent and skips the others', async () => {

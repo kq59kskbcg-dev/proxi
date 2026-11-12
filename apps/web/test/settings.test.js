@@ -32,7 +32,7 @@ test('settings need a signed-in user', async () => {
 test('settings start at 30 days with no instructions, and list the choices', async () => {
   const res = await GET(request('GET'));
   assert.equal(res.status, 200);
-  assert.deepEqual(await res.json(), { chatRetentionDays: 30, customInstructions: '', disabledTools: [], retentionOptions: [7, 30, 90], customInstructionsMax: 1500, toolOptions: ['web_search', 'search_docs', 'search_chats', 'save_memory', 'offer_message_to_lisandro', 'get_status'] });
+  assert.deepEqual(await res.json(), { chatRetentionDays: 30, customInstructions: '', disabledTools: [], retentionOptions: [7, 30, 90], customInstructionsMax: 1500, toolOptions: ['web_search', 'search_docs', 'search_chats', 'save_memory', 'get_status'] });
 });
 
 test('a valid choice is saved, anything else is refused', async () => {

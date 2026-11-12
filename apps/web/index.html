@@ -303,28 +303,6 @@
                   </details>
                 </template>
                 <div v-if="m.html" class="md" :data-mid="m.mid" v-html="m.html"></div>
-                <div v-if="m.contactForm" class="contact-card" role="group" :aria-labelledby="m.contactTitle">
-                  <div class="contact-head" :id="m.contactTitle"><span class="contact-ic" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="m3 7 9 6 9-6"></path></svg></span>Message Lisandro</div>
-                  <div class="contact-field"><span class="contact-label">What will be sent</span><div class="contact-summary">{{ m.contactSummary }}</div></div>
-                  <div class="contact-field">
-                    <label class="contact-label" :for="m.contactInput">Your email, for the reply</label>
-                    <input :id="m.contactInput" class="contact-input" :class="{ 'contact-bad': m.contactError }" type="email" inputmode="email" autocomplete="email" enterkeyhint="send" maxlength="254" placeholder="you@example.com" :value="m.contactEmail" @input="m.onContactEmail" @keydown="m.onContactKey" :aria-invalid="m.contactInvalid" :aria-describedby="m.contactErrorId">
-                    <span v-if="m.contactError" class="contact-error" :id="m.contactErrorId" role="alert">{{ m.contactError }}</span>
-                    <span v-else class="contact-hint" :id="m.contactErrorId">Only used so Lisandro can reply to you.</span>
-                  </div>
-                  <div class="contact-acts">
-                    <button type="button" class="contact-send" :disabled="m.contactBusy" @click="m.onContactSend">{{ m.contactSendLabel }}</button>
-                    <button type="button" class="contact-later hov" :disabled="m.contactBusy" @click="m.onContactDismiss">Not now</button>
-                  </div>
-                </div>
-                <div v-if="m.contactSkipped" class="contact-card contact-done" role="status">
-                  <span class="contact-ic contact-no" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"></path></svg></span>
-                  <div><div class="contact-head">Not sent to Lisandro</div><div class="contact-muted">Nothing was sent. Ask again any time.</div></div>
-                </div>
-                <div v-if="m.contactSent" class="contact-card contact-done" role="status">
-                  <span class="contact-ic contact-ok" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"></path></svg></span>
-                  <div><div class="contact-head">Sent to Lisandro</div><div class="contact-muted">{{ m.contactDone }}</div></div>
-                </div>
                 <div v-if="m.memoryAsk" class="contact-card" role="group" :aria-labelledby="m.memoryTitle">
                   <div class="contact-head" :id="m.memoryTitle"><span class="contact-ic" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0-6 6c0 2 1 3 2 4v3h8v-3c1-1 2-2 2-4a6 6 0 0 0-6-6z"></path><path d="M9 20h6"></path></svg></span>Save to memory</div>
                   <div class="contact-field">

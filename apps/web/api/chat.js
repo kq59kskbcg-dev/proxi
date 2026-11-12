@@ -6,8 +6,7 @@ import { flushTraces, getLangfuse, getSystemPrompt, startTrace } from '@proxi/ag
 import { hasDatabase, saveConversation, conversationAttributes, recordRedactions, searchChatMessages } from '../lib/db.js';
 import { customInstructions, disabledTools } from '../lib/instructions.js';
 import { processAttachments, AttachmentError } from '../lib/attachments.js';
-import { parseChatRequest, label, contactOf, memoryOf } from '../lib/chat-request.js';
-import { CONTACT_TOOL, CONTACT_TOOL_DEFINITION, contactAvailable, contactOffer } from '../lib/contact.js';
+import { parseChatRequest, label, memoryOf } from '../lib/chat-request.js';
 import { savedMemories, memoryOffer } from '../lib/memories.js';
 import { getMcpTools } from '@proxi/agent/mcp';
 import { makeTitle } from '@proxi/agent/title';
@@ -56,7 +55,7 @@ export async function POST(request) {
   const parsed = parseChatRequest(body);
   if (parsed.error === 'invalid') return json(cardResponse('error', '400 · invalid'), 400);
   if (parsed.error === 'full') return json({ error: CHAT_FULL }, 400);
-  const { auto, fixedModel, messages: raw, temporary, conversationId, escalated: escalatedBefore } = parsed;
+  const { auto, fixedModel, messages: raw, temporary, conversationId } = parsed;
   const lastIndex = raw.length - 1;
 
   // Files attached to the latest message are checked, redacted where possible and
@@ -90,7 +89,7 @@ export async function POST(request) {
     // A memory card still waiting when the user sends another message counts as declined.
     const memory = memoryOf(m);
     if (memory?.status === 'pending') memory.status = 'declined';
-    return { role: m.role, content: text, model: label(m.model), traceId: label(m.traceId), attachments: kinds.map((kind) => ({ kind })), unavailable, contact: contactOf(m), memory };
+    return { role: m.role, content: text, model: label(m.model), traceId: label(m.traceId), attachments: kinds.map((kind) => ({ kind })), unavailable, memory };
   });
   // The privacy page's counts. Incognito chats have no conversation ID, so they aren't counted.
   if (conversationId && hasDatabase()) {
@@ -102,8 +101,8 @@ export async function POST(request) {
 
   client ??= new Anthropic();
   // Language comes from the chat's first message and is kept with the chat; if the latest message
-  // asks for a person or reports a missed redaction, a reply prompt is added. Custom instructions come last.
-  const attributes = conversationId ? conversationAttributes(user.userId, conversationId) : Promise.resolve({ language: null, escalated: false });
+  // reports a missed redaction, a reply prompt is added. Custom instructions come last.
+  const attributes = conversationId ? conversationAttributes(user.userId, conversationId) : Promise.resolve({ language: null });
   const localeFor = async () => getLocale(client, history[0].content, (await attributes).language);
   // Memory is off in incognito chats: nothing is saved and saved memories aren't used.
   const memoryOn = !temporary && hasDatabase();
@@ -117,8 +116,6 @@ export async function POST(request) {
   ]);
   const memoryTool = toolsOff.has(MEMORY_TOOL) ? null : memoryToolDef;
   const model = route.model;
-  // The "Message Lisandro" card is offered once someone in the chat has asked for a person.
-  const contactOn = !toolsOff.has(CONTACT_TOOL) && await contactAvailable(intent.escalated || escalatedBefore || (await attributes).escalated);
   const { messages, traced, system: systemText } = buildContext({
     recent, blocks: attached.blocks, maxReplyChars: MAX_REPLY_CHARS,
     parts: { prompt: prompt.text, locale: locale.text, intent: intent.text, memories, summary, instructions },
@@ -129,7 +126,7 @@ export async function POST(request) {
   const trace = temporary ? null : startTrace('chat', {
     sessionId: conversationId ?? undefined,
     input: traced,
-    metadata: { redactions, language: locale.code, escalated: intent.escalated, summarized: older.length, ...(auto ? { route: route.level } : {}) },
+    metadata: { redactions, language: locale.code, summarized: older.length, ...(auto ? { route: route.level } : {}) },
   });
   const generation = trace?.startObservation('reply', {
     model, input: [{ role: 'system', content: system.text }, ...traced], prompt: system.prompt,
@@ -140,7 +137,7 @@ export async function POST(request) {
   const chatSearchOn = memoryOn && !toolsOff.has(CHAT_SEARCH_TOOL);
   const origin = new URL(request.url).origin;
   const mcpTools = (mcp?.tools ?? []).filter((tool) => !toolsOff.has(tool.name));
-  const tools = [...mcpTools, ...(memoryTool ? [memoryTool] : []), ...(chatSearchOn ? [CHAT_SEARCH_TOOL_DEFINITION] : []), ...(contactOn ? [CONTACT_TOOL_DEFINITION] : [])];
+  const tools = [...mcpTools, ...(memoryTool ? [memoryTool] : []), ...(chatSearchOn ? [CHAT_SEARCH_TOOL_DEFINITION] : [])];
   const params = {
     model,
     max_tokens: MAX_TOKENS,
@@ -157,8 +154,7 @@ export async function POST(request) {
   const body$ = new ReadableStream({
     async start(controller) {
       const send = (event) => controller.enqueue(encoder.encode(JSON.stringify(event) + '\n'));
-      send({ type: 'start', traceId: trace?.traceId ?? null, redactions, notices: attached.notices, escalated: intent.escalated });
-      const contact = contactOffer((summary) => send({ type: 'contact', summary }));
+      send({ type: 'start', traceId: trace?.traceId ?? null, redactions, notices: attached.notices });
       const memory = memoryOffer((text) => send({ type: 'memory', text }), memories);
       // A new chat gets a short AI title, made alongside the reply so nobody waits for it.
       const firstMessage = history.length === 1 ? history[0] : null;
@@ -175,7 +171,6 @@ export async function POST(request) {
           const span = trace?.startObservation(`tool ${call.name}`, { input }, { asType: 'tool' });
           const result = call.name === MEMORY_TOOL && memoryTool ? memory.run(call)
             : searching ? await searchChats(user.userId, conversationId, origin, call.id, input.query)
-            : call.name === CONTACT_TOOL && contactOn ? contact.run(call)
             : mcp && !toolsOff.has(call.name) ? await mcp.call(call)
             : { type: 'tool_result', tool_use_id: call.id, content: 'This tool is not available.', is_error: true };
           // Past chats' passages stay out of traces: only how many chats matched.
@@ -229,10 +224,9 @@ export async function POST(request) {
           try { send({ type: 'title', title: aiTitle }); } catch {}
         }
         if (conversationId && hasDatabase()) {
-          const card = contact.shown() ? { summary: contact.shown(), sent: false } : null;
           const suggested = memory.shown() ? { text: memory.shown(), status: 'pending' } : null;
-          const reply = text || card || suggested ? [{ role: 'assistant', content: text, model: servedBy, traceId: trace?.traceId ?? null, contact: card, memory: suggested }] : [];
-          await saveConversation(user.userId, conversationId, aiTitle || titleFrom(history), [...history, ...reply], { replaceTitle: Boolean(aiTitle), language: locale.code, escalated: intent.escalated })
+          const reply = text || suggested ? [{ role: 'assistant', content: text, model: servedBy, traceId: trace?.traceId ?? null, memory: suggested }] : [];
+          await saveConversation(user.userId, conversationId, aiTitle || titleFrom(history), [...history, ...reply], { replaceTitle: Boolean(aiTitle), language: locale.code })
             .catch((e) => console.error('saving chat failed', e));
         }
         const suggestions = suggesting ? await suggesting : [];
