@@ -142,7 +142,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 .contact-send:focus-visible,.contact-later:focus-visible{outline:2px solid var(--link);outline-offset:2px}
 .contact-done{flex-direction:row;align-items:flex-start;gap:10px}
 .contact-ok{background:var(--sunken);color:var(--ok)}
-.contact-no{background:var(--sunken);color:var(--danger)}
+.contact-no{background:var(--sunken);color:var(--text-muted)}
 .memory-input{height:auto;padding:10px 12px;line-height:24px;resize:none;display:block}
 .contact-later:disabled{opacity:.6;cursor:default}
 .err-retry{font:inherit;font-size:13px;font-weight:500;height:32px;padding:0 14px;border:0;border-radius:8px;background:var(--sunken);color:var(--text);cursor:pointer}
