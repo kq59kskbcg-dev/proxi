@@ -182,8 +182,9 @@ export function createComposer(app) {
           notTyping: !s.typing,
           stop: () => app.stop(),
           noSend: !canSend,
-          sendBg: canSend ? 'var(--send)' : 'var(--disabled)',
-          sendColor: canSend ? 'var(--on-send)' : 'var(--text-disabled)',
+          sendBg: 'var(--send)',
+          sendColor: 'var(--on-send)',
+          sendOpacity: canSend ? 1 : 0.4,
           sendCursor: canSend ? 'pointer' : 'default',
           chips: CHIPS.map((label) => ({ label, pick: () => app.send(label) }))
         };
