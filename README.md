@@ -59,7 +59,6 @@ The web tests include an end-to-end check: the chat endpoint discovers `get_stat
 - `get_status`: returns `{ "status": "ok", "service", "version", "uptimeSeconds", "time" }`
 - `search_docs`: searches the help center and returns matching passages with their title and link. It needs no key: it downloads the published site's `llms-full.txt`, keeps it for an hour and ranks sections with BM25. The chat turns them into citations: numbered links in the reply and a **Sources** list.
 - `web_search`: asks Claude (Sonnet 5.5) with Anthropic's web search tool on, and returns a short answer plus the cited pages as citable results.
-- `send_escalation_email`: emails Lisandro a summary of what someone needs through Resend, with the address they typed as Reply-To. Only the web app calls it, when someone presses Send on the "Message Lisandro" card (`POST /api/contact`). The web app never offers it to the model, so the address doesn't reach the model. The card itself comes from `offer_message_to_lisandro`, a tool the web app offers the model once someone in the chat asked for a person (`apps/web/lib/contact.js`).
 
 MCP server environment variables (set in the `proxi-mcp` Vercel project):
 
@@ -68,9 +67,6 @@ MCP server environment variables (set in the `proxi-mcp` Vercel project):
 | `MCP_TOKEN` | Shared secret every request must send as `Authorization: Bearer <token>`. Generate one with `openssl rand -base64 32` and set the same value on the web app. Without it, the server refuses every request (503). |
 | `ANTHROPIC_API_KEY` | Claude API key, used by `web_search`. Without it, `web_search` isn't offered to the agent |
 | `MINTLIFY_DOCS_URL` | Optional: the docs site that `search_docs` reads and that its links point to. Defaults to `https://proxi.mintlify.site` |
-| `RESEND_API_KEY` | Resend API key, used by `send_escalation_email`. Without it (or `SUPPORT_EMAIL_TO`), the tool isn't offered and the card isn't shown |
-| `SUPPORT_EMAIL_TO` | Where escalation emails go. Without a verified domain in Resend, this must be the address the Resend account was created with |
-| `RESEND_FROM` | Optional: the sender, once a domain is verified in Resend. Defaults to `Proxi <onboarding@resend.dev>` |
 
 Run it locally:
 

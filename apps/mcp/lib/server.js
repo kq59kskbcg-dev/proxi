@@ -3,9 +3,6 @@ import { McpServer, createMcpHandler } from '@modelcontextprotocol/server';
 import * as z from 'zod';
 import { searchDocs, DocsSearchError } from './mintlify.js';
 import { searchWeb, webSearchConfigured, WebSearchError } from './websearch.js';
-import { sendEscalationEmail, emailConfigured, EmailError, EMAIL, SUMMARY_MAX } from './resend.js';
-
-export const ESCALATION_EMAIL_TOOL = 'send_escalation_email';
 
 export const VERSION = '0.1.0';
 const startedAt = Date.now();
@@ -111,32 +108,6 @@ export function createServer() {
         } catch (error) {
           const message = error instanceof WebSearchError ? error.message : 'Web search is unavailable right now.';
           if (!(error instanceof WebSearchError)) console.error('web_search failed', error?.status ?? error?.name);
-          return { content: [{ type: 'text', text: message }], isError: true };
-        }
-      },
-    );
-  }
-  // Called by Proxi's web app when someone presses Send on the "Message Lisandro" card, never by
-  // the model: the web app leaves it out of the model's tools, so the address doesn't reach it.
-  if (emailConfigured()) {
-    server.registerTool(
-      ESCALATION_EMAIL_TOOL,
-      {
-        title: 'Message Lisandro',
-        description: 'Email Lisandro, who runs Proxi, a summary of what someone needs, with their address to reply to. Used by the web app, not by the model.',
-        inputSchema: z.object({
-          summary: z.string().trim().min(1).max(SUMMARY_MAX),
-          reply_to: z.string().trim().max(254).regex(EMAIL),
-        }),
-        annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
-      },
-      async ({ summary, reply_to: replyTo }) => {
-        try {
-          const { id } = await sendEscalationEmail(summary, replyTo);
-          return { content: [{ type: 'text', text: 'Sent.' }], structuredContent: { sent: true, id } };
-        } catch (error) {
-          const message = error instanceof EmailError ? error.message : "The email couldn't be sent.";
-          if (!(error instanceof EmailError)) console.error('send_escalation_email failed', error?.name);
           return { content: [{ type: 'text', text: message }], isError: true };
         }
       },

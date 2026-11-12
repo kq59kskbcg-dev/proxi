@@ -1,7 +1,7 @@
 import { test, before } from 'node:test';
 import assert from 'node:assert/strict';
 import { PGlite } from '@electric-sql/pglite';
-import { setDriver, saveConversation, listConversations, getMessages, deleteConversation, deleteAllConversations, deleteAccountData, deleteInactiveConversations, getSettings, saveSettings, conversationAttributes, markContactSent, markContactSkipped, markMemory, listMemories, addMemory, deleteMemory, MEMORY_LIMIT, searchChatMessages } from '../lib/db.js';
+import { setDriver, saveConversation, listConversations, getMessages, deleteConversation, deleteAllConversations, deleteAccountData, deleteInactiveConversations, getSettings, saveSettings, conversationAttributes, markMemory, listMemories, addMemory, deleteMemory, MEMORY_LIMIT, searchChatMessages } from '../lib/db.js';
 
 let pg;
 before(() => {
@@ -22,8 +22,8 @@ const chat = [
 test('saves a chat and reads it back in order', async () => {
   await saveConversation('user_a', 'c1', 'Plan a trip to Lisbon', chat);
   assert.deepEqual(await getMessages('user_a', 'c1'), [
-    { role: 'user', content: 'Plan a trip to Lisbon', model: null, traceId: null, attachments: null, contact: null, memory: null },
-    { role: 'assistant', content: 'Day 1: Alfama.', model: 'claude-sonnet-5-5', traceId: 'trace-1', attachments: null, contact: null, memory: null },
+    { role: 'user', content: 'Plan a trip to Lisbon', model: null, traceId: null, attachments: null, memory: null },
+    { role: 'assistant', content: 'Day 1: Alfama.', model: 'claude-sonnet-5-5', traceId: 'trace-1', attachments: null, memory: null },
   ]);
   const list = await listConversations('user_a');
   assert.equal(list.length, 1);
@@ -106,15 +106,13 @@ test('cleanup follows each user\'s own retention, or the 30 day default', async 
   assert.deepEqual((await listConversations('user_default')).map((c) => c.id), ['x']);
 });
 
-test('a chat keeps its first language and stays escalated once it has been', async () => {
-  assert.deepEqual(await conversationAttributes('user_a', 'attrs'), { language: null, escalated: false });
+test('a chat keeps its first language', async () => {
+  assert.deepEqual(await conversationAttributes('user_a', 'attrs'), { language: null });
   await saveConversation('user_a', 'attrs', 'Hola', chat, { language: 'es' });
-  assert.deepEqual(await conversationAttributes('user_a', 'attrs'), { language: 'es', escalated: false });
-  await saveConversation('user_a', 'attrs', 'Hola', chat, { language: 'en', escalated: true });
-  assert.deepEqual(await conversationAttributes('user_a', 'attrs'), { language: 'es', escalated: true });
-  await saveConversation('user_a', 'attrs', 'Hola', chat, { language: null, escalated: false });
-  assert.deepEqual(await conversationAttributes('user_a', 'attrs'), { language: 'es', escalated: true });
-  assert.deepEqual(await conversationAttributes('user_b', 'attrs'), { language: null, escalated: false });
+  assert.deepEqual(await conversationAttributes('user_a', 'attrs'), { language: 'es' });
+  await saveConversation('user_a', 'attrs', 'Hola', chat, { language: 'en' });
+  assert.deepEqual(await conversationAttributes('user_a', 'attrs'), { language: 'es' });
+  assert.deepEqual(await conversationAttributes('user_b', 'attrs'), { language: null });
 });
 
 test('memories are saved once per user, listed oldest first, capped and deletable', async () => {
@@ -159,41 +157,6 @@ test('deleting all chats removes only that user\'s chats and returns their trace
   assert.equal((await listConversations('user_other')).length, 1);
   assert.equal((await listMemories('user_all')).length, 1);
   assert.deepEqual(await deleteAllConversations('user_all'), []);
-});
-
-test('a reply keeps its Message Lisandro card, and Send marks only that card as sent', async () => {
-  const card = { summary: 'Their shared link stopped opening.', sent: false };
-  await saveConversation('user_card', 'c1', 'Help', [
-    { role: 'user', content: 'Can I talk to a person?' },
-    { role: 'assistant', content: 'Add your email in the card.', contact: card },
-  ]);
-  assert.deepEqual((await getMessages('user_card', 'c1'))[1].contact, card);
-  await markContactSent('user_other', 'c1', 1);
-  await markContactSent('user_card', 'c1', 0);
-  assert.equal((await getMessages('user_card', 'c1'))[1].contact.sent, false);
-  await markContactSent('user_card', 'c1', 1);
-  const messages = await getMessages('user_card', 'c1');
-  assert.deepEqual(messages[1].contact, { summary: card.summary, sent: true });
-  assert.equal(messages[0].contact, null);
-});
-
-test('Not now marks only that card as skipped, and a sent card stays sent', async () => {
-  const card = { summary: 'They want to export their memories.', sent: false };
-  await saveConversation('user_skip', 'c1', 'Help', [
-    { role: 'user', content: 'Can I talk to a person?' },
-    { role: 'assistant', content: 'Add your email in the card.', contact: card },
-    { role: 'user', content: 'And again?' },
-    { role: 'assistant', content: 'Here it is.', contact: { ...card, sent: true } },
-  ]);
-  await markContactSkipped('user_other', 'c1', 1);
-  await markContactSkipped('user_skip', 'c1', 0);
-  assert.deepEqual((await getMessages('user_skip', 'c1'))[1].contact, card);
-  await markContactSkipped('user_skip', 'c1', 1);
-  await markContactSkipped('user_skip', 'c1', 3);
-  const messages = await getMessages('user_skip', 'c1');
-  assert.deepEqual(messages[1].contact, { ...card, skipped: true });
-  assert.deepEqual(messages[3].contact, { ...card, sent: true });
-  assert.equal(messages[0].contact, null);
 });
 
 test('a reply keeps its Save to memory card, and only a waiting card can be answered', async () => {

@@ -15,7 +15,7 @@ export const DEFAULT_RETENTION_DAYS = 30;
 export const CUSTOM_INSTRUCTIONS_MAX = 1500;
 // Tools: the ones a user can turn off in Settings, by the name the model calls them.
 // web_search, search_docs and get_status come from the MCP server; the others from the web app.
-export const TOOL_OPTIONS = ['web_search', 'search_docs', 'search_chats', 'save_memory', 'offer_message_to_lisandro', 'get_status'];
+export const TOOL_OPTIONS = ['web_search', 'search_docs', 'search_chats', 'save_memory', 'get_status'];
 // Memory: how many facts one user can have saved.
 export const MEMORY_LIMIT = 50;
 
@@ -72,13 +72,8 @@ const SCHEMA = [
   `ALTER TABLE conversations ADD COLUMN IF NOT EXISTS share_id text UNIQUE`,
   // Two-letter language of the chat, found from its first message and kept once set.
   `ALTER TABLE conversations ADD COLUMN IF NOT EXISTS language text`,
-  // A reply's "Message Lisandro" card: {"summary": "...", "sent": true}, or "skipped": true after
-  // "Not now". The address typed in the card is never stored.
-  `ALTER TABLE messages ADD COLUMN IF NOT EXISTS contact jsonb`,
   // A reply's "Save to memory" card: {"text": "...", "status": "pending" | "saved" | "declined"}.
   `ALTER TABLE messages ADD COLUMN IF NOT EXISTS memory jsonb`,
-  // True once any message in the chat asked for a person.
-  `ALTER TABLE conversations ADD COLUMN IF NOT EXISTS escalated boolean NOT NULL DEFAULT false`,
   // Facts the user asked Proxi to remember, already redacted. Kept until the user deletes them.
   `CREATE TABLE IF NOT EXISTS memories (
      user_id text NOT NULL,
@@ -114,52 +109,30 @@ export async function listConversations(userId) {
 export async function getMessages(userId, conversationId) {
   const d = await db();
   const rows = await d.query(
-    `SELECT role, content, model, trace_id, attachments, contact, memory FROM messages
+    `SELECT role, content, model, trace_id, attachments, memory FROM messages
      WHERE user_id = $1 AND conversation_id = $2 ORDER BY position`, [userId, conversationId]);
-  return rows.map((r) => ({ role: r.role, content: r.content, model: r.model, traceId: r.trace_id, attachments: r.attachments ?? null, contact: r.contact ?? null, memory: r.memory ?? null }));
+  return rows.map((r) => ({ role: r.role, content: r.content, model: r.model, traceId: r.trace_id, attachments: r.attachments ?? null, memory: r.memory ?? null }));
 }
 
 // Replaces the stored conversation with its current state, so edits and
 // regenerations (which drop later messages) are saved too. An existing chat keeps
 // its title unless replaceTitle is set (a new AI title for the first message).
-// The language is kept once set; escalated stays true once it has been true.
-export async function saveConversation(userId, conversationId, title, messages, { replaceTitle = false, language = null, escalated = false } = {}) {
+// The language is kept once set.
+export async function saveConversation(userId, conversationId, title, messages, { replaceTitle = false, language = null } = {}) {
   const d = await db();
   await d.transaction([
-    [`INSERT INTO conversations (user_id, id, title, language, escalated) VALUES ($1, $2, $3, $5, $6)
+    [`INSERT INTO conversations (user_id, id, title, language) VALUES ($1, $2, $3, $5)
       ON CONFLICT (user_id, id) DO UPDATE SET updated_at = now(),
         title = CASE WHEN $4::boolean THEN EXCLUDED.title ELSE conversations.title END,
-        language = COALESCE(conversations.language, EXCLUDED.language),
-        escalated = conversations.escalated OR EXCLUDED.escalated`, [userId, conversationId, title, replaceTitle, language, escalated]],
+        language = COALESCE(conversations.language, EXCLUDED.language)`, [userId, conversationId, title, replaceTitle, language]],
     ['DELETE FROM messages WHERE user_id = $1 AND conversation_id = $2', [userId, conversationId]],
-    [`INSERT INTO messages (user_id, conversation_id, position, role, content, model, trace_id, attachments, contact, memory)
-      SELECT $1, $2, p, r, c, m, t, a::jsonb, k::jsonb, y::jsonb FROM unnest($3::int[], $4::text[], $5::text[], $6::text[], $7::text[], $8::text[], $9::text[], $10::text[]) AS x(p, r, c, m, t, a, k, y)`,
+    [`INSERT INTO messages (user_id, conversation_id, position, role, content, model, trace_id, attachments, memory)
+      SELECT $1, $2, p, r, c, m, t, a::jsonb, y::jsonb FROM unnest($3::int[], $4::text[], $5::text[], $6::text[], $7::text[], $8::text[], $9::text[]) AS x(p, r, c, m, t, a, y)`,
      [userId, conversationId, messages.map((_, i) => i), messages.map((m) => m.role), messages.map((m) => m.content),
       messages.map((m) => m.model ?? null), messages.map((m) => m.traceId ?? null),
       messages.map((m) => (m.attachments?.length ? JSON.stringify(m.attachments) : null)),
-      messages.map((m) => (m.contact ? JSON.stringify(m.contact) : null)),
       messages.map((m) => (m.memory ? JSON.stringify(m.memory) : null))]],
   ]);
-}
-
-// Marks a reply's "Message Lisandro" card as sent, so it shows as sent when the chat is opened again.
-export async function markContactSent(userId, conversationId, position) {
-  const d = await db();
-  await d.query(
-    `UPDATE messages SET contact = jsonb_set(contact, '{sent}', 'true'::jsonb)
-     WHERE user_id = $1 AND conversation_id = $2 AND position = $3 AND role = 'assistant' AND contact IS NOT NULL`,
-    [userId, conversationId, position]);
-}
-
-// Marks a reply's "Message Lisandro" card as skipped ("Not now"), so it stays a short note when the
-// chat is opened again. A card that was sent stays sent.
-export async function markContactSkipped(userId, conversationId, position) {
-  const d = await db();
-  await d.query(
-    `UPDATE messages SET contact = jsonb_set(contact, '{skipped}', 'true'::jsonb)
-     WHERE user_id = $1 AND conversation_id = $2 AND position = $3 AND role = 'assistant' AND contact IS NOT NULL
-       AND NOT COALESCE((contact->>'sent')::boolean, false)`,
-    [userId, conversationId, position]);
 }
 
 // Answers a reply's "Save to memory" card that is still waiting: "saved" (with the text that was
@@ -192,10 +165,10 @@ export async function searchChatMessages(userId, patterns, excludeId) {
 export async function conversationAttributes(userId, conversationId) {
   try {
     const d = await db();
-    const [row] = await d.query('SELECT language, escalated FROM conversations WHERE user_id = $1 AND id = $2', [userId, conversationId]);
-    return { language: row?.language ?? null, escalated: row?.escalated ?? false };
+    const [row] = await d.query('SELECT language FROM conversations WHERE user_id = $1 AND id = $2', [userId, conversationId]);
+    return { language: row?.language ?? null };
   } catch {
-    return { language: null, escalated: false };
+    return { language: null };
   }
 }
 

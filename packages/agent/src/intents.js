@@ -1,6 +1,5 @@
 // Intents: the user's latest message is sorted with the "classifiers/intent-router" prompt
-// (for example "escalation" when they want a person, or "redaction-missed" when they say a
-// card number or IBAN wasn't removed). Every prompt tagged "on-<intent>" is then added to the
+// (for example "redaction-missed" when they say a card number or IBAN wasn't removed). Every prompt tagged "on-<intent>" is then added to the
 // system prompt for that reply only. A new intent needs a router version that describes it and
 // a snippet with its tag, no code. Without Langfuse, or if anything fails, the reply goes
 // ahead without extra prompts.
@@ -11,7 +10,6 @@ import { TITLE_MODEL } from './title.js';
 
 const TTL_MS = 60_000;
 const NONE = 'none';
-const ESCALATION = 'escalation';
 const listed = new Map(); // intent -> { at, names }
 
 const options = { label: 'production', cacheTtlSeconds: 60, fetchTimeoutMs: 2000 };
@@ -49,10 +47,10 @@ export async function intentText(langfuse, intent) {
   return parts.filter(Boolean).join('\n\n');
 }
 
-// Returns { intent, escalated, text }: the intent found (null if none), whether the user asked
-// for a person, and the text to add to the system prompt ('' when there is nothing to add).
+// Returns { intent, text }: the intent found (null if none) and the text to add to the system
+// prompt ('' when there is nothing to add).
 export async function getIntent(client, history) {
-  const none = { intent: null, escalated: false, text: '' };
+  const none = { intent: null, text: '' };
   const langfuse = getLangfuse();
   if (!langfuse) return none;
   let intent;
@@ -63,10 +61,9 @@ export async function getIntent(client, history) {
     return none;
   }
   if (!intent) return none;
-  const escalated = intent === ESCALATION;
   try {
-    return { intent, escalated, text: await intentText(langfuse, intent) };
+    return { intent, text: await intentText(langfuse, intent) };
   } catch {
-    return { intent, escalated, text: '' };
+    return { intent, text: '' };
   }
 }

@@ -17,8 +17,6 @@ const requests = [];
 let script = [];
 let fakeClaude;
 let fakeMintlify;
-let fakeResend;
-const emails = [];
 let mcpServer;
 let token;
 let signing;
@@ -70,17 +68,6 @@ before(async () => {
   });
   await listen(fakeMintlify);
 
-  fakeResend = http.createServer((req, res) => {
-    let raw = '';
-    req.on('data', (chunk) => { raw += chunk; });
-    req.on('end', () => {
-      emails.push({ authorization: req.headers.authorization, body: JSON.parse(raw) });
-      res.writeHead(200, { 'content-type': 'application/json' });
-      res.end(JSON.stringify({ id: 'email_1' }));
-    });
-  });
-  await listen(fakeResend);
-
   // The MCP server and the agent share a token, as in production.
   process.env.MCP_TOKEN = 'test-mcp-token';
   const port = await freePort();
@@ -90,9 +77,6 @@ before(async () => {
       ...process.env,
       PORT: String(port),
       MINTLIFY_DOCS_URL: `http://127.0.0.1:${fakeMintlify.address().port}`,
-      RESEND_API_KEY: 're_test',
-      SUPPORT_EMAIL_TO: 'owner@example.com',
-      RESEND_BASE_URL: `http://127.0.0.1:${fakeResend.address().port}`,
     },
   });
   await new Promise((resolve, reject) => {
@@ -105,7 +89,6 @@ before(async () => {
 after(() => {
   fakeClaude?.close();
   fakeMintlify?.close();
-  fakeResend?.close();
   mcpServer?.kill();
 });
 
@@ -505,58 +488,3 @@ async function freePort() {
   await new Promise((resolve) => probe.close(resolve));
   return port;
 }
-
-async function contact(body) {
-  const { POST } = await import('../api/contact.js');
-  return POST(new Request('http://localhost/api/contact', {
-    method: 'POST',
-    headers: { authorization: `Bearer ${token}`, host: 'localhost', 'content-type': 'application/json' },
-    body: JSON.stringify(body),
-  }));
-}
-
-test('the email tool is never offered to the model, and the card only once someone asked for a person', { skip }, async () => {
-  script = [() => textTurn('Hello.')];
-  await chat('Hi');
-  const names = requests[0].tools.map((tool) => tool.name);
-  assert.ok(!names.includes('send_escalation_email'));
-  assert.ok(!names.includes('offer_message_to_lisandro'));
-
-  script = [() => textTurn('Sure.')];
-  await chat('And now?', { escalated: true });
-  const later = requests[0].tools.map((tool) => tool.name);
-  assert.ok(later.includes('offer_message_to_lisandro'));
-  assert.ok(!later.includes('send_escalation_email'));
-});
-
-test('the card is shown with a redacted summary, once per reply, and nothing is emailed', { skip }, async () => {
-  emails.length = 0;
-  script = [
-    () => toolUseTurn('offer_message_to_lisandro', { summary: 'Their link broke. Write to sam@example.com.' }),
-    () => toolUseTurn('offer_message_to_lisandro', { summary: 'Again.' }),
-    () => textTurn('Add your email in the card and press Send.'),
-  ];
-  const events = await chat('Can I talk to a person?', { escalated: true });
-  assert.deepEqual(events.filter((e) => e.type === 'contact'), [{ type: 'contact', summary: 'Their link broke. Write to [EMAIL].' }]);
-  assert.equal(requests[1].messages.at(-1).content[0].is_error, false);
-  assert.match(requests[1].messages.at(-1).content[0].content, /Nothing has been sent yet/);
-  assert.equal(requests[2].messages.at(-1).content[0].is_error, true);
-  const activity = events.find((e) => e.type === 'activity');
-  assert.equal(activity.label, 'Writing a message for Lisandro');
-  assert.equal(emails.length, 0);
-});
-
-test('Send emails the summary with the typed address as Reply-To, and checks the address', { skip }, async () => {
-  emails.length = 0;
-  assert.equal((await contact({ summary: 'Their link broke.', replyTo: 'sam@example' })).status, 400);
-  assert.equal((await contact({ summary: '', replyTo: 'sam@example.com' })).status, 400);
-  assert.equal(emails.length, 0);
-
-  const res = await contact({ summary: 'Their link broke.', replyTo: ' sam@example.com ' });
-  assert.equal(res.status, 204);
-  assert.equal(emails.length, 1);
-  assert.equal(emails[0].authorization, 'Bearer re_test');
-  assert.deepEqual(emails[0].body.to, ['owner@example.com']);
-  assert.equal(emails[0].body.reply_to, 'sam@example.com');
-  assert.match(emails[0].body.text, /Their link broke\./);
-});
