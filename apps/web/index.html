@@ -438,7 +438,7 @@
                     <div class="set-label"><label class="set-title" for="instructions">Custom instructions</label><span class="set-hint" id="instructions-hint">Proxi follows these in every chat.</span></div>
                   </div>
                   <div>
-                    <textarea id="instructions" class="set-text" rows="4" :maxlength="v.instructionsMax" :disabled="v.settingsBusy" :value="v.instructionsDraft" @input="v.onInstructions" aria-describedby="instructions-hint" placeholder="For example: Keep answers short and use bullet points."></textarea>
+                    <textarea id="instructions" class="set-text" rows="4" :maxlength="v.instructionsMax" :disabled="v.settingsBusy" :value="v.instructionsDraft" @input="v.onInstructions" aria-describedby="instructions-hint" placeholder="e.g. Keep answers short and use bullet points."></textarea>
                     <div class="set-foot">
                       <span class="set-count">{{ v.instructionsCount }}</span>
                       <button type="button" class="set-btn primary" :disabled="v.noSaveInstructions" @click="v.saveInstructions">Save</button>
@@ -458,7 +458,7 @@
                     <button type="button" class="set-btn" @click="v.logout">Log out</button>
                   </div>
                   <div class="set-row">
-                    <div class="set-label"><span class="set-title">Delete account</span><span class="set-hint">Deletes your chats, memories and settings.</span></div>
+                    <div class="set-label"><span class="set-title">Delete account</span></div>
                     <button type="button" class="set-btn danger" @click="v.askDeleteAccount" aria-haspopup="dialog">Delete</button>
                   </div>
                 </div>
@@ -507,25 +507,24 @@
                     <li class="set-mem set-tool">
                       <label class="set-who" :for="t.inputId">
                         <span class="set-tic" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" v-html="t.icon"></svg></span>
-                        <span class="set-label"><span class="set-title">{{ t.label }}</span><span class="set-hint" :id="t.hintId">{{ t.hint }}</span></span>
+                        <span class="set-title">{{ t.label }}</span>
                       </label>
-                      <input type="checkbox" class="set-check" :id="t.inputId" :checked="t.on" @change="t.change" :aria-describedby="t.hintId">
+                      <input type="checkbox" class="set-check" :id="t.inputId" :checked="t.on" @change="t.change">
                     </li>
                   </template>
                 </ul>
-                <p class="set-note">Proxi only uses the tools you leave on, from your next message. Turning a tool off doesn't delete anything it already did.</p>
               </div>
             </template>
             <template v-if="v.onHistoryTab">
               <div class="set-group">
                 <div class="set-row">
-                  <div class="set-label"><label class="set-title" for="retention">Delete chats after</label><span class="set-hint" id="retention-hint">Chats with no activity for this long are deleted.</span></div>
-                  <select id="retention" class="set-select" :disabled="v.settingsBusy" :value="v.retentionValue" @change="v.changeRetention" aria-describedby="retention-hint">
+                  <div class="set-label"><label class="set-title" for="retention">Delete chats after</label></div>
+                  <select id="retention" class="set-select" :disabled="v.settingsBusy" :value="v.retentionValue" @change="v.changeRetention">
                     <template v-for="(o, i_o) in v.retentionChoices" :key="i_o"><option :value="o.value">{{ o.label }}</option></template>
                   </select>
                 </div>
                 <div class="set-row">
-                  <div class="set-label"><span class="set-title">Delete all chats</span><span class="set-hint">Memories and settings stay.</span></div>
+                  <div class="set-label"><span class="set-title">Delete all chats</span></div>
                   <button type="button" class="set-btn danger" :disabled="!v.hasChats" @click="v.askDeleteChats" aria-haspopup="dialog">Delete all</button>
                 </div>
               </div>

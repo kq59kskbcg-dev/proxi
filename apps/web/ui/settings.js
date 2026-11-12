@@ -16,12 +16,12 @@ export const SETTINGS_TABS = [
 
 // The tools in the Tools tab, by the name the server uses. Icons are 24x24 stroke paths.
 export const TOOLS = [
-  { id: 'web_search', label: 'Search the web', hint: 'For current information.', icon: '<circle cx="12" cy="12" r="9"></circle><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"></path>' },
-  { id: 'search_docs', label: 'Search help center', hint: 'Answers about Proxi from the help center.', icon: '<path d="M4 5a2 2 0 0 1 2-2h12v16H6a2 2 0 0 0-2 2z"></path><path d="M4 19V5"></path>' },
-  { id: 'search_chats', label: 'Search your chats', hint: 'Look up things you talked about before.', icon: '<path d="M21 12a8 8 0 0 1-12 7l-5 1 1-4a8 8 0 1 1 16-4z"></path>' },
-  { id: 'save_memory', label: 'Save to memory', hint: 'Suggest things to remember. You approve each one.', icon: '<path d="M12 3a6 6 0 0 0-6 6c0 2 1 3 2 4v3h8v-3c1-1 2-2 2-4a6 6 0 0 0-6-6z"></path><path d="M9 20h6"></path>' },
-  { id: 'offer_message_to_lisandro', label: 'Talk to a person', hint: 'Offer to send us a message for you.', icon: '<rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="M3 7l9 6 9-6"></path>' },
-  { id: 'get_status', label: 'Check service status', hint: "See whether Proxi's tools are running.", icon: '<path d="M3 12h4l3-8 4 16 3-8h4"></path>' }
+  { id: 'web_search', label: 'Search the web', icon: '<circle cx="12" cy="12" r="9"></circle><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"></path>' },
+  { id: 'search_docs', label: 'Search help center', icon: '<path d="M4 5a2 2 0 0 1 2-2h12v16H6a2 2 0 0 0-2 2z"></path><path d="M4 19V5"></path>' },
+  { id: 'search_chats', label: 'Search your chats', icon: '<path d="M21 12a8 8 0 0 1-12 7l-5 1 1-4a8 8 0 1 1 16-4z"></path>' },
+  { id: 'save_memory', label: 'Save to memory', icon: '<path d="M12 3a6 6 0 0 0-6 6c0 2 1 3 2 4v3h8v-3c1-1 2-2 2-4a6 6 0 0 0-6-6z"></path><path d="M9 20h6"></path>' },
+  { id: 'offer_message_to_lisandro', label: 'Talk to a person', icon: '<rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="M3 7l9 6 9-6"></path>' },
+  { id: 'get_status', label: 'Check service status', icon: '<path d="M3 12h4l3-8 4 16 3-8h4"></path>' }
 ];
 
 const THEMES = [{ value: 'system', label: 'System' }, { value: 'light', label: 'Light' }, { value: 'dark', label: 'Dark' }];
@@ -221,7 +221,6 @@ export function createSettings(app) {
             ...t,
             on: !(s.settings?.disabledTools || []).includes(t.id),
             inputId: 'tool-' + t.id,
-            hintId: 'tool-hint-' + t.id,
             change: (e) => toggleTool(t.id, e.target.checked)
           })),
           // The page shows one spinner until both the settings and the memories have loaded.
