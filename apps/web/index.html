@@ -608,9 +608,9 @@
         <div aria-hidden="true" style="position: absolute; left: 0; right: 0; top: -40px; height: 40px; background: linear-gradient(to bottom, transparent, var(--surface)); pointer-events: none"></div>
       </template>
       <template v-if="v.showChips">
-        <div role="group" aria-label="Ideas to start with" :style="`max-width: ${v.composerMax}; margin: 0 auto 10px; display: flex; flex-direction: column; gap: 8px`">
+        <div role="group" aria-label="Ideas to start with" :style="`max-width: ${v.composerMax}; margin: 0 auto 10px; display: flex; flex-direction: column; align-items: flex-start; gap: 8px`">
           <template v-for="(ch, i_ch) in v.chips" :key="i_ch + ch.label">
-            <button class="starter" type="button" @click="ch.pick" style="width: 100%; border: 1px solid var(--border); background: var(--surface); border-radius: 14px; padding: 13px 16px; text-align: left; font-size: 14px; font-weight: 500; color: var(--text-2); cursor: pointer">{{ ch.label }}</button>
+            <button class="starter" type="button" @click="ch.pick" style="max-width: 100%; border: 1px solid var(--border); background: var(--surface); border-radius: 999px; padding: 0 16px; min-height: 40px; text-align: left; font-size: 14px; font-weight: 500; color: var(--text-2); cursor: pointer">{{ ch.label }}</button>
           </template>
         </div>
       </template>
