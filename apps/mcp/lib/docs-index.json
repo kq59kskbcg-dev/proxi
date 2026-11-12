@@ -1,0 +1,680 @@
+[
+ {
+  "page": "chats/attachments",
+  "title": "Attachments",
+  "heading": "",
+  "text": "Attach images, PDFs and text files to a message, and how they're checked.\n\nUse **Attach file**, or drag files onto the chat, to add them to a message."
+ },
+ {
+  "page": "chats/attachments",
+  "title": "Attachments",
+  "heading": "What you can attach",
+  "text": "| Type | Limits |\n|---|---|\n| Images | PNG, JPEG, GIF and WebP |\n| PDFs | Up to 20 pages |\n| Plain text files | Up to 200,000 characters |\n\nYou can attach up to 3 files per message, up to 3 MB in total.\n\nWord, Excel and PowerPoint files aren't supported yet. Export them as a PDF or paste the text."
+ },
+ {
+  "page": "chats/attachments",
+  "title": "Attachments",
+  "heading": "How files are checked",
+  "text": "Proxi checks what a file really contains, not just its name. Files that can't be read, such as damaged or password-protected PDFs, are refused with a message saying why.\n\n- **Text files** are redacted like messages: names, addresses, card numbers, IBANs, emails and phone numbers are removed before the model sees them.\n- **PDFs** can't be redacted. A PDF that looks like it contains a card number or IBAN isn't sent. Proxi tells you, so you can remove that part or paste the text instead. If a PDF has an email address or phone number, Proxi warns you that it is sent as it is.\n- **Images and scans** aren't checked, because Proxi can't read text inside them."
+ },
+ {
+  "page": "chats/attachments",
+  "title": "Attachments",
+  "heading": "What is stored",
+  "text": "Files aren't stored. They are used for the one request."
+ },
+ {
+  "page": "chats/incognito",
+  "title": "Incognito chats",
+  "heading": "",
+  "text": "Chats that aren't saved, traced, remembered or used for training.\n\nTurn on incognito with the dashed chat bubble at the top right of a new chat. It stays on for new chats until you turn it off."
+ },
+ {
+  "page": "chats/incognito",
+  "title": "Incognito chats",
+  "heading": "What incognito does",
+  "text": "- Isn't saved to your history, so it isn't listed or searchable.\n- Isn't traced for monitoring.\n- Doesn't save to [memory](/settings/memory) and doesn't use your saved memories.\n- Doesn't search your saved chats.\n- Isn't used to train AI models.\n- Disappears when you reload the page. Incognito itself stays on.\n- Can't be [shared](/chats/share).\n\n[Custom instructions](/settings/custom-instructions) still apply to incognito chats."
+ },
+ {
+  "page": "chats/incognito",
+  "title": "Incognito chats",
+  "heading": "Limits",
+  "text": "The reply is written by Claude through Anthropic's API, so Anthropic's own terms apply to that request."
+ },
+ {
+  "page": "chats/models",
+  "title": "Choose a model",
+  "heading": "",
+  "text": "Auto, Haiku, Sonnet and Opus, and how to pick one.\n\nProxi uses **Auto** unless you pick a model. Auto checks how hard each message is and answers with the model that fits:\n\n| Model | Best for |\n|---|---|\n| Haiku | Quick questions and fast answers |\n| Sonnet | Most everyday requests |\n| Opus | Complex work that needs careful reasoning |"
+ },
+ {
+  "page": "chats/models",
+  "title": "Choose a model",
+  "heading": "Pick a model yourself",
+  "text": "Use the model menu next to the send button. Choose **Auto** to go back to automatic selection."
+ },
+ {
+  "page": "chats/models",
+  "title": "Choose a model",
+  "heading": "See which model answered",
+  "text": "Each reply's steps show which model wrote it."
+ },
+ {
+  "page": "chats/send-messages",
+  "title": "Send messages",
+  "heading": "",
+  "text": "Send a message, stop, edit, regenerate, copy and rate replies, plus limits and what to do when a reply fails.\n\nType in the message box at the bottom of a chat and send it. Proxi replies in the language you write in. Each reply shows a short list of the steps it took, such as searching the help center or the web."
+ },
+ {
+  "page": "chats/send-messages",
+  "title": "Send messages",
+  "heading": "Suggested replies",
+  "text": "When a reply ends with a question you can answer in a word or two, such as \"Should I send it?\" or \"Which do you prefer, a short example or step by step?\", Proxi shows a card above the message box with 2 or 3 suggested answers and a short title that sums up the question. Tap a row to send it, or type your own answer in the box below. The card goes away when you start typing. Suggestions are written by a separate, smaller model that reads only the end of Proxi's reply, not your messages."
+ },
+ {
+  "page": "chats/send-messages",
+  "title": "Send messages",
+  "heading": "Stop a reply",
+  "text": "While Proxi is writing, use **Stop generating** to end the reply early."
+ },
+ {
+  "page": "chats/send-messages",
+  "title": "Send messages",
+  "heading": "Edit a message",
+  "text": "Use **Edit message** under one of your messages. On a computer it appears when you hover the message; on a phone it's always shown. The message, and everything after it, is removed from the chat and put back in the message box with its attachments. Change it and send it again."
+ },
+ {
+  "page": "chats/send-messages",
+  "title": "Send messages",
+  "heading": "Regenerate a reply",
+  "text": "Use **Regenerate** under a reply to replace that reply with a new answer to the same message. Replies can differ each time."
+ },
+ {
+  "page": "chats/send-messages",
+  "title": "Send messages",
+  "heading": "Copy",
+  "text": "Use **Copy message** or **Copy response** to copy the text to your clipboard."
+ },
+ {
+  "page": "chats/send-messages",
+  "title": "Send messages",
+  "heading": "Rate a reply",
+  "text": "Use the thumbs up or thumbs down under a reply to tell us whether it helped. Your rating is saved with the reply and used to find answers that need improving. Ratings aren't saved for [incognito chats](/chats/incognito), because those aren't traced."
+ },
+ {
+  "page": "chats/send-messages",
+  "title": "Send messages",
+  "heading": "Limits",
+  "text": "- A message can be up to 20,000 characters. The message box stops there, and tells you if you paste more.\n- A chat can hold up to 100 of your messages, each with Proxi's reply. When it's full, Proxi tells you before you send another, and you can start a new chat to keep going.\n- Proxi writes each reply from the most recent part of the chat: about your last 20 messages and its replies. Earlier messages are boiled down to a short summary, so Proxi keeps the main points of a long chat, but not every detail."
+ },
+ {
+  "page": "chats/send-messages",
+  "title": "Send messages",
+  "heading": "If something goes wrong",
+  "text": "When a reply fails, Proxi shows a message under your question with a **Try again** button. It says whose problem it is, so you know when your message was fine. **Try again** sends your last message again and replaces the failed reply. Anything Proxi had already written stays visible until you try again.\n\n| Message | What it means |\n|---|---|\n| Proxi is busy right now | Too many requests at once. Try again in a minute. |\n| Too many messages | You sent a lot of messages in a short time. Wait a few minutes. |\n| Your session expired | **Try again** signs you back in. If it keeps happening, reload the page. |\n| Couldn't reach Proxi | Your connection dropped. Check it, then try again. |\n| Something went wrong on our side | Your message is fine. Try again. |\n\nEach message ends with a short reference, such as \"Ref 400\". Quote it if you report a problem."
+ },
+ {
+  "page": "chats/share",
+  "title": "Share a chat",
+  "heading": "",
+  "text": "Turn on a public, read-only link for a chat, and turn it off again.\n\nUse **Share** at the top of a chat to turn on a public, read-only link, then **Copy link**."
+ },
+ {
+  "page": "chats/share",
+  "title": "Share a chat",
+  "heading": "What people see",
+  "text": "- Anyone with the link can read the chat, as Proxi saw it: redacted, with no name or account details.\n- Attachments show only as \"PDF attached\".\n- New messages in the chat also become visible through the link."
+ },
+ {
+  "page": "chats/share",
+  "title": "Share a chat",
+  "heading": "Stop sharing",
+  "text": "Choose **Stop sharing** in the Share menu or in **Settings**, or [delete the chat](/history/delete-chats). The link stops working straight away."
+ },
+ {
+  "page": "chats/share",
+  "title": "Share a chat",
+  "heading": "See all your shared links",
+  "text": "Settings lists every chat you're sharing in its **Shared links** tab. Each one shows when its link expires. Use the copy button to copy a link again, or the stop sharing button to turn it off. Choose a chat's title to open it."
+ },
+ {
+  "page": "chats/share",
+  "title": "Share a chat",
+  "heading": "When links expire",
+  "text": "A link stops working on the date shown in Settings, when its chat is due for [automatic deletion](/history/delete-chats#automatic-deletion), and it leaves the list. That date comes from your **Delete chats after** setting, counted from the chat's last message, so it moves later when you keep chatting in it."
+ },
+ {
+  "page": "chats/share",
+  "title": "Share a chat",
+  "heading": "Search engines",
+  "text": "Shared chats are kept out of search engines."
+ },
+ {
+  "page": "chats/share",
+  "title": "Share a chat",
+  "heading": "Incognito chats",
+  "text": "[Incognito chats](/chats/incognito) can't be shared."
+ },
+ {
+  "page": "history/delete-chats",
+  "title": "Delete your chats",
+  "heading": "Delete a chat",
+  "text": "Delete one chat or all of them, or let Proxi delete chats after 7, 30 or 90 days.\n\nOpen the chat, choose the chat title at the top, then **Delete chat**. If the chat was [shared](/chats/share), its link stops working."
+ },
+ {
+  "page": "history/delete-chats",
+  "title": "Delete your chats",
+  "heading": "Delete all chats",
+  "text": "Go to **Settings**, then the **History** tab, choose **Delete all** next to **Delete all chats**, and confirm. This deletes every chat in your history and their monitoring traces. Shared links stop working. Your memories, settings and privacy counts are kept. You can't undo this."
+ },
+ {
+  "page": "history/delete-chats",
+  "title": "Delete your chats",
+  "heading": "Automatic deletion",
+  "text": "Chats are deleted after 30 days without activity. To change this, go to **Settings**, then the **History** tab, and choose 7, 30 or 90 days next to **Delete chats after**."
+ },
+ {
+  "page": "history/delete-chats",
+  "title": "Delete your chats",
+  "heading": "What deleting covers",
+  "text": "Deleting a chat removes it from your history, and deletes its monitoring trace. To delete everything at once, [delete your account](/settings/delete-account)."
+ },
+ {
+  "page": "history/find-chats",
+  "title": "Find your chats",
+  "heading": "Recents",
+  "text": "Recents, View all and searching your chat history.\n\nThe sidebar lists your 10 most recent chats under **Recents**. Pick one to open it."
+ },
+ {
+  "page": "history/find-chats",
+  "title": "Find your chats",
+  "heading": "View all and search",
+  "text": "To see the rest, choose **View all**, use **Search chats** at the top of the sidebar, or press Ctrl K (⌘K on a Mac).\n\nWith nothing typed, search lists all your chats, newest first, grouped under Today, Yesterday, Previous 7 days and then by month. Hover a chat to see when it was last used. Type to find chats by title, then pick one to open it. Press Escape to close search."
+ },
+ {
+  "page": "history/find-chats",
+  "title": "Find your chats",
+  "heading": "What isn't listed",
+  "text": "[Incognito chats](/chats/incognito) aren't saved, so they don't show up in the sidebar or in search. Chats removed by [automatic deletion](/history/delete-chats#automatic-deletion) are gone.\n\nProxi can also search your saved chats for you while it answers. See [Search your chats](/tools/search-your-chats)."
+ },
+ {
+  "page": "how-proxi-is-tested",
+  "title": "Testing and quality",
+  "heading": "",
+  "text": "The layers of testing that keep Proxi's answers correct, safe and consistent.\n\nNo single test catches every problem. Each one has gaps, like slices of Swiss cheese, and a problem that slips through one layer is caught by another. Proxi uses four layers, from before a change ships to after real people use it. The approach follows [Anthropic's guidance on evaluating AI agents](https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents).\n\n| Layer | When | Needs a known answer? |\n|---|---|---|\n| Offline evals | Before every release | Yes, for most checks |\n| Online evals | On live traffic | No |\n| User feedback | Always | No |\n| Human calibration | Regularly | Uses human ratings as the reference |"
+ },
+ {
+  "page": "how-proxi-is-tested",
+  "title": "Testing and quality",
+  "heading": "1. Offline evals",
+  "text": "Offline evals run before a change goes live. They use datasets in Langfuse: test cases with an input and, where it makes sense, a known good answer. Any change to a prompt, the agent's code, a tool or the docs is tested this way, and a change that fails is blocked. Failures found later are added to these datasets, as described in section 5.\n\n  The small helpers that detect the language, suggest quick replies and decide which extra instructions a reply needs, such as for a request to speak with a person, are tested on messages with one correct answer. A Spanish question must be classified `es`, and a question about who built Proxi must not trigger an escalation. The output must match exactly (for suggested replies, the same options in any order), and every case must pass.\n\n  The shared instruction snippets for tone, privacy and each language are tested by their effect on replies. The Spanish snippet must produce a Spanish reply in the right form of address. The privacy snippet must stop Proxi from asking again for details that were redacted, such as an email or a card number.\n\n  A judge checks whether Proxi picked the right tool: the docs search for questions about Proxi itself, the web search only for current facts, and no tool for simple questions.\n\n  Some dataset items exist to test one tool end to end. The docs search items ask a common question for each help center page and run it through the real tools. They check that the right page was found and that the reply is grounded in it, using a reference answer.\n\nTen AI judges score every offline reply from 1 to 5: correctness, groundedness, privacy, tool use, resolution, completeness, clarification, tone, context relevance and context recall. Correctness, groundedness, privacy and tool use are strict, and every item must score at least 4. The others are judged on the average. How the judges themselves are tested is covered in section 4."
+ },
+ {
+  "page": "how-proxi-is-tested",
+  "title": "Testing and quality",
+  "heading": "2. Online evals",
+  "text": "Online evals score a sample of real replies after release. Live traffic has no known good answer, so only judges that work without one are used:\n\n- **Groundedness:** is every claim supported by the retrieved docs?\n- **Privacy:** does the reply ask for redacted details again or repeat personal data?\n- **Tool use:** was the right tool used for this question?\n- **Context relevance:** were the retrieved docs relevant to the question?\n- **Resolution:** did the reply solve the user's problem?\n- **Completeness:** did the reply cover every part of the question?\n- **Clarification:** did it ask a question only when needed?\n- **Tone:** is the reply warm, plain and concise?\n\nCorrectness and context recall need a reference answer, so they stay offline. Every live reply is traced in Langfuse with its messages (already redacted), tool calls, prompt version, detected language and whether the user asked for a person, and the online scores are saved on those traces. A drop in any score shows up before anyone has to report it."
+ },
+ {
+  "page": "how-proxi-is-tested",
+  "title": "Testing and quality",
+  "heading": "3. User feedback",
+  "text": "A thumbs up or down on a reply is saved as a score on its trace. Low-rated replies, and replies the online judges flagged, go to the review queue described below. Nothing is added to the datasets automatically: a reviewer decides whether each one is a real issue."
+ },
+ {
+  "page": "how-proxi-is-tested",
+  "title": "Testing and quality",
+  "heading": "4. Human calibration",
+  "text": "AI judges can be wrong, so they are checked against people. This is the only layer that tells us whether a judge can be trusted.\n\n  \n\n    Langfuse has an annotation queue. Replies land in it when a person gives a thumbs down, an online judge gives a low score, or a reply is picked at random.\n  \n\n  \n\n    A subject matter expert, such as someone who knows the privacy and security details, opens the queue and goes through the items one at a time. For each one they give the same scores the judges give and add a short comment. If it is a real issue, they write the answer the reply should have given and add the question to the offline datasets, so the same mistake is tested from then on. If it isn't, they dismiss it. A review session takes a few minutes.\n  \n\n  \n\n    Langfuse shows the expert's score next to the judge's score on every reply. A judge is trusted only when it agrees with the expert on nearly every reply, and it never rates a reply the expert marked bad as good.\n  \n\n  \n\n    If a judge disagrees, its prompt is corrected and tested again before its scores are used. The expert's corrected answers are added to the offline datasets.\n  \n\nEach expert reviews a small, regular batch, so the work stays light while the judges are kept honest."
+ },
+ {
+  "page": "how-proxi-is-tested",
+  "title": "Testing and quality",
+  "heading": "5. Real failures and regression evals",
+  "text": "Offline evals come in two kinds. **Capability evals** ask what Proxi can do well, and they start with a low pass rate that the team works to raise. **Regression evals** ask whether Proxi still handles what it handled before, and they are expected to pass every time. Every real failure ends up as a regression eval.\n\n  \n\n    A failure surfaces from user feedback, an online judge or a reviewer looking through the queue.\n  \n\n  \n\n    A reviewer decides whether it is a real issue. Nothing is added automatically, because a thumbs down or a low judge score does not always mean a failure.\n  \n\n  \n\n    The reviewer writes the correct answer and adds the question to the dataset for the part of Proxi that failed: the classifiers, the docs search or the general question set. It starts as a failing test.\n  \n\n  \n\n    The prompt, the code, the tool or the docs is changed until the new test passes, and the full suite still passes.\n  \n\n  \n\n    From then on the case is part of the regression set. It runs on every change, and any change that breaks it is blocked.\n  \n\nA capability eval whose pass rate reaches 100% moves into the regression set the same way. The regression set grows only with confirmed issues and proven wins, so a failing result always means something got worse."
+ },
+ {
+  "page": "index",
+  "title": "Welcome",
+  "heading": "",
+  "text": "Help articles for Proxi, an AI chat assistant with built-in privacy.\n\nWhat Proxi is, and how it's built.\n  \n\n  \n\n    Send messages, choose a model, attach files, go incognito and share.\n  \n\n  \n\n    Find your chats, and delete them yourself or automatically.\n  \n\n  \n\n    Web search, help center answers and service status.\n  \n\n  \n\n    Theme, memory and custom instructions.\n  \n\n  \n\n    What is stored, how sensitive data is redacted, and how attachments are handled.\n  \n\n  \n\n    Sign-in, access control and browser protections.\n  \n\n  \n\n    Offline and online evals, feedback and human review.\n  \n\n  \n\n    What's new in Proxi."
+ },
+ {
+  "page": "privacy-policy",
+  "title": "Privacy policy",
+  "heading": "",
+  "text": "How Proxi collects, uses and protects personal data.\n\n_Last updated: 1 November 2026_\n\nProxi is a personal project run by Lisandro Vaccaro, based in the Netherlands. This policy explains what personal data Proxi handles, why, and what rights you have. For any privacy question or request, email [dealing-lignite-1z@icloud.com](mailto:dealing-lignite-1z@icloud.com)."
+ },
+ {
+  "page": "privacy-policy",
+  "title": "Privacy policy",
+  "heading": "Who is responsible",
+  "text": "Lisandro Vaccaro is the data controller for personal data processed through Proxi."
+ },
+ {
+  "page": "privacy-policy",
+  "title": "Privacy policy",
+  "heading": "What we collect",
+  "text": "| Data | Examples | Where it comes from |\n|---|---|---|\n| Account data | Email address, name, profile picture | You, when you create an account |\n| Chat content | Your messages and Proxi's replies, after redaction, and web search queries Proxi makes for you | You, when you use the chat |\n| Attachments | Files you attach to a message | You. Files are processed for that one request and not stored |\n| Usage and monitoring data | Redacted messages, the model used, token counts, errors. Monitoring traces don't include your account ID | Generated when you use Proxi, except in incognito chats |\n| Memories | Short facts Proxi saved to remember about you, after redaction | Your chats, when you approve a memory in the Save to memory card |\n| Feedback | Thumbs up or down on a reply | You |\n| Messages to us | The summary shown in the card and the email address you enter | You, when you ask to talk to a person and choose Send, including in incognito chats |\n| Privacy page counts | How many emails, phone numbers, card numbers and IBANs were removed from your messages each day, not the details themselves | Generated when you use Proxi, except in incognito chats |\n| Technical data | IP address, browser details, request logs | Your device, when you visit |\n\nBefore a message is sent anywhere, Proxi automatically removes names, addresses, card numbers, IBANs, email addresses and phone numbers from it."
+ },
+ {
+  "page": "privacy-policy",
+  "title": "Privacy policy",
+  "heading": "Why we use it",
+  "text": "| Purpose | Legal basis |\n|---|---|\n| Creating your account and letting you sign in | Performance of a contract (providing the service you signed up for) |\n| Generating replies and saving your chats | Performance of a contract |\n| Keeping Proxi secure, preventing abuse and rate limiting | Legitimate interests (security of the service) |\n| Monitoring errors and improving answer quality | Legitimate interests (operating and improving the service) |\n| Recording your feedback | Legitimate interests (improving the service) |\n| Answering you when you ask to talk to a person | Performance of a contract |\n\nWe don't sell your data, use it for advertising, or make decisions about you that have legal or similarly significant effects."
+ },
+ {
+  "page": "privacy-policy",
+  "title": "Privacy policy",
+  "heading": "Who we share it with",
+  "text": "We use these service providers (subprocessors) to run Proxi. They process data only on our behalf.\n\n| Provider | Purpose | Location |\n|---|---|---|\n| Anthropic | Generates replies with Claude, and runs web searches (through its own search provider) | United States |\n| Clerk | Sign-in and account management | United States |\n| Neon | Database for saved chats | Cloud hosted |\n| Langfuse | Monitoring, tracing and feedback | European Union |\n| Resend | Sends us the messages you send from the chat | United States |\n| Vercel | Hosting | Functions run in Frankfurt, EU. Vercel is a US company |\n\nUnder its commercial terms, Anthropic does not use data sent through its API to train its models."
+ },
+ {
+  "page": "privacy-policy",
+  "title": "Privacy policy",
+  "heading": "International transfers",
+  "text": "Some providers are based in the United States, so your data may be transferred outside the EU and UK. Where this happens, we rely on the safeguards each provider offers, such as the EU-U.S. Data Privacy Framework or the European Commission's Standard Contractual Clauses."
+ },
+ {
+  "page": "privacy-policy",
+  "title": "Privacy policy",
+  "heading": "How long we keep it",
+  "text": "| Data | Retention |\n|---|---|\n| Account data | Until you delete your account. You can do this yourself in Settings |\n| Chats | Deleted automatically after 30 days without activity, or after 7 or 90 days if you choose that in Settings. Sooner if you delete the chat or your account. Deleting a chat or your account also deletes its monitoring traces |\n| Memories | Until you delete them in Settings |\n| Privacy page counts | Until you delete your account |\n| Attachments | Not stored. Used for one request only |\n| Monitoring traces and feedback | Deleted with their chat, or with your account. Otherwise kept as long as needed to operate and debug Proxi, and deleted on request |\n| Messages to us | Kept in our inbox as long as needed to answer you, and deleted on request. Resend keeps its own delivery logs |\n| Incognito chats | Not stored and not traced, except a message you choose to send us |\n| Technical logs | According to our hosting provider's standard log retention |"
+ },
+ {
+  "page": "privacy-policy",
+  "title": "Privacy policy",
+  "heading": "Your rights",
+  "text": "Depending on where you live, you have the right to:\n\n- Access the personal data we hold about you\n- Correct inaccurate data\n- Delete your data\n- Restrict or object to how we use it\n- Receive your data in a portable format\n- Complain to a data protection authority, such as the Dutch Autoriteit Persoonsgegevens\n\nTo use any of these rights, email [dealing-lignite-1z@icloud.com](mailto:dealing-lignite-1z@icloud.com). You can delete individual chats, or your whole account, yourself at any time in the app. We'll reply within one month."
+ },
+ {
+  "page": "privacy-policy",
+  "title": "Privacy policy",
+  "heading": "Security",
+  "text": "Data is encrypted in transit and at rest, sensitive data is redacted before it reaches the AI, and attachments are never stored. See [Security](/security) for details."
+ },
+ {
+  "page": "privacy-policy",
+  "title": "Privacy policy",
+  "heading": "Children",
+  "text": "Proxi is not intended for anyone under 16, and we don't knowingly collect their data."
+ },
+ {
+  "page": "privacy-policy",
+  "title": "Privacy policy",
+  "heading": "Changes",
+  "text": "If we change this policy, we'll update the date at the top. For significant changes, we'll let you know in the app."
+ },
+ {
+  "page": "privacy",
+  "title": "Privacy",
+  "heading": "",
+  "text": "How Proxi handles your data.\n\nThe AI provider never receives your name, email, account or IP address.\n\n  Names, addresses, card numbers, IBANs, emails and phone numbers are detected and removed before reaching the model.\n\n  Your chats and files are never used to train AI models, by Proxi or by Anthropic.\n\n  Chats are deleted after 30 days without activity. You can choose 7, 30 or 90 days in Settings, or [delete your account](/settings/delete-account) at any time.\n\n  All customer data is stored and processed in the EU."
+ },
+ {
+  "page": "privacy",
+  "title": "Privacy",
+  "heading": "How Proxi compares",
+  "text": "How Proxi handles chats next to the ChatGPT and Claude apps, based on their published help pages in October 2026. Policies change, so check theirs for the latest. Proxi uses Claude through Anthropic's API, which has its own terms: Anthropic does not train on customer content sent that way."
+ },
+ {
+  "page": "privacy",
+  "title": "Privacy",
+  "heading": "Normal chats",
+  "text": "| | Proxi | ChatGPT app | Claude app |\n|---|---|---|---|\n| Not used to train AI models by default | ✓ | ✗ | ✗ |\n| Anonymous to the model provider | ✓ | ✗ | ✗ |\n| Names, addresses, card numbers, IBANs, emails and phone numbers removed before the model | ✓ | ✗ | ✗ |\n\nThe ChatGPT and Claude apps use consumer chats for training unless you turn that off in your settings. They also tie your chats to your account. Proxi never sends your name, email, account or IP address to Anthropic, and only the redacted messages reach it, so Anthropic can't tell who is writing. Names and addresses you type are removed in the same way, so what reaches Anthropic doesn't say who you are."
+ },
+ {
+  "page": "privacy",
+  "title": "Privacy",
+  "heading": "Incognito chats",
+  "text": "| | Proxi | ChatGPT app | Claude app |\n|---|---|---|---|\n| Never used to train AI models | ✓ | ✓ | ✓ |\n| Kept out of your history and search | ✓ | ✓ | ✓ |\n| Kept out of memory | ✓ | ✓ | ✓ |\n| Kept out of the app's own records | ✓ | ✗ | ✗ |\n| Anonymous to the model provider | ✓ | ✗ | ✗ |\n| Names, addresses, card numbers, IBANs, emails and phone numbers removed before the model | ✓ | ✗ | ✗ |\n\nThe ChatGPT and Claude apps keep a copy of an incognito chat for up to 30 days for safety, even though it stays out of your history, memory and training. Proxi keeps none. The reply is written by Claude, so Anthropic's own terms still apply to that request, and Anthropic may keep API requests for a short time. Incognito chats never save to memory and don't use your saved memories.\n\nSources: OpenAI's [Temporary Chat](https://help.openai.com/en/articles/8914046-temporary-chat-in-chatgpt) and [data usage for consumers](https://help.openai.com/en/articles/7730893-data-usage-for-consumers) pages, and Anthropic's [incognito chats](https://support.claude.com/en/articles/12260368-use-incognito-chats) page."
+ },
+ {
+  "page": "privacy",
+  "title": "Privacy",
+  "heading": "Subprocessors",
+  "text": "These providers process data on Proxi's behalf.\n\n| Provider | Purpose | Data processed | Location |\n|---|---|---|---|\n| Anthropic | Generates replies with Claude, and runs web searches | Redacted messages, attachments and search queries | US |\n| Clerk | Sign-in and sessions | Account email and name | US |\n| Neon | Database for saved chats | Redacted chats | EU (Frankfurt) |\n| Langfuse | Monitoring, tracing and feedback | Redacted messages, usage and feedback | EU |\n| Resend | Emails us when you ask to talk to a person and choose Send | The summary shown in the card and the email address you enter | US |\n| Vercel | Hosting | App requests | EU (Frankfurt) |"
+ },
+ {
+  "page": "release-notes",
+  "title": "Release notes",
+  "heading": "November 12, 2026",
+  "text": "What's new in Proxi.\n\n**Reply cards and stacked starter questions**\n\n  - Suggested replies now appear in a card above the message box, with a title that sums up the question. Tap a row to send it.\n  - While the card shows, the message box reads \"Other response\". Type there to answer in your own words.\n  - The starter questions on a new chat are stacked and left aligned instead of scrolling sideways."
+ },
+ {
+  "page": "release-notes",
+  "title": "Release notes",
+  "heading": "November 6, 2026",
+  "text": "**Search your past chats, suggested replies, incognito stays on, Settings in tabs, turn tools off, and scroll while a reply arrives**\n\n  - Ask about something from an earlier chat and Proxi can look it up.\n  - Chats it used are listed under Sources, so you can open them.\n  - Only your own saved chats are searched. Incognito chats aren't.\n  - **Suggested replies.** When Proxi asks a question with a short answer, like yes or no, tap a suggestion instead of typing.\n  - **Incognito stays on.** Once you turn on incognito, new chats stay incognito until you turn it off.\n  - **Shared links in Settings.** Settings lists every chat you're sharing and when each link expires, so you can copy a link again or stop sharing.\n  - **Fewer outside requests.** Proxi's fonts and page code now load from Proxi itself, so your browser no longer contacts Google Fonts or jsDelivr.\n  - **Settings in tabs.** Settings now has five tabs: General, Memory, Shared links, Tools and History. On a computer they're listed on the left.\n  - **Turn tools off.** In the Tools tab, uncheck any tool you don't want Proxi to use, such as web search. With Save to memory off, Proxi still uses the memories you already saved.\n  - **Theme switch.** Choose System, Light or Dark with one tap instead of a dropdown.\n  - **Delete memories in one tap.** Each memory has an X to delete it.\n  - **Account details.** The Account section shows the name and email you're signed in with, and a Log out button.\n  - **Calmer delete buttons.** Delete all chats and Delete account are now red text buttons instead of a solid red button.\n  - **Common questions to start with.** The new chat screen suggests three common questions about Proxi, and tapping one asks it right away.\n  - **Scroll while a reply arrives.** You can scroll up to read earlier messages while a reply is still coming in, without being pulled back down."
+ },
+ {
+  "page": "release-notes",
+  "title": "Release notes",
+  "heading": "November 5, 2026",
+  "text": "**Faster replies and numbered citations, plus two small fixes**\n\n  - **Faster replies.** Replies now appear more than twice as fast.\n  - **Numbered citations.** Sources in a reply show as numbers that match the Sources list, and appear as soon as the text they belong to, not when the reply finishes.\n  - **Buttons wait for the reply.** Copy, rating and Regenerate appear once a reply has finished, not while it's still appearing.\n  - **Clearer cards when you skip.** Choosing Not now on a Message Lisandro or Save to memory card now turns it into a Not sent to Lisandro or Not saved to memory card, and in saved chats the card no longer comes back when you reload."
+ },
+ {
+  "page": "release-notes",
+  "title": "Release notes",
+  "heading": "November 4, 2026",
+  "text": "**Approve memories before they're saved, smoother replies, and simpler Settings**\n\n  - **You approve every memory.** When Proxi wants to remember something, it shows the exact text in a card under its reply. Choose Save to keep it, or Not now to skip it. See [Memory](/settings/memory).\n  - **Edit before saving.** You can change the text in the card before you save it.\n  - **Moving on means no.** If you send another message without choosing Save, nothing is saved.\n  - **Smoother replies.** Replies now fade in word by word at an even speed, including answers based on a help center or web search, which used to show up in large blocks.\n  - **Source icons show up.** Sources now show each site's icon instead of only a letter, and your browser no longer contacts an outside icon service to get them.\n  - **Close button on the right.** On a phone, the X that closes Settings is now at the top right.\n  - **Tidier layout.** Theme, Delete chats after and Delete all chats are now together in one list.\n  - **Clearer delete buttons.** Delete account is now the only red button in Settings."
+ },
+ {
+  "page": "release-notes",
+  "title": "Release notes",
+  "heading": "November 3, 2026",
+  "text": "**Talk to a person, a close button for Settings, and delete all chats**\n\n  - **Message us from the chat.** Ask to talk to a person and Proxi writes a short summary of what you need. Add your email in the card and choose Send, and we'll reply by email. See [Talk to a person](/tools/talk-to-a-person).\n  - **Settings has a close button.** Settings now opens on its own screen. Close it with the X to go back to your chat.\n  - **Delete all chats.** In Settings, you can now delete every chat in one step. Shared links stop working, and your memories and settings are kept.\n  - **Loading spinners.** The Privacy page shows its tabs right away, and the Privacy page, Settings and your chat list show a spinner while they load. If Settings can't load, it says so with a Try again button.\n  - Replies that use web search no longer show their sources twice."
+ },
+ {
+  "page": "release-notes",
+  "title": "Release notes",
+  "heading": "November 2, 2026",
+  "text": "**Long chats keep their context**\n\n  - **Longer memory in long chats.** In a long chat, Proxi now keeps a short summary of the earliest messages instead of forgetting them.\n  - **Clearer answers about redaction.** If you tell Proxi a card number or IBAN wasn't removed, it now explains that only valid numbers are recognized.\n  - **New Privacy page.** See how many personal details Proxi removed from your messages, this month and all time, by type. Open it from the menu, under New chat."
+ },
+ {
+  "page": "release-notes",
+  "title": "Release notes",
+  "heading": "November 1, 2026",
+  "text": "**Clearer errors, message and chat limits, web search fixed, and account deletion**\n\n  - **Web search fixed.** Replies that used a web search failed with \"That message could not be sent\". They now finish and cite the pages found.\n  - **Clearer error messages.** When a reply fails, Proxi says what happened and whose problem it is, with a **Try again** button that sends your message again. See [If something goes wrong](/chats/send-messages#if-something-goes-wrong).\n  - **Message length limit.** The message box stops at 20,000 characters, and tells you when you reach it.\n  - **Chat limit.** A chat holds up to 100 of your messages. Proxi tells you before you send another, so you can start a new chat.\n  - **Very long replies.** A chat no longer stops working after one of Proxi's replies is very long.\n  - **Delete your account.** In Settings, choose Delete under Account to remove your account, chats, memories and settings.\n  - **Deleted chats leave monitoring too.** When you delete a chat, or it is deleted automatically, its monitoring trace is deleted as well."
+ },
+ {
+  "page": "release-notes",
+  "title": "Release notes",
+  "heading": "October 30, 2026",
+  "text": "**Settings in the profile menu, search and sidebar polish, and source icons**\n\n  - **Settings moved.** Open Settings from your profile menu at the bottom of the sidebar. The gear button next to it is gone.\n  - **Simpler profile menu.** The menu now has Settings, Help Center and Logout. The Privacy and Security shortcuts are removed; both pages are still in the [help center](/privacy).\n  - **Fewer repeated source links.** When several lines in a row come from the same page, its source link appears once instead of after every line.\n  - **Search is ready to type.** Opening search puts the cursor in the field straight away.\n  - **Search groups chats by date.** Chats are listed under Today, Yesterday, Previous 7 days and then by month, instead of a date on every row.\n  - **Closer chats in the sidebar.** Less space between chats, so more fit on screen.\n  - **Even spacing in chats.** Your messages and Proxi's replies now have the same space between them. On phones, Edit and Copy always show under your messages.\n  - **Sidebar header stays put.** The logo and search stay at the top while you scroll your chats.\n  - **Sources look like search results.** Each source shows the site's icon, its address and a larger title.\n  - **Easier to read in dark mode.** The thinking label uses a lighter purple."
+ },
+ {
+  "page": "release-notes",
+  "title": "Release notes",
+  "heading": "October 29, 2026",
+  "text": "**Incognito chats, memory, custom instructions, search, Auto model and a shorter sidebar**\n\n  - **Incognito chats.** Temporary chats are now called incognito chats, with a new icon and a link to what they keep out.\n  - **Memory.** Ask Proxi to remember something and it will use it in future chats. Saved memories are listed in Settings, where you can delete them.\n  - **Custom instructions.** Tell Proxi about yourself and how you'd like it to respond, in Settings.\n  - **Search your chats.** A search field at the top of the sidebar, or Ctrl K (⌘K on a Mac), finds chats by title.\n  - **Steadier sidebar button.** The button that opens and closes the sidebar now stays in the same place.\n  - **Privacy policy and terms** moved from the account menu to Settings.\n  - **Auto model.** Auto is the new default: it picks Haiku, Sonnet or Opus for each message, depending on how hard it is. You can still choose a model yourself. See [Choose a model](/chats/models).\n  - **Calmer look.** Incognito chats and the model menu use quieter colors, and Settings is simpler.\n  - **A shorter sidebar.** Your 10 most recent chats are listed under Recents, with a **View all** link that opens search. The Skills button is gone, and the Privacy policy and Terms links now sit at the bottom of Settings.\n  - **Help center.** New pages on [using Proxi](/chats/send-messages), [how Proxi is tested](/how-proxi-is-tested) and [how Proxi's privacy compares](/privacy#how-proxi-compares) with other AI apps."
+ },
+ {
+  "page": "release-notes",
+  "title": "Release notes",
+  "heading": "October 28, 2026",
+  "text": "**Sharing, automatic deletion and web search**\n\n  - **Share a chat.** Turn on a public, read-only link for any chat, and turn it off again at any time.\n  - **Chats delete themselves.** Chats are deleted after 30 days without activity, or after 7 or 90 days if you choose that in Settings.\n  - **Theme.** Choose to match your device, or always use light or dark, in Settings.\n  - **Web search.** Proxi can search the web when an answer depends on current information, and cites the pages it used.\n  - **See what Proxi did.** Each reply shows a short timeline of the steps it took, like searching the help center or the web.\n  - **Temporary chats.** Start a chat that isn't saved or shown in your history.\n  - **Cleaner new chat screen,** with suggestions above a message box that grows as you type."
+ },
+ {
+  "page": "release-notes",
+  "title": "Release notes",
+  "heading": "October 27, 2026",
+  "text": "**Chat titles, card masking and legal pages**\n\n  - **Chat titles.** New chats get a short title based on your first message.\n  - **Card numbers masked.** Card numbers are shown as •••• •••• •••• 1234 in your own messages, as well as before they reach the AI.\n  - **Privacy policy and terms of service,** linked from the app and the help center.\n  - **Help center links.** Open the help center from your profile menu, and get back to Proxi from the help center."
+ },
+ {
+  "page": "security",
+  "title": "Security",
+  "heading": "",
+  "text": "How Proxi protects access to your chats.\n\nEach user can only send a limited number of messages per short period.\n\n  The browser only loads content from approved sources.\n\n  All traffic uses HTTPS.\n\n  Stored data is encrypted by our providers, with AES-256 for chats and traces.\n\n  Report security issues privately through [GitHub](https://github.com/kq59kskbcg-dev/proxi/security/advisories/new)."
+ },
+ {
+  "page": "settings/custom-instructions",
+  "title": "Custom instructions",
+  "heading": "",
+  "text": "Tell Proxi about yourself and how you'd like it to respond.\n\nIn **Settings**, on the **General** tab, under **Custom instructions**, tell Proxi about yourself and how you'd like it to respond, for example \"I'm a product designer. Keep answers short and use bullet points.\"\n\n- Up to 1,500 characters.\n- They apply to every chat, including [incognito chats](/chats/incognito), from your next message.\n- Save an empty box to remove them."
+ },
+ {
+  "page": "settings/delete-account",
+  "title": "Delete your account",
+  "heading": "",
+  "text": "Delete your account and everything Proxi stores about you.\n\nTo delete your account, go to **Settings**, then the **General** tab, find **Delete account** under **Account**, choose **Delete**, then confirm."
+ },
+ {
+  "page": "settings/delete-account",
+  "title": "Delete your account",
+  "heading": "What is deleted",
+  "text": "- Your chats, including the monitoring traces of those chats.\n- Your [memories](/settings/memory) and [settings](/settings/preferences), including your [custom instructions](/settings/custom-instructions).\n- The counts on your [Privacy page](/your-privacy).\n- Your sign-in account.\n\n[Shared](/chats/share) links stop working, because the chats behind them are deleted.\n\nYou can't undo this. After it finishes, you are signed out. To use Proxi again, create a new account."
+ },
+ {
+  "page": "settings/delete-account",
+  "title": "Delete your account",
+  "heading": "Other ways to delete",
+  "text": "To remove only some of your data, [delete a chat](/history/delete-chats) or a [memory](/settings/memory). You can also email us to exercise your rights, as described in the [privacy policy](/privacy-policy)."
+ },
+ {
+  "page": "settings/memory",
+  "title": "Memory",
+  "heading": "",
+  "text": "Short facts Proxi remembers across chats, and how to delete them.\n\nProxi can remember short facts about you across chats, such as how you like replies written or a project you're working on. Ask it directly, for example \"remember that I use metric units\", or it may suggest one when you share a lasting preference. Nothing is saved until you approve it."
+ },
+ {
+  "page": "settings/memory",
+  "title": "Memory",
+  "heading": "Approve a memory",
+  "text": "When Proxi wants to remember something, a **Save to memory** card appears under its reply with the exact text. You can change the text first.\n\n- Choose **Save** to save it. The card changes to **Saved to memory**.\n- Choose **Not now** to skip it. The card changes to **Not saved to memory**, and Proxi won't suggest it again in that chat.\n- If you send another message without choosing **Save**, it counts as **Not now**. Typing \"yes\" doesn't save it.\n\nThe card keeps its state when you come back to the chat."
+ },
+ {
+  "page": "settings/memory",
+  "title": "Memory",
+  "heading": "Manage memories",
+  "text": "Your saved memories are listed in the **Memory** tab of **Settings**. Select the X next to a memory to delete it.\n\nTo stop Proxi from suggesting memories, turn off **Save to memory** in the **Tools** tab. Memories you already saved are still used."
+ },
+ {
+  "page": "settings/memory",
+  "title": "Memory",
+  "heading": "Limits and privacy",
+  "text": "- Memories are redacted like messages, so names, addresses, card numbers, IBANs, emails and phone numbers are removed before they're saved, including text you change in the card.\n- You can keep up to 50 memories. They stay until you delete them.\n- [Incognito chats](/chats/incognito) never save to memory and don't use your saved memories."
+ },
+ {
+  "page": "settings/preferences",
+  "title": "Settings overview",
+  "heading": "",
+  "text": "Theme, custom instructions, memory, shared links, tools, chat deletion, account and legal pages.\n\nOpen **Settings** from your profile menu at the bottom of the sidebar. It has five tabs: General, Memory, Shared links, Tools and History. On a phone they're across the top; on a computer they're listed on the left. Select the X at the top right to close Settings.\n\n| Tab | Setting | What it does |\n|---|---|---|\n| General | Theme | Match your device, or always use light or dark |\n| General | [Custom instructions](/settings/custom-instructions) | Tell Proxi how to respond |\n| General | Log out | Log out of Proxi |\n| General | [Delete account](/settings/delete-account) | Delete your account and its data |\n| Memory | [Memory](/settings/memory) | See and delete what Proxi remembers |\n| Shared links | [Shared links](/chats/share#see-all-your-shared-links) | See every chat you're sharing, and stop sharing any of them |\n| Tools | [Tools](/tools/overview#turn-tools-off) | Choose which tools Proxi can use |\n| History | Delete chats after | Choose 7, 30 or 90 days. See [Delete your chats](/history/delete-chats) |\n| History | Delete all chats | Delete every chat at once. See [Delete your chats](/history/delete-chats) |\n\nThe [privacy policy](/privacy-policy) and [terms of service](/terms) are linked at the bottom of the General tab."
+ },
+ {
+  "page": "terms",
+  "title": "Terms of service",
+  "heading": "",
+  "text": "The terms for using Proxi.\n\n_Last updated: 27 October 2026_\n\nThese terms apply when you use Proxi, a personal project run by Lisandro Vaccaro. By creating an account or using Proxi, you agree to them. Questions go to [dealing-lignite-1z@icloud.com](mailto:dealing-lignite-1z@icloud.com)."
+ },
+ {
+  "page": "terms",
+  "title": "Terms of service",
+  "heading": "The service",
+  "text": "Proxi is an AI chat assistant built as a personal and portfolio project. It's provided free of charge, may change or stop at any time, and isn't guaranteed to be available."
+ },
+ {
+  "page": "terms",
+  "title": "Terms of service",
+  "heading": "Your account",
+  "text": "You must be at least 16 to use Proxi. Keep your sign-in details safe, and you're responsible for activity on your account. You can stop using Proxi at any time."
+ },
+ {
+  "page": "terms",
+  "title": "Terms of service",
+  "heading": "Acceptable use",
+  "text": "Don't use Proxi to:\n\n- Break the law or infringe anyone's rights\n- Create harmful, abusive or deceptive content\n- Try to get around its security, rate limits or redaction, or access other users' data\n- Overload or disrupt the service, including with automated requests\n- Share other people's personal data without a right to do so\n\nWe may suspend or close accounts that break these rules."
+ },
+ {
+  "page": "terms",
+  "title": "Terms of service",
+  "heading": "AI output",
+  "text": "Replies are generated by AI and can be wrong, incomplete or out of date. Check important information yourself, and don't rely on Proxi for legal, medical, financial or other professional advice."
+ },
+ {
+  "page": "terms",
+  "title": "Terms of service",
+  "heading": "Your content",
+  "text": "You keep ownership of what you send and of the replies you receive, to the extent the law allows. You give us permission to process your content only as needed to run Proxi, as described in the [Privacy policy](/privacy-policy). Use of Claude is also subject to Anthropic's usage policies."
+ },
+ {
+  "page": "terms",
+  "title": "Terms of service",
+  "heading": "No warranty",
+  "text": "Proxi is provided \"as is\", without warranties of any kind, to the extent the law allows."
+ },
+ {
+  "page": "terms",
+  "title": "Terms of service",
+  "heading": "Liability",
+  "text": "To the extent the law allows, we are not liable for indirect or consequential losses, or for any loss arising from your use of AI output. Nothing in these terms limits liability that can't be limited by law."
+ },
+ {
+  "page": "terms",
+  "title": "Terms of service",
+  "heading": "Changes",
+  "text": "We may update these terms. If we do, we'll change the date at the top, and continuing to use Proxi means you accept the new terms."
+ },
+ {
+  "page": "terms",
+  "title": "Terms of service",
+  "heading": "Governing law",
+  "text": "These terms are governed by the laws of the Netherlands."
+ },
+ {
+  "page": "tools/help-center-search",
+  "title": "Search help center",
+  "heading": "",
+  "text": "Proxi answers questions about itself from this help center.\n\nFor questions about Proxi itself, such as how privacy works or what a setting does, Proxi uses the `search_docs` tool to search this help center. The answer comes from the pages it finds, not from guesswork."
+ },
+ {
+  "page": "tools/help-center-search",
+  "title": "Search help center",
+  "heading": "What you see",
+  "text": "- A help center step in the reply's list of steps.\n- Numbered links to the pages used, and a Sources list."
+ },
+ {
+  "page": "tools/help-center-search",
+  "title": "Search help center",
+  "heading": "Tips",
+  "text": "- Ask in plain words, for example \"How long are my chats kept?\"\n- If the answer isn't in the help center, Proxi should say so.\n- To read the pages yourself, use the sidebar here."
+ },
+ {
+  "page": "tools/overview",
+  "title": "Tools overview",
+  "heading": "",
+  "text": "What tools are, when Proxi uses them, and how you can see what it did.\n\nBesides answering from what it already knows, Proxi can use tools. A tool is a small action the assistant can take while writing a reply. Proxi uses five:\n\n  \n\n    For current information.\n  \n\n  \n\n    Answers from this help center.\n  \n\n  \n\n    Things you talked about before.\n  \n\n  \n\n    Whether Proxi's tools are running.\n  \n\n  \n\n    Send us a message."
+ },
+ {
+  "page": "tools/overview",
+  "title": "Tools overview",
+  "heading": "Turn tools off",
+  "text": "All tools are on by default. To stop Proxi from using one, open **Settings**, go to the **Tools** tab and uncheck it. Your choice applies to all your chats, from your next message. Turning a tool off doesn't delete anything it already did, such as memories you saved."
+ },
+ {
+  "page": "tools/overview",
+  "title": "Tools overview",
+  "heading": "You don't have to ask",
+  "text": "Proxi decides when a tool helps. A simple question gets a direct answer with no tool."
+ },
+ {
+  "page": "tools/overview",
+  "title": "Tools overview",
+  "heading": "What tools can do",
+  "text": "Most tools are read-only: they look things up and can't change anything for you. The exception is [Talk to a person](/tools/talk-to-a-person), which sends us an email, and only after you choose Send."
+ },
+ {
+  "page": "tools/overview",
+  "title": "Tools overview",
+  "heading": "See what Proxi did",
+  "text": "Each reply shows a short list of its steps, such as searching the help center or the web."
+ },
+ {
+  "page": "tools/overview",
+  "title": "Tools overview",
+  "heading": "Sources",
+  "text": "When a tool finds pages, the reply links to them in numbered links and a Sources list, so you can check them. When several lines in a row come from the same page, the link appears once, after the first of them."
+ },
+ {
+  "page": "tools/overview",
+  "title": "Tools overview",
+  "heading": "Limits",
+  "text": "- Proxi can use tools in up to five rounds per reply.\n- When a tool fails, Proxi tells you.\n- What Proxi types into a tool is redacted first, like your messages. The email address you enter in the Talk to a person card isn't, so we can reply to you."
+ },
+ {
+  "page": "tools/search-your-chats",
+  "title": "Search your chats",
+  "heading": "",
+  "text": "Proxi can look up things you talked about in your earlier chats.\n\nProxi can look through your saved chats when you refer to something you talked about before, like \"the hotel we picked last week\".\n\n**What it searches.** Only your own saved chats, by title and message text. It doesn't search the chat you're in, and it can't see anyone else's chats. Chats you deleted, or that were removed by automatic deletion, are gone and can't be found.\n\n**Incognito.** In an incognito chat, Proxi doesn't search your past chats, and incognito chats are never saved, so they can't be found later.\n\n**See what it used.** The reply's steps show what Proxi searched for. Chats it used are listed under Sources with their title and date. Pick one to open it.\n\n**Limits.** Proxi finds up to 5 chats per search and reads short passages from them, not whole chats. Chats are stored with card numbers, IBANs, emails and phone numbers masked, so those details can't be found."
+ },
+ {
+  "page": "tools/service-status",
+  "title": "Check service status",
+  "heading": "",
+  "text": "Ask Proxi whether its tools are running.\n\nAsk Proxi whether it is up, and it can use the `get_status` tool to check. The tool reports the status of Proxi's tool server, its version and how long it has been running."
+ },
+ {
+  "page": "tools/service-status",
+  "title": "Check service status",
+  "heading": "What it covers",
+  "text": "It checks the tool server only. It doesn't test the chat app, sign-in or the AI provider, so a good result doesn't prove everything else is working."
+ },
+ {
+  "page": "tools/talk-to-a-person",
+  "title": "Talk to a person",
+  "heading": "",
+  "text": "Send us a message from the chat when you need a person.\n\nAsk Proxi to talk to a person and it offers to pass a message on to us. A card under the reply shows the short summary it wrote of what you need. Add your email address and choose **Send**, or choose **Not now** to skip it. Nothing is sent until you choose Send. If you skip it, the card changes to **Not sent to Lisandro**. To send a message later, ask again."
+ },
+ {
+  "page": "tools/talk-to-a-person",
+  "title": "Talk to a person",
+  "heading": "What we receive",
+  "text": "We get the summary by email, with your address so we can reply. The summary is redacted like your messages. Your address is used only for that email and isn't saved with your chat."
+ },
+ {
+  "page": "tools/talk-to-a-person",
+  "title": "Talk to a person",
+  "heading": "Saved and incognito chats",
+  "text": "In a saved chat, the card stays with the reply and shows whether you sent it or skipped it. You can also send a message from an incognito chat, which isn't saved."
+ },
+ {
+  "page": "tools/talk-to-a-person",
+  "title": "Talk to a person",
+  "heading": "Limits",
+  "text": "- You can only send a few messages in a short time.\n- If sending isn't available, the card tells you and gives you an email address to write to instead."
+ },
+ {
+  "page": "tools/web-search",
+  "title": "Search the web",
+  "heading": "",
+  "text": "How Proxi looks up current information on the web.\n\nProxi uses the `web_search` tool when an answer depends on current or changing information, such as news, prices, releases or events. It doesn't search the web for questions it can answer from its own knowledge, or for questions about Proxi itself. Those use [Search help center](/tools/help-center-search)."
+ },
+ {
+  "page": "tools/web-search",
+  "title": "Search the web",
+  "heading": "What you see",
+  "text": "- A search step in the reply's list of steps.\n- The answer, with numbered links to the pages it used, and a Sources list."
+ },
+ {
+  "page": "tools/web-search",
+  "title": "Search the web",
+  "heading": "How it works",
+  "text": "The search runs through Claude with Anthropic's web search tool. The reply is based on what the pages say, so check the sources for anything important."
+ },
+ {
+  "page": "tools/web-search",
+  "title": "Search the web",
+  "heading": "Privacy",
+  "text": "Your search query is redacted like your messages, and doesn't include your name, email or account."
+ },
+ {
+  "page": "what-is-proxi",
+  "title": "About",
+  "heading": "What is Proxi",
+  "text": "What Proxi is, and how it's built.\n\nProxi is an AI chat assistant with built-in privacy. It sits between you and the AI model, Claude, and removes who you are before your message is sent. Your name, email, account and IP address are never shared with the model provider, and personal details in your messages, such as names, addresses, card numbers, IBANs, emails and phone numbers, are detected and replaced before they reach the model. You get the answers of a frontier model with much greater privacy. Proxi is built and maintained by one person."
+ },
+ {
+  "page": "what-is-proxi",
+  "title": "About",
+  "heading": "How it's built",
+  "text": "Sensitive data is kept out of the conversation from the start.\n\n  - Privacy by default, with sensitive data redacted before the AI.\n  - Data minimization, with no files stored and only redacted history.\n  - Least privilege, with read-only tools and approved sources only.\n  - Defense in depth, from encryption in transit and at rest to rate limits.\n\n  Proxi discovers and calls tools through its own MCP server, instead of having them hard-coded.\n\n  - Tools for searching the web, searching the Proxi docs and checking service status\n  - Tools are marked read-only, so the agent can't change anything\n  - Up to five tool rounds per reply, with clear errors when a tool fails\n\n  Answers about Proxi come from retrieved documentation, with links to the sources used.\n\n  - Relevant passages retrieved from this help center\n  - Every answer cites the pages it drew on\n\n  Replies are traced in Langfuse, so behavior can be inspected and improved. Incognito chats are not traced.\n\n  - Traces of each reply, including every tool call, with redacted messages and no name or account details\n  - The system prompt is managed and versioned in Langfuse\n  - User feedback recorded as scores on each reply"
+ },
+ {
+  "page": "your-privacy",
+  "title": "Your privacy page",
+  "heading": "",
+  "text": "See how many personal details Proxi removed from your messages.\n\nOpen **Privacy** in the menu, under **New chat**, to see how many personal details Proxi removed from your messages before sending them to Claude."
+ },
+ {
+  "page": "your-privacy",
+  "title": "Your privacy page",
+  "heading": "What it shows",
+  "text": "- The total for this month or all time\n- A count for each type: emails, phone numbers, card numbers and IBANs\n- A chart by week (this month) or by month (all time)"
+ },
+ {
+  "page": "your-privacy",
+  "title": "Your privacy page",
+  "heading": "What's counted",
+  "text": "- Only totals by type and day are saved, never the details themselves.\n- Counting started in November 2026. Earlier messages aren't counted.\n- Incognito chats aren't counted.\n- Deleting a chat doesn't change the counts. Deleting your account deletes them."
+ }
+]

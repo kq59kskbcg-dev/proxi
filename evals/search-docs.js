@@ -6,7 +6,7 @@
 // Langfuse, and the gate decides pass or fail.
 //
 // Needs: LANGFUSE_PUBLIC_KEY, LANGFUSE_SECRET_KEY (and LANGFUSE_BASE_URL outside the EU cloud),
-// ANTHROPIC_API_KEY, MINTLIFY_API_KEY, and `npm ci` run in apps/mcp.
+// ANTHROPIC_API_KEY, and `npm ci` run in apps/mcp.
 // Optional: EVAL_MODEL (chat model, default "Sonnet 5.5"), EVAL_JUDGE_MODEL, EVAL_JUDGE_LABEL
 // (label of the judge prompts, default "latest"), EVAL_RUN_NAME.
 
@@ -24,7 +24,7 @@ import { evaluateGate } from './lib/gate.js';
 const DATASET = 'evals/search-docs';
 const mcpDir = fileURLToPath(new URL('../apps/mcp/', import.meta.url));
 
-const missing = ['LANGFUSE_PUBLIC_KEY', 'LANGFUSE_SECRET_KEY', 'ANTHROPIC_API_KEY', 'MINTLIFY_API_KEY'].filter((name) => !process.env[name]?.trim());
+const missing = ['LANGFUSE_PUBLIC_KEY', 'LANGFUSE_SECRET_KEY', 'ANTHROPIC_API_KEY'].filter((name) => !process.env[name]?.trim());
 if (missing.length) {
   console.error(`Set ${missing.join(', ')} first.`);
   process.exit(2);

@@ -1,7 +1,7 @@
 import { timingSafeEqual } from 'node:crypto';
 import { McpServer, createMcpHandler } from '@modelcontextprotocol/server';
 import * as z from 'zod';
-import { searchDocs, DocsSearchError } from './mintlify.js';
+import { searchDocs, DocsSearchError } from './docs-search.js';
 import { searchWeb, webSearchConfigured, WebSearchError } from './websearch.js';
 import { sendEscalationEmail, emailConfigured, EmailError, EMAIL, SUMMARY_MAX } from './resend.js';
 

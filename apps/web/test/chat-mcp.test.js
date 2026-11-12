@@ -16,7 +16,6 @@ if (!ready && process.env.CI) {
 const requests = [];
 let script = [];
 let fakeClaude;
-let fakeMintlify;
 let fakeResend;
 const emails = [];
 let mcpServer;
@@ -64,12 +63,6 @@ before(async () => {
   process.env.ANTHROPIC_BASE_URL = `http://127.0.0.1:${fakeClaude.address().port}`;
   process.env.ANTHROPIC_API_KEY = 'test-key';
 
-  fakeMintlify = http.createServer((req, res) => {
-    res.writeHead(200, { 'content-type': 'application/json' });
-    res.end(JSON.stringify([{ path: 'privacy', content: PRIVACY_TEXT, metadata: { title: 'Privacy' } }]));
-  });
-  await listen(fakeMintlify);
-
   fakeResend = http.createServer((req, res) => {
     let raw = '';
     req.on('data', (chunk) => { raw += chunk; });
@@ -89,8 +82,6 @@ before(async () => {
     env: {
       ...process.env,
       PORT: String(port),
-      MINTLIFY_API_KEY: 'mint_dsc_test',
-      MINTLIFY_API_URL: `http://127.0.0.1:${fakeMintlify.address().port}/discovery/v1`,
       MINTLIFY_DOCS_URL: 'https://proxi.mintlify.site',
       RESEND_API_KEY: 're_test',
       SUPPORT_EMAIL_TO: 'owner@example.com',
@@ -106,12 +97,10 @@ before(async () => {
 
 after(() => {
   fakeClaude?.close();
-  fakeMintlify?.close();
   fakeResend?.close();
   mcpServer?.kill();
 });
 
-const PRIVACY_TEXT = 'Card numbers, IBANs, emails and phone numbers are masked before anything reaches the model or the logs.';
 const skip = !ready && 'run npm install in apps/mcp first';
 
 async function chat(question, extra = {}, bearer = token) {
@@ -165,14 +154,14 @@ test('search_docs results come back citable and the reply cites them', { skip },
   assert.equal(result.type, 'tool_result');
   const hit = result.content[0];
   assert.equal(hit.type, 'search_result');
-  assert.equal(hit.source, 'https://proxi.mintlify.site/privacy');
-  assert.equal(hit.title, 'Privacy');
+  assert.match(hit.source, /^https:\/\/proxi\.mintlify\.site\/\S+$/);
+  assert.ok(hit.title);
   assert.deepEqual(hit.citations, { enabled: true });
-  assert.equal(hit.content[0].text, PRIVACY_TEXT);
+  assert.ok(hit.content[0].text.length > 0);
 
   const text = events.filter((e) => e.type === 'text').map((e) => e.text).join('');
-  assert.match(text, /Proxi masks card numbers\. \[\[1\]\]\(https:\/\/proxi\.mintlify\.site\/privacy\)/);
-  assert.match(text, /\*\*Sources\*\*\n1\. \[Privacy\]\(https:\/\/proxi\.mintlify\.site\/privacy\)$/);
+  assert.ok(text.includes(`Proxi masks card numbers. [[1]](${hit.source})`));
+  assert.ok(text.endsWith(`**Sources**\n1. [${hit.title}](${hit.source})`));
 });
 
 test('a citation marker is shown only when the cited source changes', { skip }, async () => {
