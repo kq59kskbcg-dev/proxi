@@ -2,6 +2,20 @@
 
 AI chat assistant built on Claude, deployed on Vercel, with a Mintlify help center.
 
+## Try it live
+
+- App: https://proxi-three.vercel.app
+- Help center: https://proxi.mintlify.site
+
+Open the app and sign in (or create an account) with Clerk. The chat only shows to signed-in users. Then try:
+
+1. Ask a question about Proxi, such as "How does Proxi handle my data?". The reply cites pages from the help center.
+2. Ask something recent, such as "What's the latest news about Claude?". Proxi searches the web and cites its sources.
+3. Type a fake email address or phone number in a message. It is masked before it reaches the model.
+4. Attach an image, PDF or text file (up to 3 files and 3 MB per message).
+
+To run the tests or the app yourself, see [Tests](#tests) and [MCP server](#mcp-server) below.
+
 ## Layout
 
 | Path | What it is | Deployed by |
@@ -59,7 +73,6 @@ The web tests include an end-to-end check: the chat endpoint discovers `get_stat
 - `get_status`: returns `{ "status": "ok", "service", "version", "uptimeSeconds", "time" }`
 - `search_docs`: searches the Mintlify docs through Mintlify's search API and returns matching passages with their title and link. The chat turns them into citations: numbered links in the reply and a **Sources** list.
 - `web_search`: asks Claude (Sonnet 5.5) with Anthropic's web search tool on, and returns a short answer plus the cited pages as citable results.
-- `send_escalation_email`: emails Lisandro a summary of what someone needs through Resend, with the address they typed as Reply-To. Only the web app calls it, when someone presses Send on the "Message Lisandro" card (`POST /api/contact`). The web app never offers it to the model, so the address doesn't reach the model. The card itself comes from `offer_message_to_lisandro`, a tool the web app offers the model once someone in the chat asked for a person (`apps/web/lib/contact.js`).
 
 MCP server environment variables (set in the `proxi-mcp` Vercel project):
 
@@ -71,9 +84,6 @@ MCP server environment variables (set in the `proxi-mcp` Vercel project):
 | `MINTLIFY_DOMAIN` | Optional: the docs domain Mintlify's API expects. Defaults to `proxi.mintlify.site` |
 | `MINTLIFY_DOCS_URL` | Optional: base URL for citation links. Defaults to `https://proxi.mintlify.site` |
 | `MINTLIFY_SCORE_THRESHOLD` | Optional: drop results below this relevance score (0 to 1) |
-| `RESEND_API_KEY` | Resend API key, used by `send_escalation_email`. Without it (or `SUPPORT_EMAIL_TO`), the tool isn't offered and the card isn't shown |
-| `SUPPORT_EMAIL_TO` | Where escalation emails go. Without a verified domain in Resend, this must be the address the Resend account was created with |
-| `RESEND_FROM` | Optional: the sender, once a domain is verified in Resend. Defaults to `Proxi <onboarding@resend.dev>` |
 
 Run it locally:
 
