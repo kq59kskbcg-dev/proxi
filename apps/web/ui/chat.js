@@ -12,6 +12,7 @@ import { ACCENT } from './store.js';
 import { KIND_LABELS } from './files.js';
 import { declinePending, memoryCard, MEMORY_ERRORS, MEMORY_MAX } from './memory-card.js';
 import { visibleSuggestions } from './reply-chips.js';
+import { pinTarget, spacerHeight, hasMoreBelow, endTarget } from './pin.js';
 import { MAX_MESSAGE_CHARS, MAX_CHAT_MESSAGES, MESSAGE_TOO_LONG, CHAT_FULL, CHAT_TOO_LARGE, RECOVER_MS, OWN_CARDS } from './limits.js';
 
 export const chatState = {
@@ -25,7 +26,8 @@ export const chatState = {
   chatMenu: false,
   contactForms: {}, // message id -> what's typed in its "Message Lisandro" card: { email, error, sending, sentTo }
   memoryForms: {}, // message id -> its "Save to memory" card: { text, error, saving, duplicate }
-  suggestions: null // suggested replies for the latest reply: { convId, msgId, options }. Not saved.
+  suggestions: null, // suggested replies for the latest reply: { convId, msgId, options }. Not saved.
+  moreBelow: false // the list continues below what's visible, so the down arrow shows
 };
 
 // The same check as the server's, so a typo is caught before sending.
@@ -64,6 +66,9 @@ export function createChat(app) {
   let messageCount = 0;
   let atBottom = true;
   let lastTop = 0;
+  let spacerEl = null; // the empty space under the latest exchange, so a pinned message can sit at the top
+  let spacerPx = 0;
+  let pinned = false; // the list pins the latest message to the top and doesn't follow the reply
   let reveal = null; // the buffer showing the reply on its way, word by word
   let liveId = null; // that reply's message, whose new words fade in
   const fades = createFadeTracker();
@@ -418,9 +423,9 @@ export function createChat(app) {
     }
   }
 
-  // Follow new content only while the reader is at the bottom. Opening a chat or
-  // sending a message always jumps to the bottom; a reply that arrives while
-  // someone is reading older messages does not pull them away.
+  // A message you send is pinned to the top of the list, and the reply fills the space below it, so
+  // nothing moves while the reply is written. A chat you open starts at its latest message. In both,
+  // a reply that arrives while someone is reading older messages does not pull them away.
   function followBottom() {
     const el = msgEl;
     if (!el) return;
@@ -428,16 +433,30 @@ export function createChat(app) {
     const messages = conv ? conv.messages : [];
     const last = messages[messages.length - 1];
     const now = s.view + ':' + s.activeId;
+    const changed = messages.length !== messageCount;
+    // A message sent or a reply asked for again (Regenerate, Try again): the chat is waiting for an answer.
+    const asked = !!last && last.role === 'user' && changed && s.typing && s.typingConv === conv.id;
     if (now !== opened) {
       opened = now;
       atBottom = true;
       lastTop = 0;
-    } else if (messages.length !== messageCount && last && last.role === 'user') {
+      pinned = false;
+    } else if (changed && messages.length < messageCount) {
+      // Messages were removed (Edit): back to the end of the chat.
+      pinned = false;
       atBottom = true;
       lastTop = 0;
     }
     messageCount = messages.length;
+    if (asked) {
+      pinned = true;
+      measure();
+      el.scrollTo({ top: pinTarget(pinMetrics(el)), behavior: prefersReducedMotion() ? 'auto' : 'smooth' });
+      return;
+    }
+    if (pinned) return measure();
     stick(el);
+    measure();
   }
 
   // Scroll to the bottom, unless the reader has moved up since we last put them there.
@@ -447,6 +466,53 @@ export function createChat(app) {
     if (!atBottom) return;
     el.scrollTop = el.scrollHeight;
     lastTop = el.scrollTop;
+  }
+
+  // Where the latest message and the end of the content are, in the list's scrollable content.
+  function pinMetrics(el) {
+    const origin = el.getBoundingClientRect().top - el.scrollTop;
+    const users = el.querySelectorAll('.umsg');
+    const latest = users[users.length - 1];
+    const msgs = el.querySelector('.msgs');
+    const style = getComputedStyle(el);
+    return {
+      clientHeight: el.clientHeight,
+      padTop: parseFloat(style.paddingTop) || 0,
+      padBottom: parseFloat(style.paddingBottom) || 0,
+      pinnedTop: latest ? latest.getBoundingClientRect().top - origin : 0,
+      contentEnd: msgs ? msgs.getBoundingClientRect().bottom - origin : el.scrollHeight
+    };
+  }
+
+  // Sizes the spacer so the pinned message can sit at the top, and shows the down arrow when the
+  // content goes below what's visible. Runs after each change, and is cheap when nothing is pinned.
+  function measure() {
+    const el = msgEl;
+    if (!el || !spacerEl) return;
+    if (pinned) {
+      spacerPx = spacerHeight(pinMetrics(el));
+      spacerEl.style.height = spacerPx + 'px';
+    } else if (spacerPx) {
+      spacerPx = 0;
+      spacerEl.style.height = '0px';
+    }
+    updateMore();
+  }
+
+  function updateMore() {
+    const el = msgEl;
+    if (!el) return;
+    const padBottom = parseFloat(getComputedStyle(el).paddingBottom) || 0;
+    const more = hasMoreBelow({ scrollTop: el.scrollTop, clientHeight: el.clientHeight, contentEnd: el.scrollHeight - spacerPx - padBottom });
+    if (more !== s.moreBelow) app.setState({ moreBelow: more });
+  }
+
+  // The down arrow: scrolls to the end of the latest reply.
+  function toLatest() {
+    const el = msgEl;
+    if (!el) return;
+    const padBottom = parseFloat(getComputedStyle(el).paddingBottom) || 0;
+    el.scrollTo({ top: endTarget({ contentEnd: el.scrollHeight - spacerPx - padBottom, padBottom, clientHeight: el.clientHeight }), behavior: prefersReducedMotion() ? 'auto' : 'smooth' });
   }
 
   // The reply on its way is rendered again for each word; this fades in only the newest words.
@@ -462,13 +528,18 @@ export function createChat(app) {
   const msgRef = (el) => {
     if (el === msgEl) return;
     msgEl = el;
-    // When the list's height changes (keyboard, attachments, rotation), stay at the bottom if we were there.
+    // When the list's height changes (keyboard, rotation, the suggestions row), or its content does
+    // (a late image or font), stay at the bottom if we were there, or fit the spacer.
     if (msgObserver) msgObserver.disconnect();
+    if (!el && s.moreBelow) app.setState({ moreBelow: false });
     if (el && window.ResizeObserver) {
-      msgObserver = new ResizeObserver(() => stick(el));
+      msgObserver = new ResizeObserver(() => { if (!pinned) stick(el); measure(); });
       msgObserver.observe(el);
+      const content = el.querySelector('.msgs');
+      if (content) msgObserver.observe(content);
     }
   };
+  const spacerRef = (el) => { spacerEl = el; spacerPx = 0; };
   // Any move up stops following, even a small one, so a reply that is still arriving
   // doesn't pull the reader back down. Coming back near the bottom follows again.
   const onMsgScroll = () => {
@@ -480,6 +551,7 @@ export function createChat(app) {
     else if (top < lastTop) atBottom = false;
     else if (gap < 80) atBottom = true;
     lastTop = top;
+    updateMore();
   };
 
   // A reply's sources can be the user's own chats (from search_chats). Those open here, in Proxi.
@@ -614,6 +686,10 @@ export function createChat(app) {
           };
         }
       },
+
+      // The spacer under the messages and the down arrow, apart from the messages so scrolling
+      // doesn't rebuild them.
+      latestArrow: () => ({ spacerRef, moreBelow: s.moreBelow, toLatest }),
 
       // Suggested replies above the message box. Tapping one sends it.
       replyChips: () => {
